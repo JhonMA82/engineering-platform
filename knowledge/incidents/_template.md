@@ -1,12 +1,10 @@
-# Incidente: título
-
+# Incidente
 ## Síntoma
-## Versiones/contexto
+## Contexto/versiones
 ## Impacto
 ## Causa raíz
-## Diagnóstico
 ## Solución
 ## Verificación
 ## Regression test
 ## Prevención
-## ¿Actualizar starter/pack/harness?
+## ¿Afecta starter/pack/harness?

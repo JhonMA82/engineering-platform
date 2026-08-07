@@ -1,5 +1,5 @@
 # Security
 
-Cambios sensibles: auth, authorization, tenancy, secrets, migrations, API keys, files, webhooks, CI/CD y AI tools.
+Cambios en auth, authorization, tenancy, migrations, webhooks, files y secrets requieren revisión adicional y pruebas específicas.
 
-Reglas: deny by default, secretos fuera de repo, dependencias fijadas, tenant isolation tests, audit de permisos y regression tests para vulnerabilidades corregidas.
+Ejemplo: una mejora de RBAC debe incluir caso permitido + caso denegado; no basta con probar el botón de UI.

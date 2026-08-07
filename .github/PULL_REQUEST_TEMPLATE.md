@@ -1,18 +1,16 @@
-## Change type
-- [ ] Catalog
-- [ ] Golden Path
-- [ ] Feature Pack
-- [ ] Harness/Skill
-- [ ] Knowledge
-- [ ] Upgrade
-- [ ] Docs
-- [ ] Security
+## Tipo
+- [ ] project-independent platform change
+- [ ] docs/example
+- [ ] golden path
+- [ ] feature pack
+- [ ] harness/skill
+- [ ] knowledge
+- [ ] upgrade
 
-## Why
-## Impact on existing projects
-## Validation
-- [ ] `python scripts/validate_platform.py`
-- [ ] Relevant evals
-- [ ] ADR if required
+## Ejemplo incluido
+Describe un caso concreto que un junior pueda seguir.
+
+## Validación
+- [ ] python scripts/validate_platform.py
+- [ ] ADR si aplica
 - [ ] CHANGELOG
-- [ ] Upgrade recipe if breaking

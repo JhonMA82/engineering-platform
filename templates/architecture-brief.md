@@ -1,18 +1,15 @@
 # Architecture Brief
 
 ## Problema
-## Golden Path
-## Por qué
+## Golden Path propuesto
+## Razón
 ## Alternativas descartadas
 ## Apps
 ## Backend
-## Persistencia
+## DB
 ## Auth
-## Single/multi-tenant
+## Tenancy
 ## Features
-## Integraciones
-## Deployment
 ## Riesgos
-## ADRs
-## Gates adicionales
-## Review trigger
+## Gates extra
+## Trigger para revisar la decisión

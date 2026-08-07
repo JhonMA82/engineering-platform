@@ -1,7 +1,12 @@
 # Contributing
 
-Todo cambio debe responder: **¿mejora una capacidad repetible de la consultoría o solo resuelve un proyecto específico?**
+Un cambio de plataforma debe ser reusable, probado y sin detalles de cliente.
 
-Flujo: issue → clasificar → ADR si cambia arquitectura → cambio mínimo → validar → changelog → impacto/upgrade → revisión.
-
-Una solución entra a plataforma solo si es reusable, probada, sin datos del cliente, con owner y estrategia de actualización.
+Checklist:
+- ¿es project change o platform change?
+- ¿requiere ADR?
+- ¿requiere eval?
+- ¿rompe proyectos existentes?
+- ¿requiere upgrade recipe?
+- ¿incluye ejemplo entendible por un junior?
+- ¿actualiza CHANGELOG?

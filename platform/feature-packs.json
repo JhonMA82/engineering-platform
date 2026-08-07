@@ -3,125 +3,84 @@
   "features": [
     {
       "id": "auth",
-      "status": "planned",
       "requires": [
         "database"
       ],
-      "applies_to": [
-        "hono-api"
-      ]
+      "example": "Usuarios de una escuela inician sesión."
     },
     {
       "id": "audit",
-      "status": "planned",
       "requires": [
         "database"
       ],
-      "applies_to": [
-        "hono-api",
-        "speedpy"
-      ]
+      "example": "Registrar quién aprobó una solicitud."
     },
     {
       "id": "rbac",
-      "status": "planned",
       "requires": [
         "auth"
       ],
-      "applies_to": [
-        "hono-api"
-      ]
+      "example": "DIRECTOR aprueba; CAPTURISTA crea."
     },
     {
       "id": "abac",
-      "status": "planned",
       "requires": [
         "rbac"
       ],
-      "applies_to": [
-        "hono-api"
-      ]
+      "example": "Capturista solo edita solicitudes propias en borrador."
     },
     {
       "id": "multitenancy",
-      "status": "planned",
       "requires": [
         "auth",
         "database",
         "rbac",
         "audit"
       ],
-      "applies_to": [
-        "hono-api"
-      ]
+      "example": "Una misma instalación sirve a 20 escuelas."
     },
     {
       "id": "api-keys",
-      "status": "planned",
       "requires": [
         "database"
       ],
-      "applies_to": [
-        "hono-api"
-      ]
+      "example": "n8n consume endpoints con scope limitado."
     },
     {
       "id": "webhooks",
-      "status": "planned",
       "requires": [
         "database"
       ],
-      "applies_to": [
-        "hono-api"
-      ]
+      "example": "Notificar a un sistema externo cuando una solicitud se aprueba."
     },
     {
       "id": "jobs",
-      "status": "planned",
       "requires": [
         "database"
       ],
-      "applies_to": [
-        "hono-api",
-        "speedpy"
-      ]
+      "example": "Generar 3,000 PDFs en background."
     },
     {
       "id": "files",
-      "status": "planned",
       "requires": [],
-      "applies_to": [
-        "hono-api",
-        "speedpy"
-      ]
+      "example": "Adjuntar comprobantes."
     },
     {
       "id": "notifications",
-      "status": "planned",
       "requires": [],
-      "applies_to": [
-        "hono-api",
-        "speedpy"
-      ]
+      "example": "Correo al director al recibir solicitud."
     },
     {
       "id": "observability",
-      "status": "planned",
       "requires": [],
-      "applies_to": [
-        "all"
-      ]
+      "example": "Trazar error 500 por requestId."
     },
     {
       "id": "ai-tools",
-      "status": "planned",
       "requires": [
         "auth"
       ],
-      "applies_to": [
-        "hono-api",
-        "ai-assistant"
-      ]
+      "example": "Copiloto consulta solicitudes con permisos del usuario."
     }
   ]
 }

@@ -1,21 +1,13 @@
 # Project Intake
 
 ## Problema
+Ejemplo: “La escuela recibe solicitudes por WhatsApp y Excel; quiere centralizarlas.”
 ## Usuarios
-## Resultado esperado
-## Canales
-- [ ] Web pública
-- [ ] Admin web
-- [ ] Mobile
-- [ ] Desktop
-- [ ] API
-- [ ] Automation
+## Canales requeridos
 ## Datos
 ## Integraciones
-## ¿Usuarios autenticados?
-## ¿Una organización o múltiples tenants?
+## ¿Auth?
+## ¿Single o multi-tenant?
 ## Datos sensibles
-## Criticidad
-## Restricciones
-## Plazo
+## Infraestructura
 ## Qué NO necesita

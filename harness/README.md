@@ -1,7 +1,12 @@
 # Harness Integration
 
-El harness debe resolver: manifest → Golden Path → stack → feature packs → tipo de cambio → skills → guards → canonical examples.
+El harness convierte contexto en ejecución controlada.
 
-Ejemplo “agregar aprobación”: cargar backend/admin + authorization + audit si existe + examples + guards de permisos. No cargar stacks ausentes.
+## Ejemplo
+Tarea: “agregar aprobación”.
+- manifest dice GP-02 + auth/rbac/audit;
+- harness carga skills Hono/TanStack/authorization/audit;
+- exige policy + audit tests;
+- no carga mobile/desktop.
 
-Cada ejecución debe producir plan, archivos, riesgos, tests requeridos, docs/manifest afectados y resultado de guards.
+El objetivo es menos contexto, menos tokens y menos decisiones inventadas.

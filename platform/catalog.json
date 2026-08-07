@@ -1,262 +1,199 @@
 {
   "schema_version": 1,
-  "platform_version": "0.1.0",
+  "platform_version": "0.2.0",
   "reviewed_at": "2026-08-07",
-  "principles": [
-    "choose_the_simplest_sufficient_architecture",
-    "golden_paths_over_framework_accumulation",
-    "features_are_optional_and_composable",
-    "agents_propose_deterministic_tools_verify",
-    "projects_own_generated_code",
-    "upgrades_use_recipes_not_permanent_git_merges",
-    "knowledge_returns_to_platform_only_after_generalization"
-  ],
   "technology_catalog": [
     {
       "id": "stardrive",
       "name": "Stardrive",
-      "kind": "starter",
       "status": "adopted",
       "category": "public-web",
       "repo": "https://github.com/peltmonger/stardrive",
       "use_when": [
         "landing",
         "blog",
-        "documentation",
-        "public-content",
-        "seo-first-site"
+        "docs",
+        "public-content"
       ],
       "avoid_when": [
-        "complex-admin-app",
-        "api-first-business-app"
+        "complex-admin"
       ]
     },
     {
       "id": "tanstack-admin",
       "name": "TanStack Shadcn Admin Dashboard",
-      "kind": "starter",
       "status": "preferred",
       "category": "admin-web",
       "repo": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
       "use_when": [
-        "internal-app",
+        "admin",
         "crm",
-        "workflows",
-        "external-api",
-        "complex-tables-filters"
+        "workflow",
+        "external-api"
       ],
       "avoid_when": [
-        "content-first-site",
-        "simple-python-data-app"
+        "content-first",
+        "simple-python-ui"
       ]
     },
     {
       "id": "next-admin",
       "name": "Next Shadcn Admin Dashboard",
-      "kind": "starter",
       "status": "adopted",
       "category": "admin-web",
       "repo": "https://github.com/arhamkhnz/next-shadcn-admin-dashboard",
       "use_when": [
         "next-ecosystem",
-        "public-and-private-product",
-        "server-components-benefit"
+        "public-private-hybrid"
       ],
       "avoid_when": [
-        "external-api-is-primary",
-        "tanstack-is-simpler"
+        "external-api-primary"
       ]
     },
     {
       "id": "ignite",
       "name": "Ignite",
-      "kind": "starter",
       "status": "adopted",
       "category": "mobile",
       "repo": "https://github.com/infinitered/ignite",
       "use_when": [
         "native-mobile",
-        "field-app",
-        "store-distribution"
+        "field-app"
       ],
       "avoid_when": [
-        "pwa-is-enough",
-        "web-only"
+        "pwa-enough"
       ]
     },
     {
       "id": "tauri-ui",
       "name": "Tauri UI",
-      "kind": "starter",
       "status": "adopted",
       "category": "desktop",
       "repo": "https://github.com/agmmnn/tauri-ui",
       "use_when": [
-        "desktop-installation",
+        "desktop",
         "local-files",
-        "native-capabilities",
-        "offline-local-tool"
+        "native-capabilities"
       ],
       "avoid_when": [
-        "browser-solves-problem"
+        "browser-enough"
       ]
     },
     {
       "id": "speedpy",
       "name": "SpeedPy",
-      "kind": "starter",
       "status": "adopted",
-      "category": "python-data-institutional",
+      "category": "python-data",
       "repo": "https://github.com/speedpy/speedpy",
       "use_when": [
         "excel",
-        "csv",
         "documents",
         "reports",
-        "django-admin",
         "python-data",
-        "institutional-crud"
+        "django-admin"
       ],
       "avoid_when": [
-        "highly-interactive-react-front-end-is-core",
+        "react-heavy-ui",
         "tiny-stateless-api"
       ]
     },
     {
       "id": "hono-api",
       "name": "Consulting Hono API Starter",
-      "kind": "internal-starter",
       "status": "strategic",
       "category": "typescript-api",
       "repo": null,
       "use_when": [
-        "reusable-api",
         "multiple-clients",
         "integrations",
         "typescript-domain",
-        "openapi-required"
+        "openapi"
       ],
       "avoid_when": [
-        "speedpy-solves-whole-app",
-        "static-site",
-        "local-tool-needs-no-server"
+        "speedpy-solves-all",
+        "no-server-needed"
       ]
     },
     {
-      "id": "fastapi-full-stack",
+      "id": "fastapi",
       "name": "Full Stack FastAPI Template",
-      "kind": "starter",
       "status": "secondary",
-      "category": "python-api-first",
+      "category": "python-api",
       "repo": "https://github.com/fastapi/full-stack-fastapi-template",
       "use_when": [
-        "python-backend-primary",
-        "openapi",
-        "react-client",
-        "ai-data-services"
+        "python-api",
+        "ai-data-backend"
       ],
       "avoid_when": [
-        "speedpy-is-simpler",
-        "hono-typescript-domain-is-preferred"
-      ]
-    },
-    {
-      "id": "open-saas",
-      "name": "Open SaaS",
-      "kind": "starter",
-      "status": "specialized",
-      "category": "saas",
-      "repo": "https://github.com/wasp-lang/open-saas",
-      "use_when": [
-        "commercial-saas",
-        "billing",
-        "auth",
-        "jobs",
-        "email",
-        "files"
-      ],
-      "avoid_when": [
-        "institutional-single-tenant",
-        "wasp-not-desired"
+        "speedpy-simpler",
+        "typescript-domain"
       ]
     },
     {
       "id": "react-starter-kit",
       "name": "React Starter Kit",
-      "kind": "starter",
       "status": "specialized",
-      "category": "full-stack-edge-saas",
+      "category": "saas-edge",
       "repo": "https://github.com/kriasoft/react-starter-kit",
       "use_when": [
-        "cloudflare-first-saas",
-        "integrated-full-stack",
-        "stripe",
-        "better-auth",
-        "edge"
+        "commercial-saas",
+        "cloudflare-first"
       ],
       "avoid_when": [
-        "neutral-self-hosting-required",
-        "openapi-public-contract-is-primary"
+        "neutral-self-host-required"
       ]
     },
     {
-      "id": "ai-assistant",
-      "name": "AI Assistant Starter",
-      "kind": "internal-starter",
-      "status": "planned",
-      "category": "ai-app",
-      "repo": "https://github.com/vercel/chatbot",
+      "id": "open-saas",
+      "name": "Open SaaS",
+      "status": "specialized",
+      "category": "saas",
+      "repo": "https://github.com/wasp-lang/open-saas",
       "use_when": [
-        "assistant",
-        "copilot",
-        "tool-using-ai",
-        "conversational-ui"
+        "saas",
+        "billing",
+        "auth",
+        "jobs"
       ],
       "avoid_when": [
-        "chat-is-not-the-best-interface"
+        "institutional-single-tenant"
       ]
     },
     {
       "id": "n8n",
       "name": "n8n",
-      "kind": "platform",
       "status": "adopted",
       "category": "automation",
       "repo": "https://github.com/n8n-io/n8n",
       "use_when": [
-        "workflow-automation",
-        "integration",
-        "human-visible-automation"
+        "automation",
+        "integration"
       ],
       "avoid_when": [
-        "critical-domain-logic-without-versioning-or-tests"
+        "critical-domain-logic-unversioned"
       ]
     }
   ],
   "references_only": [
     {
-      "id": "t3-turbo-pattern",
-      "name": "create-t3-turbo",
+      "id": "t3-turbo",
       "repo": "https://github.com/t3-oss/create-t3-turbo",
-      "reason": "Reference for apps/packages monorepo composition and modular generation; do not adopt tRPC as the platform contract by default."
+      "reason": "Patrón apps/* + packages/*; no adoptar tRPC por defecto."
     },
     {
-      "id": "next-fastify-saas-rbac",
-      "name": "nextjs-fastify-saas-rbac",
+      "id": "nextjs-fastify-saas-rbac",
       "repo": "https://github.com/rcrdk/nextjs-fastify-saas-rbac",
-      "reason": "Reference for organization, membership, invitation and authorization flows."
+      "reason": "Referencia funcional de organizations/memberships/invitations/RBAC."
     },
     {
       "id": "clean-stack",
-      "name": "clean-stack",
       "repo": "https://github.com/axelhamil/clean-stack",
-      "reason": "Architecture reference only; do not copy code without compatible permission/license."
+      "reason": "Referencia arquitectónica; no copiar código sin licencia compatible."
     },
     {
       "id": "bun-hono-boilerplate",
-      "name": "bun-hono-boilerplate",
       "repo": "https://github.com/samudrajovanka/bun-hono-boilerplate",
-      "reason": "Reference for Hono+Bun+Drizzle modular API structure; internal starter must be independently implemented and hardened."
+      "reason": "Referencia estructural Hono+Bun+Drizzle."
     }
   ]
 }

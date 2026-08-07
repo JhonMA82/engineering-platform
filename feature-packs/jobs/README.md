@@ -1,3 +1,7 @@
 # Feature Pack: jobs
 
-Estado: **planned**. Definir contrato, dependencias, detector, instalación, pruebas y upgrade antes de implementar.
+Estado: planned / specification-first.
+
+**Ejemplo:** Generar 3,000 PDFs en background.
+
+Antes de implementar debe definir dependencias, seguridad, detector, instalación, tests y upgrade path.

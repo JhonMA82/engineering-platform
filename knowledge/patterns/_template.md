@@ -1,9 +1,7 @@
-# Patrón: título
-
+# Patrón
 ## Problema
-## Contexto
+## Cuándo aplica
 ## Solución
-## Límites
-## Anti-patrón
-## Canonical example
-## Evidencia de uso
+## Cuándo NO aplica
+## Ejemplo canónico
+## Evidencia real

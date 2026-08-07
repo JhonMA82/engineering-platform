@@ -1,3 +1,5 @@
-# Skills Registry
+# Skills
 
-Skills por stack/dominio: architecture-selector, project-manifest, hono, tanstack, next, speedpy, ignite, tauri, database, authorization, security-review, migrations, deployment, documentation. Se cargan por manifest + tarea; no mega-skill.
+Las skills se cargan según manifest + tipo de cambio.
+
+Ejemplo: una tarea de migración carga `migrations` y el stack afectado; no una mega-skill con todo el catálogo.

@@ -1,3 +1,3 @@
 # ADR-002: Golden Paths
 
-Status: Accepted. Proyectos parten de caminos aprobados; desviaciones mediante ADR.
+Los proyectos parten de caminos aprobados. Una desviación importante requiere ADR.

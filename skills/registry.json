@@ -3,76 +3,35 @@
   "skills": [
     {
       "id": "architecture-selector",
-      "triggers": [
-        "new-project",
-        "architecture-change"
-      ]
+      "example": "Selecciona GP-03 para una app dominada por Excel."
     },
     {
       "id": "hono",
-      "requires_stack": [
-        "hono-api"
-      ]
+      "example": "Agregar endpoint siguiendo contract/use-case/repository."
     },
     {
       "id": "tanstack",
-      "requires_stack": [
-        "tanstack-admin"
-      ]
-    },
-    {
-      "id": "next",
-      "requires_stack": [
-        "next-admin"
-      ]
+      "example": "Crear pantalla de solicitudes con tabla y filtros."
     },
     {
       "id": "speedpy",
-      "requires_stack": [
-        "speedpy"
-      ]
-    },
-    {
-      "id": "ignite",
-      "requires_stack": [
-        "ignite"
-      ]
-    },
-    {
-      "id": "tauri",
-      "requires_stack": [
-        "tauri-ui"
-      ]
+      "example": "Importador Excel con validación."
     },
     {
       "id": "authorization",
-      "triggers": [
-        "permission-change",
-        "tenant-resource"
-      ]
+      "example": "Añadir request.approve y tests."
     },
     {
       "id": "migrations",
-      "triggers": [
-        "database-schema-change"
-      ]
+      "example": "Agregar priority con migration segura."
     },
     {
       "id": "security-review",
-      "triggers": [
-        "auth",
-        "authorization",
-        "secrets",
-        "files",
-        "webhooks"
-      ]
+      "example": "Revisar API key scopes."
     },
     {
-      "id": "documentation",
-      "triggers": [
-        "release",
-        "architecture-change"
-      ]
+      "id": "deployment",
+      "example": "Crear smoke checks de release."
     }
   ]
 }

@@ -1,3 +1,7 @@
 # Feature Packs
 
-Una pack agrega capacidad sin regenerar el proyecto. Debe tener manifest, detect, install, upgrade, tests y docs. Instalación segura/idempotente, cambios visibles, migraciones separadas y manifest actualizado. Multi-tenancy posterior debe generar plan de migración, nunca transformar datos a ciegas.
+Capacidades opcionales que pueden instalarse al inicio o después.
+
+Ejemplo: proyecto escolar inicia con `auth+rbac+audit`; seis meses después agrega `webhooks` sin regenerar el resto.
+
+Todo pack debe tener detect → plan → install → test → upgrade.

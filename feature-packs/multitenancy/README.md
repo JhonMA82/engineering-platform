@@ -1,3 +1,7 @@
 # Feature Pack: multitenancy
 
-Estado: **planned**. Definir contrato, dependencias, detector, instalación, pruebas y upgrade antes de implementar.
+Estado: planned / specification-first.
+
+**Ejemplo:** Una misma instalación sirve a 20 escuelas.
+
+Antes de implementar debe definir dependencias, seguridad, detector, instalación, tests y upgrade path.

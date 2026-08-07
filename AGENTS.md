@@ -1,26 +1,40 @@
-# AGENTS.md — Engineering Platform
+# AGENTS.md
 
-## Fuente de verdad
-1. `platform/catalog.json`
-2. `platform/golden-paths.json`
-3. `platform/feature-packs.json`
-4. `platform/compatibility.json`
-5. `docs/decisions/*.md`
+## Propósito
+Gobierna cómo un agente trabaja con la Engineering Platform.
+
+## Antes de modificar un proyecto
+Leer en orden:
+1. `.engineering/project.json`;
+2. `AGENTS.md` del proyecto;
+3. Golden Path;
+4. feature packs instalados;
+5. ADRs relevantes;
+6. canonical examples del cambio.
+
+## Ejemplo
+Tarea: “agrega campo `priority` a solicitudes”.
+
+Correcto:
+- detectar GP-02;
+- cargar TanStack + Hono + DB;
+- crear migration;
+- actualizar contrato API;
+- actualizar UI;
+- ejecutar migration test + OpenAPI diff + tests.
+
+Incorrecto:
+- agregar Redis;
+- crear microservicio;
+- cambiar ORM;
+- introducir multitenancy.
 
 ## Invariantes
-- Selecciona la arquitectura más simple suficiente.
-- No agregues una nueva tecnología si una adoptada resuelve el problema.
-- Multi-tenancy es opcional.
-- El frontend nunca es autoridad de autorización.
-- Un proyecto generado es propietario de su código; no se mantiene con merges permanentes del starter.
-- Los upgrades usan recipes y validación.
-- Un bug corregido debe producir una prueba de regresión.
-- Una solución específica de cliente no se promueve automáticamente a la plataforma.
-- Los cambios de plataforma deben incluir documentación, tests/evals y compatibilidad.
-- Los agentes no deciden que una tarea está terminada: los quality gates lo determinan.
-
-## Flujo de cambio
-Clasificar → ADR si aplica → cambio mínimo → validar → changelog → upgrade recipe si rompe → eval si afecta harness.
-
-## Contexto para proyectos derivados
-Leer primero `.engineering/project.json`, `AGENTS.md`, Golden Path, feature packs y ADRs. No cargar skills irrelevantes.
+- arquitectura mínima suficiente;
+- frontend no es autoridad de seguridad;
+- todo cambio DB tiene migration;
+- toda ruta pública tiene contrato OpenAPI;
+- todo bug produce regression test;
+- recursos tenant requieren tenant isolation test;
+- no usar `latest` en dependencias productivas;
+- no copiar código de referencias con licencia incompatible.

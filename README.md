@@ -1,96 +1,110 @@
 # Engineering Platform
 
-Sistema interno de ingeniería para estandarizar cómo la consultoría diseña, genera, desarrolla, verifica, despliega, documenta y evoluciona software asistido por IA.
+Sistema interno de ingeniería de la consultoría para convertir el stack aprobado, OpenCode y el harness en un proceso **repetible, versionado y verificable**.
 
-> **Estado:** bootstrap / v0.1.0  
-> **Última revisión:** 2026-08-07  
-> **Fuente histórica deprecada:** https://github.com/JhonMA82/boilerplates-catalog
+> Versión bootstrap: **0.2.0**  
+> Revisión: **2026-08-07**  
+> Repositorio anterior: `JhonMA82/boilerplates-catalog` → **deprecated / reference only**.
 
-## Qué problema resuelve
+## Para juniors: empieza aquí
 
-La plataforma evita que cada proyecto dependa de prompts aislados, preferencias momentáneas o decisiones improvisadas del agente. Convierte el stack aprobado en **Golden Paths, feature packs, quality gates, conocimiento reusable y reglas de actualización**.
+No intentes leer todo el repositorio. Sigue esta ruta:
+
+1. [Guía de inicio](docs/00-start-here/START_HERE.md)
+2. [Glosario visual con ejemplo de cada concepto](docs/01-concepts/CONCEPTS_WITH_EXAMPLES.md)
+3. [Ejemplo completo: sistema de solicitudes de una escuela](docs/13-examples/END_TO_END_SCHOOL_REQUESTS.md)
+4. [Flujo de proyecto nuevo](docs/04-project-lifecycle/new-project.md)
+5. [Cómo trabajar con OpenCode + harness](docs/06-ai-harness/harness-execution-model.md)
+6. [Quality Gates](docs/08-quality/quality-gates.md)
+
+## Idea central
 
 ```text
-Idea → Architecture Brief → Golden Path → Starter + features mínimas → AI Harness → Quality Gates → Deployment → Knowledge Capture → Platform Evolution
+Problema del cliente
+  ↓
+Architecture Brief
+  ↓
+Golden Path
+  ↓
+Starter(s) + Feature Packs mínimos
+  ↓
+Project Manifest
+  ↓
+OpenCode + Harness + Skills
+  ↓
+Implementación
+  ↓
+Quality Gates
+  ↓
+Deploy / Operación
+  ↓
+Knowledge Loop
 ```
 
-## Empieza aquí
+## Ejemplo en 30 segundos
 
-- [Guía de inicio](docs/00-start-here/START_HERE.md)
-- [Flujo completo de un proyecto](docs/03-project-lifecycle/project-lifecycle.md)
-- [Cómo trabaja el equipo con IA](docs/02-team/team-operating-model.md)
-- [Golden Paths](golden-paths/README.md)
-- [Feature Packs](feature-packs/README.md)
-- [Integración con el harness](harness/README.md)
-- [Versionado y upgrades](docs/06-versioning/versioning-strategy.md)
-- [Quality Gates](docs/07-quality/quality-gates.md)
-- [Knowledge Loop](docs/10-knowledge/knowledge-loop.md)
+Cliente: “Una escuela necesita registrar solicitudes internas y que el director las apruebe”.
+
+La plataforma decide:
+
+```text
+Golden Path → GP-02 Admin Application
+Frontend    → TanStack Admin
+Backend     → Hono API
+DB          → PostgreSQL
+Features    → auth + rbac + audit
+NO agregar  → multitenancy, mobile, Tauri, Redis, jobs
+```
+
+¿Por qué? Porque es una sola escuela. Si más tarde 20 escuelas comparten la misma instalación, se agrega el feature pack `multitenancy` mediante un upgrade plan; no se regenera el proyecto.
+
+## Fuente de verdad
+
+- `platform/catalog.json` — tecnologías aprobadas y referencias.
+- `platform/golden-paths.json` — caminos de arquitectura.
+- `platform/feature-packs.json` — capacidades opcionales.
+- `.engineering/project.json` — cómo está compuesto cada proyecto real.
 
 ## Stack congelado
 
-| Necesidad | Camino principal |
+| Necesidad | Opción principal |
 |---|---|
 | Sitio público | Stardrive |
-| Admin / sistema operativo web | TanStack Admin |
-| Next.js cuando exista razón concreta | Next Admin |
+| Admin web | TanStack Admin |
+| Next cuando existe razón concreta | Next Admin |
 | Mobile | Ignite |
 | Desktop | Tauri UI |
-| Datos/documentos Python | SpeedPy |
-| API TypeScript desacoplada | Consulting Hono API Starter |
-| API/data/AI Python | FastAPI / Full Stack FastAPI cuando aplique |
-| SaaS integrado | React Starter Kit / Open SaaS según caso |
+| Python datos/documentos | SpeedPy |
+| API TypeScript | Hono Starter |
+| API/data/AI Python | FastAPI cuando corresponda |
+| SaaS opinionado | React Starter Kit / Open SaaS |
 | Automatización | n8n |
-| Arquitectura multi-app | Patrón `apps/* + packages/*` inspirado en T3 Turbo |
-
-Fuente estructurada: [`platform/catalog.json`](platform/catalog.json).
+| Multi-app | patrón `apps/* + packages/*` inspirado en T3 Turbo |
 
 ## Regla de oro
 
-> Elegir la arquitectura más simple que cubra correctamente el problema y pueda mantenerse.
+> Elige la arquitectura más simple que cubra el problema correctamente y pueda mantenerse.
 
-No agregar Hono, React, multi-tenancy, Redis, workers o microservicios por defecto. Cada capacidad debe justificar su existencia.
+Una tecnología nueva no se agrega porque sea popular. Debe cubrir una categoría que el stack no resuelve o demostrar una mejora material.
 
 ## Estructura
 
 ```text
-engineering-platform/
-├── platform/              # fuentes de verdad estructuradas
-├── golden-paths/          # caminos aprobados
-├── feature-packs/         # capacidades componibles
-├── harness/               # contrato de integración con el harness
-├── skills/                # catálogo y reglas de skills
-├── canonical-examples/    # ejemplos que los agentes deben imitar
-├── evals/                 # pruebas del harness/modelos
-├── knowledge/             # problemas, soluciones y patrones validados
-├── upgrades/              # recipes/codemods de actualización
-├── docs/                  # documentación humana y técnica
-├── templates/             # documentos y manifiestos
-├── examples/              # ejemplos completos
-└── scripts/               # validadores y utilidades
+platform/              fuentes de verdad
+golden-paths/          caminos aprobados
+feature-packs/         capacidades opcionales
+harness/               contrato de integración con el harness
+skills/                routing de skills
+canonical-examples/    patrones que los agentes deben imitar
+evals/                 pruebas del harness/modelos
+knowledge/             problemas y soluciones comprobados
+upgrades/              recipes para proyectos existentes
+docs/                  guías humanas y técnicas
+templates/             intake, brief, ADR, manifest
+examples/              ejemplos completos para el equipo
 ```
 
-## Cómo usarlo en un proyecto
-
-1. Crear un **Architecture Brief** usando `templates/architecture-brief.md`.
-2. Seleccionar un Golden Path.
-3. Crear `.engineering/project.json` con versiones y features.
-4. Generar/clonar únicamente apps y features necesarias.
-5. El harness lee `project.json`, `AGENTS.md` y el Golden Path.
-6. Implementar mediante specs pequeñas y verificables.
-7. Los quality gates determinan cuándo está listo.
-8. Registrar decisiones en ADRs.
-9. Desplegar usando el runbook del proyecto.
-10. Al cerrar un bug o aprendizaje, decidir si pertenece solo al proyecto o si debe promoverse a `knowledge/` o a un feature pack.
-
-## Qué NO es
-
-- No es un mega-framework.
-- No contiene código de clientes.
-- No obliga a usar el mismo stack en todo.
-- No sincroniza proyectos mediante merges permanentes con starters.
-- No sustituye revisión humana, pruebas, seguridad ni operación.
-
-## Validación
+## Validar
 
 ```bash
 python scripts/validate_platform.py

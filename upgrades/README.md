@@ -1,3 +1,5 @@
-# Upgrades
+# Upgrade Recipes
 
-Recipes versionados para actualizar proyectos sin merges permanentes con starters.
+Actualizan proyectos existentes sin merges permanentes del starter.
+
+Ejemplo: `tanstack-admin 1.3 → 1.4`: detect → plan → codemod → tests → manifest.

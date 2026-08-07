@@ -1,3 +1,5 @@
 # Evals
 
-Cada eval: fixture, task, expected behavior, guards y scoring. No usar proyectos de clientes como fixture.
+Escenarios reproducibles para medir modelos/harness.
+
+Ejemplo `add-permission`: se puntúa si modifica backend policy + tests + UX sin crear arquitectura innecesaria.

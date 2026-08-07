@@ -1,3 +1,7 @@
 # Feature Pack: files
 
-Estado: **planned**. Definir contrato, dependencias, detector, instalación, pruebas y upgrade antes de implementar.
+Estado: planned / specification-first.
+
+**Ejemplo:** Adjuntar comprobantes.
+
+Antes de implementar debe definir dependencias, seguridad, detector, instalación, tests y upgrade path.
