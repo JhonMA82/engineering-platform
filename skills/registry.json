@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "architecture-selector",
+      "triggers": [
+        "new-project",
+        "architecture-change"
+      ]
+    },
+    {
+      "id": "hono",
+      "requires_stack": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "tanstack",
+      "requires_stack": [
+        "tanstack-admin"
+      ]
+    },
+    {
+      "id": "next",
+      "requires_stack": [
+        "next-admin"
+      ]
+    },
+    {
+      "id": "speedpy",
+      "requires_stack": [
+        "speedpy"
+      ]
+    },
+    {
+      "id": "ignite",
+      "requires_stack": [
+        "ignite"
+      ]
+    },
+    {
+      "id": "tauri",
+      "requires_stack": [
+        "tauri-ui"
+      ]
+    },
+    {
+      "id": "authorization",
+      "triggers": [
+        "permission-change",
+        "tenant-resource"
+      ]
+    },
+    {
+      "id": "migrations",
+      "triggers": [
+        "database-schema-change"
+      ]
+    },
+    {
+      "id": "security-review",
+      "triggers": [
+        "auth",
+        "authorization",
+        "secrets",
+        "files",
+        "webhooks"
+      ]
+    },
+    {
+      "id": "documentation",
+      "triggers": [
+        "release",
+        "architecture-change"
+      ]
+    }
+  ]
+}

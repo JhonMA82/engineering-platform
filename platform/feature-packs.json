@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "features": [
+    {
+      "id": "auth",
+      "status": "planned",
+      "requires": [
+        "database"
+      ],
+      "applies_to": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "audit",
+      "status": "planned",
+      "requires": [
+        "database"
+      ],
+      "applies_to": [
+        "hono-api",
+        "speedpy"
+      ]
+    },
+    {
+      "id": "rbac",
+      "status": "planned",
+      "requires": [
+        "auth"
+      ],
+      "applies_to": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "abac",
+      "status": "planned",
+      "requires": [
+        "rbac"
+      ],
+      "applies_to": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "multitenancy",
+      "status": "planned",
+      "requires": [
+        "auth",
+        "database",
+        "rbac",
+        "audit"
+      ],
+      "applies_to": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "api-keys",
+      "status": "planned",
+      "requires": [
+        "database"
+      ],
+      "applies_to": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "webhooks",
+      "status": "planned",
+      "requires": [
+        "database"
+      ],
+      "applies_to": [
+        "hono-api"
+      ]
+    },
+    {
+      "id": "jobs",
+      "status": "planned",
+      "requires": [
+        "database"
+      ],
+      "applies_to": [
+        "hono-api",
+        "speedpy"
+      ]
+    },
+    {
+      "id": "files",
+      "status": "planned",
+      "requires": [],
+      "applies_to": [
+        "hono-api",
+        "speedpy"
+      ]
+    },
+    {
+      "id": "notifications",
+      "status": "planned",
+      "requires": [],
+      "applies_to": [
+        "hono-api",
+        "speedpy"
+      ]
+    },
+    {
+      "id": "observability",
+      "status": "planned",
+      "requires": [],
+      "applies_to": [
+        "all"
+      ]
+    },
+    {
+      "id": "ai-tools",
+      "status": "planned",
+      "requires": [
+        "auth"
+      ],
+      "applies_to": [
+        "hono-api",
+        "ai-assistant"
+      ]
+    }
+  ]
+}

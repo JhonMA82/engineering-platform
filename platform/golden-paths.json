@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "paths": [
+    {
+      "id": "GP-01",
+      "name": "Public Web",
+      "default_stack": [
+        "stardrive"
+      ],
+      "when": [
+        "landing",
+        "blog",
+        "docs",
+        "public-content"
+      ],
+      "optional": [
+        "hono-api"
+      ],
+      "rule": "Do not add an API unless dynamic behavior or integration requires it."
+    },
+    {
+      "id": "GP-02",
+      "name": "Admin Application",
+      "default_stack": [
+        "tanstack-admin",
+        "hono-api",
+        "postgresql"
+      ],
+      "when": [
+        "crm",
+        "internal-system",
+        "workflow",
+        "institutional-app"
+      ],
+      "optional": [
+        "auth",
+        "audit",
+        "rbac",
+        "multitenancy",
+        "files",
+        "jobs",
+        "webhooks"
+      ],
+      "rule": "Use Next.js instead of TanStack only when the project benefits materially from the Next ecosystem or public/private hybrid architecture."
+    },
+    {
+      "id": "GP-03",
+      "name": "Python Data Application",
+      "default_stack": [
+        "speedpy",
+        "postgresql"
+      ],
+      "when": [
+        "excel",
+        "csv",
+        "reports",
+        "documents",
+        "python-data",
+        "django-admin"
+      ],
+      "optional": [
+        "celery",
+        "redis",
+        "docling",
+        "ai"
+      ],
+      "rule": "Prefer a single Django+HTMX application over React+API when that is sufficient."
+    },
+    {
+      "id": "GP-04",
+      "name": "Mobile Application",
+      "default_stack": [
+        "ignite",
+        "hono-api"
+      ],
+      "when": [
+        "native-mobile",
+        "field-app"
+      ],
+      "optional": [
+        "fastapi-full-stack"
+      ],
+      "rule": "Use a Python backend instead of Hono when the backend is dominated by Python-native data, OCR or AI workloads."
+    },
+    {
+      "id": "GP-05",
+      "name": "Desktop Application",
+      "default_stack": [
+        "tauri-ui"
+      ],
+      "when": [
+        "desktop",
+        "local-files",
+        "native-capabilities"
+      ],
+      "optional": [
+        "hono-api",
+        "fastapi-full-stack"
+      ],
+      "rule": "Keep it local when a remote backend is not needed."
+    },
+    {
+      "id": "GP-06",
+      "name": "Multi-App Platform",
+      "default_stack": [
+        "hono-api"
+      ],
+      "when": [
+        "web-plus-mobile",
+        "web-plus-desktop",
+        "multiple-clients"
+      ],
+      "composition": "apps/* + packages/* inspired by T3 Turbo pattern",
+      "rule": "Generate only the apps actually required by the project."
+    },
+    {
+      "id": "GP-07",
+      "name": "Commercial SaaS",
+      "default_stack": [
+        "react-starter-kit"
+      ],
+      "alternatives": [
+        "open-saas",
+        "next-admin+hono-api"
+      ],
+      "when": [
+        "billing",
+        "subscriptions",
+        "commercial-saas"
+      ],
+      "rule": "Choose a full-stack opinionated SaaS base only when its infrastructure assumptions are acceptable."
+    }
+  ]
+}
