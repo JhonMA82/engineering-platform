@@ -406,23 +406,47 @@ def validate_project_definition(definition: dict[str, Any]) -> dict[str, Any]:
     return definition
 
 
-def _ensure_target_is_safe(output: Path, allowed_existing: set[Path] | None = None) -> None:
+def _ensure_target_is_safe(
+    output: Path,
+    allowed_existing: set[Path] | None = None,
+    require_managed_metadata: bool = False,
+) -> None:
+    if output.is_symlink():
+        raise PlatformError(f"La salida es un enlace simbólico: {output}")
     if not output.exists():
         return
     if not output.is_dir():
         raise PlatformError(f"La salida existe y no es un directorio: {output}")
+    if require_managed_metadata:
+        entries = {path.name for path in output.iterdir()}
+        managed = {".atl", ".gitignore"}
+        if entries and not entries.issubset(managed):
+            raise PlatformError(
+                f"El destino ya existe y no contiene únicamente metadatos gestionados: {output}"
+            )
     allowed = {path.resolve() for path in (allowed_existing or set())}
     unexpected: list[str] = []
     for path in output.rglob("*"):
+        relative = path.relative_to(output)
         if path.is_symlink():
-            unexpected.append(str(path.relative_to(output)))
+            unexpected.append(str(relative))
             continue
-        if ".git" in path.relative_to(output).parts:
+        if ".git" in relative.parts:
+            continue
+        if relative == Path(".atl"):
+            if not path.is_dir():
+                unexpected.append(str(relative))
+            continue
+        if relative == Path(".gitignore"):
+            if not path.is_file():
+                unexpected.append(str(relative))
+            continue
+        if relative.parts and relative.parts[0] == ".atl":
             continue
         if path.is_dir():
             continue
         if path.resolve() not in allowed:
-            unexpected.append(str(path.relative_to(output)))
+            unexpected.append(str(relative))
     if unexpected:
         raise PlatformError(
             "El directorio de salida contiene archivos ajenos al bootstrap: "
@@ -1003,8 +1027,7 @@ def command_start(args: argparse.Namespace) -> int:
     target = workspace / name
     if target.parent != workspace:
         raise PlatformError("El nombre del proyecto no puede cambiar el workspace")
-    if target.is_symlink() or (target.exists() and (not target.is_dir() or any(target.iterdir()))):
-        raise PlatformError(f"El destino ya existe y no está vacío: {target}")
+    _ensure_target_is_safe(target, require_managed_metadata=True)
     initial_prompt = (
         "Inicia un proyecto nuevo con Engineering Platform. Usa la skill project-discovery, "
         "haz preguntas progresivas hasta confirmar la idea y luego ejecuta el bootstrap en este directorio."

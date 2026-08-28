@@ -31,11 +31,11 @@ La instalación directa habilita `/new-project`, `/engineering-status`, `/skill:
 eng start school-requests
 ```
 
-Por defecto crea `~/dev/school-requests` y arranca Pi dentro del destino. Usa `ENG_WORKSPACE` o `--workspace` para otra raíz. El comando rechaza nombres fuera de kebab-case y destinos no vacíos.
+Por defecto crea `~/dev/school-requests` y arranca Pi dentro del destino. Usa `ENG_WORKSPACE` o `--workspace` para otra raíz. El comando rechaza nombres fuera de kebab-case y destinos que contengan contenido distinto de `.atl/` y `.gitignore` en la raíz; `.atl/` contiene metadatos de Gentle AI y puede contener estado anidado.
 
 ### Pi ya está abierto
 
-Dentro de una carpeta vacía:
+Dentro de un destino vacío o que contenga únicamente `.atl/` y `.gitignore` en la raíz; `.atl/` contiene metadatos de Gentle AI y puede contener estado anidado:
 
 ```text
 /new-project

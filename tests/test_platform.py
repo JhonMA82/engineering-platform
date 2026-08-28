@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
 import tempfile
 import unittest
 from argparse import Namespace
@@ -172,6 +174,15 @@ class PiWorkflowTests(unittest.TestCase):
         self.assertIn("./.opencode/skills", package["pi"]["skills"])
         self.assertTrue((root / "pi-skills/project-discovery/SKILL.md").exists())
 
+    def test_bootstrap_accepts_gentle_metadata_in_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "school-requests"
+            (output / ".atl/state/nested.json").parent.mkdir(parents=True)
+            (output / ".atl/state/nested.json").write_text("{}", encoding="utf-8")
+            (output / ".gitignore").write_text(".env\n", encoding="utf-8")
+            result = write_project(self.definition()["intake"], output)
+            self.assertEqual(result["scaffold_status"], "blueprint")
+
     def test_bootstrap_accepts_only_definition_in_target(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "school-requests"
@@ -217,6 +228,41 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertEqual(manifest["definition_status"], "confirmed")
             self.assertIn("api-keys", updated_definition["intake"]["features"])
             self.assertIn("Sistema interno", (output / "GENTLE.md").read_text(encoding="utf-8"))
+
+    def test_start_dry_run_accepts_gentle_metadata_in_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            target = workspace / "new-product"
+            (target / ".atl/state/nested.json").parent.mkdir(parents=True)
+            (target / ".atl/state/nested.json").write_text("{}", encoding="utf-8")
+            (target / ".gitignore").write_text(".env\n", encoding="utf-8")
+            with patch("builtins.print") as output:
+                command_start(
+                    Namespace(name="new-product", workspace=temporary, dry_run=True)
+                )
+            payload = loads(output.call_args.args[0])
+            self.assertEqual(Path(payload["target"]), target)
+
+    def test_start_rejects_user_content_in_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "new-product"
+            target.mkdir()
+            (target / "notes.txt").write_text("user data", encoding="utf-8")
+            with self.assertRaises(PlatformError):
+                command_start(
+                    Namespace(name="new-product", workspace=temporary, dry_run=True)
+                )
+
+    def test_start_accepts_existing_empty_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "new-product"
+            target.mkdir()
+            with patch("builtins.print") as output:
+                command_start(
+                    Namespace(name="new-product", workspace=temporary, dry_run=True)
+                )
+            payload = loads(output.call_args.args[0])
+            self.assertEqual(Path(payload["target"]), target)
 
     def test_start_dry_run_uses_workspace_child(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -283,6 +329,31 @@ class PiWorkflowTests(unittest.TestCase):
                         )
             self.assertFalse((home / ".local/bin/eng").exists())
             self.assertFalse((home / ".local/share/engineering-platform/0.4.0").exists())
+
+
+class LauncherTests(unittest.TestCase):
+    def test_symlinked_launcher_locates_scripts_eng(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "package"
+            launcher = package / "eng"
+            launcher.parent.mkdir(parents=True)
+            shutil.copy2(repository / "eng", launcher)
+            shutil.copytree(repository / "scripts", package / "scripts")
+
+            link = root / "bin/eng"
+            link.parent.mkdir()
+            link.symlink_to(launcher)
+            completed = subprocess.run(
+                [str(link), "--version"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(completed.stdout.strip(), "eng 0.4.0")
 
 
 class PlatformValidatorTests(unittest.TestCase):

@@ -5,6 +5,8 @@ description: Genera el blueprint reproducible de un proyecto después de resolve
 
 # Project Bootstrap
 
+Antes de iniciar, el destino puede estar vacío o contener únicamente `.atl/` y `.gitignore` en la raíz; `.atl/` contiene metadatos de Gentle AI y puede contener estado anidado. Si contiene cualquier otro contenido del usuario, detente y no sobrescribas trabajo.
+
 1. Valida `.engineering/project-definition.json` y exige confirmación explícita del usuario.
 2. Muestra la Recipe y las advertencias antes de materializar dependencias externas.
 3. Ejecuta `eng bootstrap --from .engineering/project-definition.json --output .` para crear manifest, arquitectura, reglas y handoff para Gentle.
@@ -14,4 +16,4 @@ description: Genera el blueprint reproducible de un proyecto después de resolve
 
 Para automatización sin conversación se conserva la ruta legacy `eng new --from <intake> --output <directorio>`.
 
-No sobrescribas un directorio no vacío. El código de dominio siempre es `user_owned`.
+No sobrescribas un destino que contenga contenido distinto de `.atl/` y `.gitignore` en la raíz; `.atl/` contiene metadatos de Gentle AI y puede contener estado anidado. El código de dominio siempre es `user_owned`.
