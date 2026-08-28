@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/golden-paths.schema.json",
   "schema_version": 2,
-  "platform_version": "0.4.0",
+  "platform_version": "0.4.1",
   "paths": [
     {
       "id": "GP-01",

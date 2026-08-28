@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PLATFORM_VERSION = "0.4.0"
+PLATFORM_VERSION = "0.4.1"
 DEFINITION_SCHEMA_VERSION = 1
 INSTALL_IGNORES = shutil.ignore_patterns(
     ".git",
@@ -927,7 +927,7 @@ def _global_install_status(home: Path) -> dict[str, Any]:
 
 def command_install(args: argparse.Namespace) -> int:
     if args.target != "pi":
-        raise PlatformError("v0.4.0 instala únicamente el target global pi")
+        raise PlatformError("v0.4.1 instala únicamente el target global pi")
     home = Path(args.home).expanduser().resolve() if args.home else Path.home()
     install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
     launcher = home / ".local/bin/eng"

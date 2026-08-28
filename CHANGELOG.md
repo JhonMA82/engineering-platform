@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2026-08-28
+
+- Corregido el launcher global cuando `eng` se invoca mediante un enlace simbólico.
+- Permitido reutilizar destinos que contienen únicamente `.atl/` y `.gitignore`, preservando el rechazo de contenido de usuario.
+- Añadidas regresiones para la resolución del launcher y la seguridad de destinos con metadatos gestionados.
+
 ## [0.4.0] - 2026-08-28
 
 - Convertida la plataforma en paquete Pi nativo con extensión TypeScript, descubrimiento, 13 skills operativos y prompt declarados en `package.json`.

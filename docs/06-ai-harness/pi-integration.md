@@ -1,6 +1,6 @@
 # Integración Pi-first
 
-Engineering Platform `0.4.0` se distribuye como paquete Pi nativo. `package.json` declara una extensión, el skill de descubrimiento, los 13 skills operativos y prompts; Pi los carga globalmente mediante su gestor de paquetes.
+Engineering Platform `0.4.1` se distribuye como paquete Pi nativo. `package.json` declara una extensión, el skill de descubrimiento, los 13 skills operativos y prompts; Pi los carga globalmente mediante su gestor de paquetes.
 
 ## Instalación
 
@@ -11,14 +11,14 @@ Desde una copia estable del repositorio:
 eng doctor --global
 ```
 
-El instalador conserva una copia versionada en `~/.local/share/engineering-platform/0.4.0`, crea `~/.local/bin/eng` y ejecuta `pi install` sobre esa copia. Si `~/.local/bin` no está en `PATH`, `eng doctor --global` muestra la ruta que falta.
+El instalador conserva una copia versionada en `~/.local/share/engineering-platform/0.4.1`, crea `~/.local/bin/eng` y ejecuta `pi install` sobre esa copia. Si `~/.local/bin` no está en `PATH`, `eng doctor --global` muestra la ruta que falta.
 
-Para retirarla, `eng uninstall --global --target pi` llama primero a `pi remove` y después elimina únicamente el launcher propio y la copia `0.4.0`.
+Para retirarla, `eng uninstall --global --target pi` llama primero a `pi remove` y después elimina únicamente el launcher propio y la copia `0.4.1`.
 
 Pi también permite instalar directamente un tag publicado:
 
 ```bash
-pi install git:github.com/JhonMA82/engineering-platform@v0.4.0
+pi install git:github.com/JhonMA82/engineering-platform@v0.4.1
 ```
 
 La instalación directa habilita `/new-project`, `/engineering-status`, `/skill:project-discovery`, los skills registrados en cada Recipe y `/project-handoff`; el launcher `eng start` requiere además instalar el binario desde un checkout o ZIP.
