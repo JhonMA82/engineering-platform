@@ -2,16 +2,23 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from argparse import Namespace
+from json import loads
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.eng import (
     PlatformError,
     add_feature_to_project,
     change_plan,
+    command_install,
+    command_start,
+    command_uninstall,
     evaluate_boilerplate,
     inspect_project,
     normalize_repository,
     resolve_recipe,
+    validate_project_definition,
     write_project,
 )
 from scripts.validate_platform import repository_markdown_files
@@ -87,6 +94,7 @@ class RecipeResolverTests(unittest.TestCase):
             result = write_project(self.school_intake(), output)
             self.assertTrue((output / ".engineering/project.json").exists())
             self.assertTrue((output / "ARCHITECTURE.md").exists())
+            self.assertTrue((output / "GENTLE.md").exists())
             manifest, errors, warnings = inspect_project(output)
             self.assertEqual(manifest["project"]["name"], "school-requests")
             self.assertEqual(errors, [])
@@ -126,6 +134,155 @@ class RecipeResolverTests(unittest.TestCase):
             write_project(self.school_intake(), output)
             with self.assertRaises(PlatformError):
                 add_feature_to_project(output, "jobs", apply=True)
+
+
+class PiWorkflowTests(unittest.TestCase):
+    def definition(self) -> dict:
+        return loads(
+            (Path(__file__).parents[1] / "examples/project-definitions/school-requests.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+    def test_source_definition_matches_canonical_example(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        paths = (
+            root / "examples/project-definitions/school-requests.json",
+            root / "examples/school-requests/.engineering/project-definition.json",
+        )
+
+        def normalized(path: Path) -> dict:
+            definition = loads(path.read_text(encoding="utf-8"))
+            definition["$schema"] = (
+                (path.parent / definition["$schema"]).resolve().relative_to(root).as_posix()
+            )
+            return definition
+
+        self.assertEqual(
+            normalized(paths[0]),
+            normalized(paths[1]),
+            "canonical source and generated project definitions drifted",
+        )
+
+    def test_pi_package_declares_native_resources(self) -> None:
+        root = Path(__file__).parents[1]
+        package = loads((root / "package.json").read_text(encoding="utf-8"))
+        self.assertEqual(package["version"], "0.4.0")
+        self.assertEqual(package["pi"]["extensions"], ["./extensions/engineering-platform.ts"])
+        self.assertIn("./.opencode/skills", package["pi"]["skills"])
+        self.assertTrue((root / "pi-skills/project-discovery/SKILL.md").exists())
+
+    def test_bootstrap_accepts_only_definition_in_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "school-requests"
+            definition_path = output / ".engineering/project-definition.json"
+            definition_path.parent.mkdir(parents=True)
+            definition_path.write_text(
+                __import__("json").dumps(self.definition(), ensure_ascii=False), encoding="utf-8"
+            )
+            result = write_project(
+                self.definition()["intake"],
+                output,
+                definition=self.definition(),
+                allowed_existing={definition_path},
+            )
+            self.assertEqual(result["definition_status"], "confirmed")
+            self.assertIn("Sistema interno", (output / "GENTLE.md").read_text(encoding="utf-8"))
+            handoff = loads(
+                (output / ".engineering/gentle-handoff.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(handoff["strategy"]["owner"], "gentle-ai")
+            self.assertEqual(handoff["strategy"]["allowed"], ["direct", "sdd"])
+
+    def test_rejects_unconfirmed_definition(self) -> None:
+        definition = self.definition()
+        definition["discovery"]["status"] = "draft"
+        with self.assertRaises(PlatformError):
+            validate_project_definition(definition)
+
+    def test_feature_update_preserves_definition_and_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "school-requests"
+            definition = self.definition()
+            write_project(
+                definition["intake"], output, definition=definition
+            )
+            add_feature_to_project(output, "api-keys", apply=True)
+            manifest = loads(
+                (output / ".engineering/project.json").read_text(encoding="utf-8")
+            )
+            updated_definition = loads(
+                (output / ".engineering/project-definition.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(manifest["definition_status"], "confirmed")
+            self.assertIn("api-keys", updated_definition["intake"]["features"])
+            self.assertIn("Sistema interno", (output / "GENTLE.md").read_text(encoding="utf-8"))
+
+    def test_start_dry_run_uses_workspace_child(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch("builtins.print") as output:
+                command_start(
+                    Namespace(name="new-product", workspace=temporary, dry_run=True)
+                )
+            payload = loads(output.call_args.args[0])
+            self.assertEqual(Path(payload["target"]).parent, Path(temporary))
+            self.assertEqual(payload["command"][0], "pi")
+
+    def test_start_rejects_symlink_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary) / "dev"
+            elsewhere = Path(temporary) / "elsewhere"
+            workspace.mkdir()
+            elsewhere.mkdir()
+            (workspace / "new-product").symlink_to(elsewhere, target_is_directory=True)
+            with self.assertRaises(PlatformError):
+                command_start(
+                    Namespace(name="new-product", workspace=str(workspace), dry_run=True)
+                )
+
+    def test_canonical_example_has_complete_gentle_handoff(self) -> None:
+        project = Path(__file__).parents[1] / "examples/school-requests"
+        manifest, errors, warnings = inspect_project(project)
+        self.assertEqual(errors, [])
+        self.assertEqual(manifest["definition_status"], "confirmed")
+        self.assertTrue((project / "GENTLE.md").exists())
+        self.assertTrue(any("pilot-ready" in item for item in warnings))
+
+    def test_global_install_can_be_verified_without_touching_user_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            completed = Namespace(returncode=0, stdout="engineering-platform", stderr="")
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", return_value=completed):
+                    with patch("builtins.print") as output:
+                        command_install(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                force=False,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+            status = loads(output.call_args.args[0])
+            self.assertTrue(status["ok"])
+            home = Path(temporary)
+            self.assertTrue((home / ".local/bin/eng").is_symlink())
+            self.assertTrue(
+                (home / ".local/share/engineering-platform/0.4.0/package.json").exists()
+            )
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", return_value=completed):
+                    with patch("builtins.print"):
+                        command_uninstall(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+            self.assertFalse((home / ".local/bin/eng").exists())
+            self.assertFalse((home / ".local/share/engineering-platform/0.4.0").exists())
 
 
 class PlatformValidatorTests(unittest.TestCase):

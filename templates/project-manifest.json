@@ -1,10 +1,10 @@
 {
   "$schema": "../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.3.0",
+  "platform_version": "0.4.0",
   "generated_at": "2026-08-28",
   "scaffold_status": "blueprint",
-  "project": {"name": "school-requests", "type": "institutional-admin"},
+  "project": {"name": "school-requests", "type": "institutional-admin", "summary": "Sistema interno de solicitudes escolares."},
   "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
   "starters": [
     {"id": "tanstack-admin", "delivery_status": "pilot-ready", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": null},
@@ -16,10 +16,11 @@
   "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "backup-restore"],
   "exclusions": ["multitenancy-unless-shared-installation", "mobile-unless-native-value", "jobs-unless-background-work"],
   "ownership": {
-    "managed": [".engineering/project.json", ".engineering/intake.json"],
+    "managed": [".engineering/project.json", ".engineering/intake.json", ".engineering/project-definition.json", ".engineering/gentle-handoff.json", "GENTLE.md"],
     "managed_sections": ["AGENTS.md", "ARCHITECTURE.md"],
     "seeded": ["README.md"],
     "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"]
   },
-  "warnings": ["hono-api aún está catalog-only; este manifest representa un blueprint, no un release interno."]
+  "warnings": ["hono-api aún está catalog-only; este manifest representa un blueprint, no un release interno."],
+  "definition_status": "confirmed"
 }

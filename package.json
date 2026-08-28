@@ -1,0 +1,14 @@
+{
+  "name": "engineering-platform",
+  "version": "0.4.0",
+  "description": "Pi-first project discovery, Recipe resolution and Gentle AI handoff for small development consultancies.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "keywords": ["pi-package", "engineering", "project-bootstrap"],
+  "pi": {
+    "extensions": ["./extensions/engineering-platform.ts"],
+    "skills": ["./pi-skills", "./.opencode/skills"],
+    "prompts": ["./prompts"]
+  }
+}

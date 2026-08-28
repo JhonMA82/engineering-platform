@@ -1,10 +1,10 @@
 {
   "$schema": "../../../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.3.0",
+  "platform_version": "0.4.0",
   "generated_at": "2026-08-28",
   "scaffold_status": "blueprint",
-  "project": {"name": "school-requests", "type": "institutional-admin"},
+  "project": {"name": "school-requests", "type": "institutional-admin", "summary": "Sistema interno para registrar, adjuntar y aprobar solicitudes escolares."},
   "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
   "starters": [
     {"id": "tanstack-admin", "delivery_status": "pilot-ready", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": null},
@@ -16,7 +16,7 @@
   "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "backup-restore"],
   "exclusions": ["jobs-unless-background-work", "mobile-unless-native-value", "multitenancy-unless-shared-installation"],
   "ownership": {
-    "managed": [".engineering/project.json", ".engineering/intake.json"],
+    "managed": [".engineering/project.json", ".engineering/intake.json", ".engineering/project-definition.json", ".engineering/gentle-handoff.json", "GENTLE.md"],
     "managed_sections": ["AGENTS.md", "ARCHITECTURE.md"],
     "seeded": ["README.md"],
     "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"]
@@ -24,5 +24,6 @@
   "warnings": [
     "tanstack-admin está pilot-ready: el resultado es blueprint, no código productivo liberado.",
     "hono-api está catalog-only: el resultado es blueprint, no código productivo liberado."
-  ]
+  ],
+  "definition_status": "confirmed"
 }

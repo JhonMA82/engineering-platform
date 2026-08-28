@@ -23,3 +23,5 @@ jobs:
         run: |
           ./eng boilerplate evaluate https://github.com/kriasoft/react-starter-kit
           ./eng new --from examples/intakes/school-requests.json --output /tmp/school-requests --dry-run
+          ./eng bootstrap --from examples/project-definitions/school-requests.json --output /tmp/school-requests --dry-run
+          ./eng install --global --target pi --dry-run

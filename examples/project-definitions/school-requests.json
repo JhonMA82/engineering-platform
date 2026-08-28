@@ -1,0 +1,31 @@
+{
+  "$schema": "../../schemas/project-definition.schema.json",
+  "schema_version": 1,
+  "idea": {
+    "summary": "Sistema interno para registrar, adjuntar y aprobar solicitudes escolares.",
+    "problem": "Las solicitudes se pierden entre mensajes y no existe trazabilidad de responsables o decisiones.",
+    "users": ["personal escolar", "responsables de aprobación"],
+    "outcomes": ["cada solicitud tiene estado, responsable e historial"],
+    "must_have": ["crear solicitud", "adjuntar archivos", "aprobar o rechazar", "consultar historial"],
+    "out_of_scope": ["multitenancy", "jobs", "webhooks", "aplicación móvil nativa"]
+  },
+  "intake": {
+    "name": "school-requests",
+    "project_type": "institutional-admin",
+    "signals": ["workflow", "requests", "audit"],
+    "features": ["files", "notifications"],
+    "excluded_features": ["multitenancy", "jobs", "webhooks"],
+    "database": "postgresql-managed",
+    "constraints": ["single-tenant", "team-1-to-4"]
+  },
+  "delivery": {
+    "acceptance_criteria": ["una solicitud conserva actor, fecha y transición de estado"],
+    "risks": ["definir permisos por rol antes de exponer acciones"],
+    "unknowns": []
+  },
+  "discovery": {
+    "status": "confirmed",
+    "confirmed_by": "user",
+    "confirmed_at": "2026-08-28T00:00:00Z"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "platform_version": "0.4.0",
+  "scaffold_status": "blueprint",
+  "project": {
+    "name": "school-requests",
+    "type": "institutional-admin",
+    "summary": "Sistema interno para registrar, adjuntar y aprobar solicitudes escolares."
+  },
+  "idea": {
+    "summary": "Sistema interno para registrar, adjuntar y aprobar solicitudes escolares.",
+    "problem": "Las solicitudes se pierden entre mensajes y no existe trazabilidad de responsables o decisiones.",
+    "users": ["personal escolar", "responsables de aprobación"],
+    "outcomes": ["cada solicitud tiene estado, responsable e historial"],
+    "must_have": ["crear solicitud", "adjuntar archivos", "aprobar o rechazar", "consultar historial"],
+    "out_of_scope": ["multitenancy", "jobs", "webhooks", "aplicación móvil nativa"]
+  },
+  "stack": {
+    "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
+    "starters": [
+      {"id": "tanstack-admin", "delivery_status": "pilot-ready", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": null},
+      {"id": "hono-api", "delivery_status": "catalog-only", "integration_mode": "internal", "update_strategy": "internal-release", "pin": null}
+    ],
+    "database": "postgresql-managed",
+    "features": ["auth", "rbac", "audit", "observability", "files", "notifications"],
+    "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"]
+  },
+  "structure": {
+    "managed": [".engineering/project.json", ".engineering/intake.json", ".engineering/project-definition.json", ".engineering/gentle-handoff.json", "GENTLE.md"],
+    "managed_sections": ["AGENTS.md", "ARCHITECTURE.md"],
+    "seeded": ["README.md"],
+    "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"]
+  },
+  "patterns": ["modular-monolith", "explicit-contracts", "least-privilege", "incremental-delivery", "single-tenant-first"],
+  "delivery": {
+    "acceptance_criteria": ["una solicitud conserva actor, fecha y transición de estado"],
+    "risks": ["definir permisos por rol antes de exponer acciones"],
+    "unknowns": []
+  },
+  "quality_gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "backup-restore"],
+  "exclusions": ["jobs-unless-background-work", "mobile-unless-native-value", "multitenancy-unless-shared-installation"],
+  "strategy": {
+    "owner": "gentle-ai",
+    "allowed": ["direct", "sdd"],
+    "instruction": "Gentle elige direct o SDD según riesgo, ambigüedad y alcance; debe registrar la elección antes de implementar.",
+    "prefer_sdd_when": ["hay contratos entre aplicaciones", "existen migraciones o permisos sensibles", "persisten incógnitas de producto de alto impacto"]
+  },
+  "read_first": [".engineering/project-definition.json", ".engineering/project.json", "ARCHITECTURE.md", "AGENTS.md"]
+}

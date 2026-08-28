@@ -13,7 +13,7 @@ Entrega una selección explícita de Recipe, starters, base de datos, features, 
 
 1. Lee `platform/golden-paths.json`, `platform/boilerplates.json`, `platform/database-profiles.json` y `platform/feature-packs.json`.
 2. Obtén `name`, `project_type`, usuarios, clientes, integraciones, restricciones operativas y capacidades realmente necesarias.
-3. Ejecuta `./eng recommend --input <intake.json>`.
+3. Ejecuta `eng recommend --input <intake.json>`.
 4. Si no existe Recipe exacta, detente y propone una decisión de plataforma; no mezcles Golden Paths de forma improvisada.
 5. Prefiere el camino estable más simple. Un starter especializado exige que el intake contenga la señal que lo justifica.
 6. Enumera lo que deliberadamente no se incluirá.

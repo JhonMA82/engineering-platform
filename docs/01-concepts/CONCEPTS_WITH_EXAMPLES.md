@@ -29,7 +29,7 @@ Este documento es el mapa de aprendizaje para juniors. Cada concepto incluye **q
 **Ejemplo:**
 ```json
 {
-  "platform_version": "0.3.0",
+  "platform_version": "0.4.0",
   "scaffold_status": "blueprint",
   "recipe": {"id": "GP-02", "version": "1.0.0"},
   "starters": [

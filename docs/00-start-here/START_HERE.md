@@ -1,12 +1,13 @@
 # Start Here
 
-No memorices frameworks. Aprende este ciclo: **intake → Recipe → manifest → cambio → gates → conocimiento**.
+No memorices frameworks. Aprende este ciclo: **idea → definición → Recipe → handoff → desarrollo → gates → conocimiento**.
 
 ## Primeros diez minutos
 
 ```bash
 make check
-./eng recommend --input examples/intakes/school-requests.json
+./eng install --global --target pi --dry-run
+./eng bootstrap --from examples/project-definitions/school-requests.json --output /tmp/school-requests --dry-run
 ./eng boilerplate evaluate https://github.com/kriasoft/react-starter-kit
 ```
 
@@ -14,10 +15,10 @@ En la primera salida identifica Recipe, starters, datos, features, skills, gates
 
 ## Primer proyecto
 
-1. Copia `templates/project-intake.json` y responde con hechos, no preferencias de framework.
-2. Ejecuta `./eng recommend --input <intake>`.
-3. Si la selección es correcta, ejecuta `./eng new --from <intake> --output <directorio>`.
-4. Lee `.engineering/project.json`, `ARCHITECTURE.md` y `AGENTS.md` generados.
+1. Instala la integración Pi con `./eng install --global --target pi`.
+2. Ejecuta `eng start <nombre>` o abre Pi en una carpeta vacía y usa `/new-project`.
+3. Responde sobre problema, usuarios, resultado, alcance y restricciones; no elijas framework.
+4. Confirma la definición y lee `.engineering/project.json`, `GENTLE.md`, `ARCHITECTURE.md` y `AGENTS.md` generados.
 5. Si el resultado dice `blueprint`, falta materialización curada: no lo presentes como starter productivo.
 6. Para un cambio usa `eng plan`; al terminar usa `eng check` y los comandos reales del starter.
 

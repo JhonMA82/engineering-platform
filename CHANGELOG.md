@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - 2026-08-28
+
+- Convertida la plataforma en paquete Pi nativo con extensión TypeScript, descubrimiento, 13 skills operativos y prompt declarados en `package.json`.
+- Añadidos `/new-project` y `/engineering-status` para descubrir proyectos y comprobar manifests desde Pi.
+- Añadidos `eng install --global --target pi`, diagnóstico y desinstalación segura de la copia versionada.
+- Añadido `eng start <nombre>` para crear `~/dev/<nombre>` y abrir Pi en el directorio correcto sin nesting.
+- Añadido contrato `project-definition` y flujo progresivo idea → confirmación → Recipe → bootstrap.
+- Añadidos `eng bootstrap` y `eng handoff`, que generan contexto estructurado y `GENTLE.md`.
+- Gentle conserva la decisión entre desarrollo directo y SDD; Engineering Platform fija idea, stack, patrones, estructura, alcance y gates.
+- Conservados los estados reales de boilerplates: los starters sin artefacto `released` continúan como blueprint.
+- Ampliada la suite a 24 pruebas, incluyendo rutas seguras, paquete Pi, instalación aislada y handoff.
+
 ## [0.3.0] - 2026-08-28
 
 - Recuperado el catálogo histórico `1.2.3`, con 17 entradas, perfiles internos, comparaciones y gobierno.

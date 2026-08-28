@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/project-definition.schema.json",
+  "schema_version": 1,
+  "idea": {
+    "summary": "Qué producto se va a crear y para quién.",
+    "problem": "Problema observable que se resolverá.",
+    "users": ["Usuario principal"],
+    "outcomes": ["Resultado medible"],
+    "must_have": ["Primer flujo vertical"],
+    "out_of_scope": ["Capacidad futura explícitamente excluida"]
+  },
+  "intake": {
+    "name": "project-name",
+    "project_type": "admin",
+    "signals": ["workflow"],
+    "features": [],
+    "excluded_features": [],
+    "database": "postgresql-managed",
+    "constraints": []
+  },
+  "delivery": {
+    "acceptance_criteria": ["Criterio observable"],
+    "risks": [],
+    "unknowns": []
+  },
+  "discovery": {
+    "status": "confirmed",
+    "confirmed_by": "user",
+    "confirmed_at": "2026-08-28T00:00:00Z"
+  }
+}

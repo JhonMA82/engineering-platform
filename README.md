@@ -2,21 +2,20 @@
 
 Una base de ingeniería minimalista, práctica y opinionada para que una consultoría de **1 a 20 personas** inicie y mantenga proyectos sin volver a discutir el stack desde cero.
 
-> Versión: **0.3.0** · Revisión: **2026-08-28**
+> Versión: **0.4.0** · Revisión: **2026-08-28**
 
 La idea es “Omarchy para proyectos”: pocos defaults buenos, comandos directos y automatización visible. No es un portal, un framework universal ni una colección de repositorios de moda.
 
 ## Qué resuelve
 
-Un intake pequeño se convierte en una **Project Recipe** reproducible:
+Un agente descubre la idea y la convierte en una **Project Recipe** reproducible:
 
 ```mermaid
 flowchart TD
-    A["Intake del proyecto"] --> B["Resolver"]
+    A["Preguntas progresivas"] --> B["Definición confirmada"]
     B --> C["Project Recipe"]
     C --> D["Blueprint o starter liberado"]
-    D --> E["Skills y Quality Gates"]
-    E --> F["Manifest y conocimiento"]
+    D --> E["Handoff a Gentle"]
 ```
 
 La Recipe fija:
@@ -31,18 +30,27 @@ La Recipe fija:
 
 La misma automatización sirve a una persona y a veinte. Lo que cambia con el tamaño es la revisión humana, no la arquitectura de la plataforma.
 
-## Inicio rápido
+## Inicio rápido con Pi
 
-No hay dependencias externas: requiere Python 3.11 o superior.
+Requiere Pi y Python 3.11 o superior. Desde el ZIP o un checkout estable:
 
 ```bash
 make check
-./eng recommend --input examples/intakes/school-requests.json
-./eng new --from examples/intakes/school-requests.json --output /tmp/school-requests
-./eng doctor --project /tmp/school-requests
-./eng plan --project /tmp/school-requests --change-type permission
-./eng add api-keys --project /tmp/school-requests
+./eng install --global --target pi
+eng doctor --global
+eng start school-requests
 ```
+
+`eng start` crea `~/dev/school-requests`, entra ahí y abre Pi con el agente de descubrimiento. `ENG_WORKSPACE` o `--workspace` cambian la raíz. Si ya abriste Pi dentro de una carpeta vacía, usa `/new-project`.
+
+La integración es un paquete Pi nativo: extensión TypeScript, skill de descubrimiento, los 13 skills operativos existentes y prompt de handoff. No modifica automáticamente la confianza de proyectos. Consulta [integración con Pi](docs/06-ai-harness/pi-integration.md).
+
+El agente pregunta hasta confirmar problema, usuarios, alcance y restricciones; después genera:
+
+- `.engineering/project-definition.json`: idea confirmada;
+- `.engineering/project.json`: Recipe, stack, features, skills y gates;
+- `ARCHITECTURE.md` y `AGENTS.md`: estructura y reglas;
+- `GENTLE.md` y `.engineering/gentle-handoff.json`: contexto para que Gentle elija ejecución directa o SDD.
 
 Mientras un starter no tenga artefacto interno `released`, `eng new` crea un **blueprint**: decisiones y contexto correctos, sin fingir que existe código productivo curado.
 
@@ -120,7 +128,12 @@ Así Turso se evalúa por capacidad y riesgo, no como reemplazo global de Postgr
 | `eng boilerplate evaluate` | Detecta duplicado, refresh o candidata |
 | `eng recommend` | Resuelve intake a Recipe sin escribir |
 | `eng new` | Crea manifest y documentos del proyecto |
+| `eng bootstrap` | Convierte una definición confirmada en proyecto y handoff |
+| `eng start` | Crea `workspace/proyecto` y abre Pi dentro de esa carpeta |
+| `eng install` | Instala globalmente el paquete Pi y el launcher `eng` |
+| `eng uninstall` | Retira el paquete Pi y solo la copia versionada instalada |
 | `eng doctor` | Detecta divergencia e ids inválidos |
+| `eng handoff` | Regenera las instrucciones para Gentle AI |
 | `eng plan` | Selecciona skills y gates por tipo de cambio |
 | `eng check` | Selecciona gates según manifest y archivos |
 | `eng add` | Planea un feature; `--apply` actualiza los archivos gestionados |
@@ -154,6 +167,9 @@ schemas/        contratos JSON
 catalog/        fichas y memoria histórica
 curation/       pins y adapters reproducibles
 .opencode/      skills del asistente
+extensions/     comandos nativos de Pi
+pi-skills/      descubrimiento cargado bajo demanda por Pi
+prompts/        comandos de prompt del paquete Pi
 feature-packs/  contratos de capacidades opcionales
 upgrades/       actualización por estrategia upstream
 examples/       intakes y proyectos canónicos
@@ -169,4 +185,4 @@ docs/           guías humanas y decisiones
 make check
 ```
 
-El validator comprueba JSON, aliases, URLs duplicadas, referencias entre Recipes/boilerplates/datos/features/skills, pins, adapters, schemas y enlaces Markdown. Las pruebas ejercitan resolución, Turso, detección de duplicados, refresh de React Starter Kit, generación segura y doctor.
+El validator comprueba el paquete Pi, JSON, aliases, URLs duplicadas, referencias entre Recipes/boilerplates/datos/features/skills, pins, adapters, schemas y enlaces Markdown. Las pruebas ejercitan instalación aislada, rutas seguras, definición confirmada, resolución, handoff, Turso, duplicados, generación y doctor.

@@ -2,6 +2,10 @@
 
 Documento generado desde `GP-02@1.0.0`. El proyecto es single-tenant; si varias escuelas comparten instalación se vuelve a resolver el intake y se agrega multitenancy mediante una migración explícita.
 
+## Idea
+
+Sistema interno para registrar, adjuntar y aprobar solicitudes escolares con trazabilidad de responsables y decisiones.
+
 ## Stack
 
 - `tanstack-admin` (`pilot-ready`, overlay).

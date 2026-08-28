@@ -49,6 +49,9 @@ def validate_required_files() -> None:
         "README.md",
         "AGENTS.md",
         "eng",
+        "package.json",
+        "extensions/engineering-platform.ts",
+        "pi-skills/project-discovery/SKILL.md",
         "platform/catalog.json",
         "platform/boilerplates.json",
         "platform/golden-paths.json",
@@ -56,6 +59,7 @@ def validate_required_files() -> None:
         "platform/database-profiles.json",
         "skills/registry.json",
         "schemas/project.schema.json",
+        "schemas/project-definition.schema.json",
         "templates/project-intake.json",
         "docs/01-concepts/CONCEPTS_WITH_EXAMPLES.md",
         "docs/13-examples/END_TO_END_SCHOOL_REQUESTS.md",
@@ -232,12 +236,45 @@ def validate_concepts() -> None:
             error(f"Concepto sin documentar: {term}")
 
 
+def validate_pi_package() -> None:
+    package = load("package.json")
+    if package.get("version") != "0.4.0":
+        error("package.json: versión Pi distinta de 0.4.0")
+    if "pi-package" not in package.get("keywords", []):
+        error("package.json: falta keyword pi-package")
+    manifest = package.get("pi", {})
+    expected = {
+        "extensions": "./extensions/engineering-platform.ts",
+        "skills": "./pi-skills",
+        "prompts": "./prompts",
+    }
+    for resource, relative in expected.items():
+        if relative not in manifest.get(resource, []):
+            error(f"package.json: pi.{resource} no declara {relative}")
+        if not (ROOT / relative).exists():
+            error(f"package.json: recurso Pi inexistente {relative}")
+    if "./.opencode/skills" not in manifest.get("skills", []):
+        error("package.json: Pi no declara los skills operativos existentes")
+    extension_path = ROOT / "extensions/engineering-platform.ts"
+    if extension_path.exists():
+        extension = extension_path.read_text(encoding="utf-8")
+        for command in ('registerCommand("new-project"', 'registerCommand("engineering-status"'):
+            if command not in extension:
+                error(f"Extensión Pi sin comando requerido: {command}")
+    skill_path = ROOT / "pi-skills/project-discovery/SKILL.md"
+    if skill_path.exists():
+        skill = skill_path.read_text(encoding="utf-8")
+        if not skill.startswith("---\nname: project-discovery\n") or "description:" not in skill:
+            error("Skill Pi project-discovery sin frontmatter válido")
+
+
 def main() -> int:
     validate_required_files()
     validate_all_json()
     validate_registry()
     validate_markdown_links()
     validate_concepts()
+    validate_pi_package()
     if ERRORS:
         print("VALIDATION FAILED", file=sys.stderr)
         for item in ERRORS:

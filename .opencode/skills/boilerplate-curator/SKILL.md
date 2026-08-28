@@ -23,7 +23,7 @@ Ante una URL, responde una de estas decisiones y actualiza los artefactos corres
 
 ## Flujo obligatorio
 
-1. Normaliza la URL y ejecuta `./eng boilerplate evaluate <url>`.
+1. Normaliza la URL y ejecuta `eng boilerplate evaluate <url>`.
 2. Busca coincidencia exacta, alias histórico, rename, fork y starter que cubra la misma categoría, incluyendo entradas deprecated o rechazadas.
 3. Inspecciona fuente primaria: README, licencia, manifiestos, CI, actividad reciente, releases, estrategia de actualización y guías para agentes.
 4. Separa capacidades declaradas de capacidades verificadas. Prueba instalación, tests y build en un piloto antes de `pilot-ready`.

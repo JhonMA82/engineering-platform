@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
@@ -15,7 +19,19 @@ from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PLATFORM_VERSION = "0.3.0"
+PLATFORM_VERSION = "0.4.0"
+DEFINITION_SCHEMA_VERSION = 1
+INSTALL_IGNORES = shutil.ignore_patterns(
+    ".git",
+    ".atl",
+    ".env",
+    ".env.*",
+    "__pycache__",
+    ".pytest_cache",
+    "node_modules",
+    "*.pyc",
+    "*.zip",
+)
 
 
 class PlatformError(ValueError):
@@ -295,9 +311,16 @@ def architecture_markdown(manifest: dict[str, Any]) -> str:
     gates = ", ".join(f"`{item}`" for item in manifest["gates"])
     exclusions = "\n".join(f"- `{item}`" for item in manifest["exclusions"])
     warnings = "\n".join(f"- {item}" for item in manifest["warnings"]) or "- Ninguna."
+    summary = manifest["project"].get(
+        "summary", "Proyecto definido desde intake; no hay resumen de descubrimiento."
+    )
     return f"""# Arquitectura: {manifest['project']['name']}
 
 Documento generado desde la Recipe `{manifest['recipe']['id']}@{manifest['recipe']['version']}`. Las decisiones de dominio deben registrarse como ADR; no se cambia el stack silenciosamente.
+
+## Idea
+
+{summary}
 
 ## Stack
 
@@ -329,6 +352,7 @@ Antes de cambiar código, lee `.engineering/project.json` y `ARCHITECTURE.md`.
 - Recipe: `{manifest['recipe']['id']}@{manifest['recipe']['version']}`.
 - Skills permitidos para esta arquitectura: {', '.join(f'`{item}`' for item in manifest['skills'])}.
 - Ejecuta los gates aplicables antes de terminar: {', '.join(f'`{item}`' for item in manifest['gates'])}.
+- Lee `GENTLE.md` para la intención del producto y la estrategia de entrega.
 - No agregues frameworks, bases de datos o feature packs sin actualizar primero el intake y resolver de nuevo la Recipe.
 - Respeta ownership: no sobrescribas archivos `user_owned`; los cambios a `managed_sections` deben limitarse a su sección identificada.
 """
@@ -343,20 +367,211 @@ Estado: **{manifest['scaffold_status']}**. Consulta `ARCHITECTURE.md` y `.engine
 """
 
 
-def write_project(intake: dict[str, Any], output: Path) -> dict[str, Any]:
+def _string_list(value: Any, field: str, *, allow_empty: bool = True) -> list[str]:
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+        raise PlatformError(f"{field} debe ser una lista de textos no vacíos")
+    if not allow_empty and not value:
+        raise PlatformError(f"{field} necesita al menos un elemento")
+    return value
+
+
+def validate_project_definition(definition: dict[str, Any]) -> dict[str, Any]:
+    if definition.get("schema_version") != DEFINITION_SCHEMA_VERSION:
+        raise PlatformError(
+            f"schema_version de definición no soportado: {definition.get('schema_version')}"
+        )
+    idea = definition.get("idea")
+    intake = definition.get("intake")
+    delivery = definition.get("delivery")
+    discovery = definition.get("discovery")
+    if not isinstance(idea, dict) or not isinstance(intake, dict):
+        raise PlatformError("La definición necesita objetos idea e intake")
+    if not isinstance(delivery, dict) or not isinstance(discovery, dict):
+        raise PlatformError("La definición necesita objetos delivery y discovery")
+    for field in ("summary", "problem"):
+        if not isinstance(idea.get(field), str) or not idea[field].strip():
+            raise PlatformError(f"idea.{field} es obligatorio")
+    for field in ("users", "outcomes", "must_have"):
+        _string_list(idea.get(field), f"idea.{field}", allow_empty=False)
+    _string_list(idea.get("out_of_scope", []), "idea.out_of_scope")
+    for field in ("acceptance_criteria", "risks", "unknowns"):
+        _string_list(delivery.get(field, []), f"delivery.{field}")
+    if discovery.get("status") != "confirmed":
+        raise PlatformError("La definición debe estar confirmada por el usuario antes del bootstrap")
+    if discovery.get("confirmed_by") != "user":
+        raise PlatformError("discovery.confirmed_by debe ser user")
+    if not isinstance(discovery.get("confirmed_at"), str) or not discovery["confirmed_at"].strip():
+        raise PlatformError("discovery.confirmed_at es obligatorio")
+    resolve_recipe(intake)
+    return definition
+
+
+def _ensure_target_is_safe(output: Path, allowed_existing: set[Path] | None = None) -> None:
+    if not output.exists():
+        return
+    if not output.is_dir():
+        raise PlatformError(f"La salida existe y no es un directorio: {output}")
+    allowed = {path.resolve() for path in (allowed_existing or set())}
+    unexpected: list[str] = []
+    for path in output.rglob("*"):
+        if path.is_symlink():
+            unexpected.append(str(path.relative_to(output)))
+            continue
+        if ".git" in path.relative_to(output).parts:
+            continue
+        if path.is_dir():
+            continue
+        if path.resolve() not in allowed:
+            unexpected.append(str(path.relative_to(output)))
+    if unexpected:
+        raise PlatformError(
+            "El directorio de salida contiene archivos ajenos al bootstrap: "
+            + ", ".join(sorted(unexpected))
+        )
+
+
+def gentle_handoff_data(
+    manifest: dict[str, Any], definition: dict[str, Any] | None
+) -> dict[str, Any]:
+    idea = (definition or {}).get("idea", {})
+    delivery = (definition or {}).get("delivery", {})
+    patterns = ["modular-monolith", "explicit-contracts", "least-privilege", "incremental-delivery"]
+    patterns.append("tenant-isolation" if "multitenancy" in manifest["features"] else "single-tenant-first")
+    return {
+        "schema_version": 1,
+        "platform_version": manifest["platform_version"],
+        "scaffold_status": manifest["scaffold_status"],
+        "project": manifest["project"],
+        "idea": idea,
+        "stack": {
+            "recipe": manifest["recipe"],
+            "starters": manifest["starters"],
+            "database": manifest["database"],
+            "features": manifest["features"],
+            "skills": manifest["skills"],
+        },
+        "structure": manifest["ownership"],
+        "patterns": patterns,
+        "delivery": delivery,
+        "quality_gates": manifest["gates"],
+        "exclusions": manifest["exclusions"],
+        "strategy": {
+            "owner": "gentle-ai",
+            "allowed": ["direct", "sdd"],
+            "instruction": "Gentle elige direct o SDD según riesgo, ambigüedad y alcance; debe registrar la elección antes de implementar.",
+            "prefer_sdd_when": [
+                "hay contratos entre aplicaciones",
+                "existen migraciones o permisos sensibles",
+                "persisten incógnitas de producto de alto impacto",
+            ],
+        },
+        "read_first": (
+            [".engineering/project-definition.json"] if definition else []
+        )
+        + [".engineering/project.json", "ARCHITECTURE.md", "AGENTS.md"],
+    }
+
+
+def gentle_markdown(handoff: dict[str, Any]) -> str:
+    idea = handoff.get("idea", {})
+    stack = handoff["stack"]
+    starters = ", ".join(f"`{item['id']}`" for item in stack["starters"])
+    must_have = "\n".join(f"- {item}" for item in idea.get("must_have", [])) or "- No definido."
+    out_of_scope = "\n".join(f"- {item}" for item in idea.get("out_of_scope", [])) or "- Ninguno adicional."
+    acceptance = "\n".join(
+        f"- {item}" for item in handoff.get("delivery", {}).get("acceptance_criteria", [])
+    ) or "- Completar los quality gates aplicables."
+    structure = handoff["structure"]
+    read_first = ", ".join(f"`{item}`" for item in handoff["read_first"])
+    return f"""# Handoff a Gentle AI
+
+## Idea confirmada
+
+{idea.get('summary', handoff['project'].get('summary', 'Sin resumen.'))}
+
+Problema: {idea.get('problem', 'Consulta la definición del proyecto.')}
+
+## Stack y base
+
+- Recipe: `{stack['recipe']['id']}@{stack['recipe']['version']}`
+- Boilerplates: {starters or 'ninguno'}
+- Base de datos: `{stack['database'] or 'ninguna'}`
+- Features: {', '.join(f'`{item}`' for item in stack['features']) or 'ninguno'}
+- Skills: {', '.join(f'`{item}`' for item in stack['skills']) or 'ninguno'}
+- Patrones: {', '.join(f'`{item}`' for item in handoff['patterns'])}
+- Estado: `{handoff['scaffold_status']}`
+
+## Estructura y ownership
+
+- Gestionado por la plataforma: {', '.join(f'`{item}`' for item in structure['managed'])}
+- Secciones gestionadas: {', '.join(f'`{item}`' for item in structure['managed_sections'])}
+- Código propiedad del proyecto: {', '.join(f'`{item}`' for item in structure['user_owned'])}
+
+## Alcance mínimo
+
+{must_have}
+
+## Fuera de alcance
+
+{out_of_scope}
+
+## Criterios de aceptación
+
+{acceptance}
+
+## Instrucciones de ejecución
+
+1. Lee, en orden: {read_first}.
+2. Decide entre ejecución directa y SDD según riesgo, ambigüedad, contratos, datos y permisos; registra brevemente el motivo.
+3. Conserva la Recipe, el stack, los patrones y las exclusiones. Propón una decisión explícita antes de desviarte.
+4. Implementa el incremento vertical mínimo y ejecuta los quality gates indicados en `.engineering/project.json`.
+5. No interpretes un starter `pilot-ready` o `catalog-only` como código productivo liberado.
+"""
+
+
+def write_handoff(
+    project: Path,
+    manifest: dict[str, Any],
+    definition: dict[str, Any] | None,
+) -> dict[str, Any]:
+    handoff = gentle_handoff_data(manifest, definition)
+    (project / ".engineering/gentle-handoff.json").write_text(
+        dump_json(handoff), encoding="utf-8"
+    )
+    (project / "GENTLE.md").write_text(gentle_markdown(handoff), encoding="utf-8")
+    return handoff
+
+
+def write_project(
+    intake: dict[str, Any],
+    output: Path,
+    *,
+    definition: dict[str, Any] | None = None,
+    allowed_existing: set[Path] | None = None,
+) -> dict[str, Any]:
     manifest = resolve_recipe(intake)
-    if output.exists():
-        if not output.is_dir():
-            raise PlatformError(f"La salida existe y no es un directorio: {output}")
-        if any(output.iterdir()):
-            raise PlatformError(f"El directorio de salida no está vacío: {output}")
+    _ensure_target_is_safe(output, allowed_existing)
+    if definition:
+        validate_project_definition(definition)
+        manifest["project"]["summary"] = definition["idea"]["summary"]
+        manifest["definition_status"] = "confirmed"
+    if definition:
+        manifest["ownership"]["managed"].append(".engineering/project-definition.json")
+    manifest["ownership"]["managed"].extend(
+        [".engineering/gentle-handoff.json", "GENTLE.md"]
+    )
     engineering = output / ".engineering"
     engineering.mkdir(parents=True, exist_ok=True)
+    if definition:
+        (engineering / "project-definition.json").write_text(
+            dump_json(definition), encoding="utf-8"
+        )
     (engineering / "project.json").write_text(dump_json(manifest), encoding="utf-8")
     (engineering / "intake.json").write_text(dump_json(intake), encoding="utf-8")
     (output / "ARCHITECTURE.md").write_text(architecture_markdown(manifest), encoding="utf-8")
     (output / "AGENTS.md").write_text(agents_markdown(manifest), encoding="utf-8")
     (output / "README.md").write_text(readme_markdown(manifest), encoding="utf-8")
+    write_handoff(output, manifest, definition)
     return manifest
 
 
@@ -433,9 +648,34 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
     for skill in manifest.get("skills", []):
         if skill not in skills:
             errors.append(f"Skill inexistente: {skill}")
-    for required in ["ARCHITECTURE.md", "AGENTS.md"]:
+    for required in ["ARCHITECTURE.md", "AGENTS.md", "GENTLE.md", ".engineering/gentle-handoff.json"]:
         if not (project / required).exists():
-            warnings.append(f"Falta {required}")
+            if manifest.get("platform_version") == PLATFORM_VERSION:
+                errors.append(f"Falta {required}")
+            else:
+                warnings.append(f"Falta {required}")
+    definition_path = project / ".engineering/project-definition.json"
+    if manifest.get("definition_status") == "confirmed":
+        if not definition_path.exists():
+            errors.append("definition_status=confirmed pero falta project-definition.json")
+        else:
+            try:
+                definition = validate_project_definition(read_json(definition_path))
+                if definition["intake"].get("name") != manifest.get("project", {}).get("name"):
+                    errors.append("La definición y el manifest tienen nombres de proyecto distintos")
+            except PlatformError as exc:
+                errors.append(f"Definición inválida: {exc}")
+    handoff_path = project / ".engineering/gentle-handoff.json"
+    if handoff_path.exists():
+        handoff = read_json(handoff_path)
+        if handoff.get("platform_version") != manifest.get("platform_version"):
+            errors.append("El handoff de Gentle y el manifest usan versiones distintas")
+        if handoff.get("stack", {}).get("recipe", {}).get("id") != manifest.get("recipe", {}).get("id"):
+            errors.append("El handoff de Gentle y el manifest usan Recipes distintas")
+        if handoff.get("stack", {}).get("skills") != manifest.get("skills"):
+            errors.append("El handoff de Gentle y el manifest declaran skills distintos")
+        if handoff.get("strategy", {}).get("owner") != "gentle-ai":
+            errors.append("El handoff no delega la estrategia de desarrollo a Gentle AI")
     return manifest, errors, warnings
 
 
@@ -462,6 +702,20 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
     requested.append(feature_id)
     updated_intake["features"] = requested
     updated_manifest = resolve_recipe(updated_intake)
+    definition_path = engineering / "project-definition.json"
+    definition = read_json(definition_path) if definition_path.exists() else None
+    if definition:
+        definition = deepcopy(definition)
+        definition["intake"] = updated_intake
+        validate_project_definition(definition)
+        updated_manifest["project"]["summary"] = definition["idea"]["summary"]
+        updated_manifest["definition_status"] = "confirmed"
+        updated_manifest["ownership"]["managed"].append(
+            ".engineering/project-definition.json"
+        )
+    updated_manifest["ownership"]["managed"].extend(
+        [".engineering/gentle-handoff.json", "GENTLE.md"]
+    )
     added = [
         item
         for item in updated_manifest["features"]
@@ -479,6 +733,8 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
     }
     if apply:
         intake_path.write_text(dump_json(updated_intake), encoding="utf-8")
+        if definition:
+            definition_path.write_text(dump_json(definition), encoding="utf-8")
         (engineering / "project.json").write_text(dump_json(updated_manifest), encoding="utf-8")
         (project / "ARCHITECTURE.md").write_text(
             architecture_markdown(updated_manifest), encoding="utf-8"
@@ -486,6 +742,7 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
         (project / "AGENTS.md").write_text(
             agents_markdown(updated_manifest), encoding="utf-8"
         )
+        write_handoff(project, updated_manifest, definition)
     return result
 
 
@@ -569,7 +826,214 @@ def command_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_bootstrap(args: argparse.Namespace) -> int:
+    definition_path = Path(args.input).resolve()
+    definition = validate_project_definition(read_json(definition_path))
+    output = Path(args.output).resolve()
+    try:
+        definition_path.relative_to(output)
+        allowed = {definition_path}
+    except ValueError:
+        allowed = set()
+    if args.dry_run:
+        manifest = resolve_recipe(definition["intake"])
+        manifest["project"]["summary"] = definition["idea"]["summary"]
+        print(dump_json(manifest), end="")
+        return 0
+    result = write_project(
+        definition["intake"],
+        output,
+        definition=definition,
+        allowed_existing=allowed,
+    )
+    print(f"Proyecto {result['scaffold_status']} creado en {output}")
+    print(f"Handoff para Gentle generado en {output / 'GENTLE.md'}")
+    for warning in result["warnings"]:
+        print(f"ADVERTENCIA: {warning}")
+    return 0
+
+
+def command_handoff(args: argparse.Namespace) -> int:
+    project = Path(args.project).resolve()
+    manifest, errors, warnings = inspect_project(project)
+    if errors:
+        raise PlatformError("El proyecto no pasa doctor: " + "; ".join(errors))
+    definition_path = project / ".engineering/project-definition.json"
+    definition = validate_project_definition(read_json(definition_path)) if definition_path.exists() else None
+    write_handoff(project, manifest, definition)
+    print(
+        dump_json(
+            {
+                "ok": True,
+                "handoff": str(project / "GENTLE.md"),
+                "definition": "confirmed" if definition else "missing",
+                "warnings": warnings,
+            }
+        ),
+        end="",
+    )
+    return 0
+
+
+def _global_install_status(home: Path) -> dict[str, Any]:
+    install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
+    launcher = home / ".local/bin/eng"
+    pi_executable = shutil.which("pi")
+    launcher_ok = launcher.is_symlink() and launcher.resolve() == (install_root / "eng").resolve()
+    pi_registered = False
+    if pi_executable:
+        listed = subprocess.run(
+            [pi_executable, "list"], text=True, capture_output=True, check=False
+        )
+        package_list = listed.stdout + listed.stderr
+        pi_registered = listed.returncode == 0 and (
+            str(install_root) in package_list or "engineering-platform" in package_list
+        )
+    return {
+        "ok": bool(pi_executable and install_root.exists() and launcher_ok and pi_registered),
+        "pi": pi_executable,
+        "pi_registered": pi_registered,
+        "package": str(install_root),
+        "package_exists": install_root.exists(),
+        "launcher": str(launcher),
+        "launcher_ok": launcher_ok,
+        "path_hint": None if str(launcher.parent) in os.environ.get("PATH", "").split(os.pathsep) else str(launcher.parent),
+    }
+
+
+def command_install(args: argparse.Namespace) -> int:
+    if args.target != "pi":
+        raise PlatformError("v0.4.0 instala únicamente el target global pi")
+    home = Path(args.home).expanduser().resolve() if args.home else Path.home()
+    install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
+    launcher = home / ".local/bin/eng"
+    pi_executable = shutil.which("pi")
+    result = {
+        "target": "pi",
+        "source": str(ROOT),
+        "package": str(install_root),
+        "launcher": str(launcher),
+        "pi_command": [pi_executable or "pi", "install", str(install_root)],
+    }
+    if args.dry_run:
+        result["dry_run"] = True
+        print(dump_json(result), end="")
+        return 0
+    if not pi_executable:
+        raise PlatformError("No se encontró `pi` en PATH; instala Pi antes de integrar la plataforma")
+    if install_root.exists() and not args.force:
+        current_version = read_json(install_root / "package.json").get("version")
+        if current_version != PLATFORM_VERSION:
+            raise PlatformError(f"Existe una instalación incompatible en {install_root}")
+    elif install_root.exists():
+        shutil.rmtree(install_root)
+    if not install_root.exists():
+        install_root.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="engineering-platform-", dir=install_root.parent) as temporary:
+            staged = Path(temporary) / PLATFORM_VERSION
+            shutil.copytree(ROOT, staged, ignore=INSTALL_IGNORES)
+            staged.rename(install_root)
+    launcher.parent.mkdir(parents=True, exist_ok=True)
+    if launcher.exists() or launcher.is_symlink():
+        if not launcher.is_symlink() or launcher.resolve() != (install_root / "eng").resolve():
+            raise PlatformError(f"No se sobrescribirá el launcher existente: {launcher}")
+    else:
+        launcher.symlink_to(install_root / "eng")
+    completed = subprocess.run(
+        [pi_executable, "install", str(install_root)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise PlatformError(
+            "Pi no pudo registrar el paquete: " + (completed.stderr.strip() or completed.stdout.strip())
+        )
+    status = _global_install_status(home)
+    status["pi_output"] = completed.stdout.strip()
+    print(dump_json(status), end="")
+    return 0
+
+
+def command_uninstall(args: argparse.Namespace) -> int:
+    home = Path(args.home).expanduser().resolve() if args.home else Path.home()
+    install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
+    launcher = home / ".local/bin/eng"
+    result = {
+        "target": "pi",
+        "package": str(install_root),
+        "launcher": str(launcher),
+        "removed": False,
+    }
+    if args.dry_run:
+        result["dry_run"] = True
+        print(dump_json(result), end="")
+        return 0
+    if not install_root.exists():
+        print(dump_json(result), end="")
+        return 0
+    pi_executable = shutil.which("pi")
+    if not pi_executable:
+        raise PlatformError("No se encontró `pi` en PATH; no se eliminará una instalación parcialmente registrada")
+    completed = subprocess.run(
+        [pi_executable, "remove", str(install_root)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise PlatformError(
+            "Pi no pudo retirar el paquete; no se borraron archivos: "
+            + (completed.stderr.strip() or completed.stdout.strip())
+        )
+    if launcher.is_symlink() and launcher.resolve() == (install_root / "eng").resolve():
+        launcher.unlink()
+    shutil.rmtree(install_root)
+    result["removed"] = True
+    print(dump_json(result), end="")
+    return 0
+
+
+def command_start(args: argparse.Namespace) -> int:
+    name = args.name.strip()
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+        raise PlatformError("name debe usar kebab-case, por ejemplo school-requests")
+    workspace_value = args.workspace or os.environ.get("ENG_WORKSPACE") or str(Path.home() / "dev")
+    workspace = Path(workspace_value).expanduser().resolve()
+    target = workspace / name
+    if target.parent != workspace:
+        raise PlatformError("El nombre del proyecto no puede cambiar el workspace")
+    if target.is_symlink() or (target.exists() and (not target.is_dir() or any(target.iterdir()))):
+        raise PlatformError(f"El destino ya existe y no está vacío: {target}")
+    initial_prompt = (
+        "Inicia un proyecto nuevo con Engineering Platform. Usa la skill project-discovery, "
+        "haz preguntas progresivas hasta confirmar la idea y luego ejecuta el bootstrap en este directorio."
+    )
+    result = {
+        "workspace": str(workspace),
+        "target": str(target),
+        "command": ["pi", "--name", f"new:{name}", initial_prompt],
+    }
+    if args.dry_run:
+        result["dry_run"] = True
+        print(dump_json(result), end="")
+        return 0
+    pi_executable = shutil.which("pi")
+    if not pi_executable:
+        raise PlatformError("No se encontró `pi` en PATH")
+    workspace.mkdir(parents=True, exist_ok=True)
+    target.mkdir(exist_ok=True)
+    os.chdir(target)
+    os.execv(pi_executable, [pi_executable, "--name", f"new:{name}", initial_prompt])
+    return 0
+
+
 def command_doctor(args: argparse.Namespace) -> int:
+    if args.global_install:
+        home = Path(args.home).expanduser().resolve() if args.home else Path.home()
+        result = _global_install_status(home)
+        print(dump_json(result), end="")
+        return 0 if result["ok"] else 1
     manifest, errors, warnings = inspect_project(Path(args.project).resolve())
     result = {
         "ok": not errors,
@@ -640,6 +1104,7 @@ def command_update(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="eng", description="Engineering Platform: recetas mínimas y verificables")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {PLATFORM_VERSION}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     catalog = sub.add_parser("catalog", help="Listar boilerplates y estados")
@@ -667,9 +1132,46 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--dry-run", action="store_true")
     new.set_defaults(handler=command_new)
 
+    bootstrap = sub.add_parser(
+        "bootstrap", help="Crear proyecto y handoff desde una definición confirmada"
+    )
+    bootstrap.add_argument("--from", dest="input", required=True)
+    bootstrap.add_argument("--output", default=".")
+    bootstrap.add_argument("--dry-run", action="store_true")
+    bootstrap.set_defaults(handler=command_bootstrap)
+
+    start = sub.add_parser(
+        "start", help="Crear una carpeta de proyecto en el workspace y abrir Pi"
+    )
+    start.add_argument("name")
+    start.add_argument("--workspace")
+    start.add_argument("--dry-run", action="store_true")
+    start.set_defaults(handler=command_start)
+
+    install = sub.add_parser("install", help="Instalar globalmente la integración Pi")
+    install.add_argument("--global", dest="global_install", action="store_true", required=True)
+    install.add_argument("--target", choices=["pi"], default="pi")
+    install.add_argument("--home", help=argparse.SUPPRESS)
+    install.add_argument("--force", action="store_true")
+    install.add_argument("--dry-run", action="store_true")
+    install.set_defaults(handler=command_install)
+
+    uninstall = sub.add_parser("uninstall", help="Retirar la integración Pi global")
+    uninstall.add_argument("--global", dest="global_install", action="store_true", required=True)
+    uninstall.add_argument("--target", choices=["pi"], default="pi")
+    uninstall.add_argument("--home", help=argparse.SUPPRESS)
+    uninstall.add_argument("--dry-run", action="store_true")
+    uninstall.set_defaults(handler=command_uninstall)
+
     doctor = sub.add_parser("doctor", help="Revisar coherencia de un proyecto")
     doctor.add_argument("--project", default=".")
+    doctor.add_argument("--global", dest="global_install", action="store_true")
+    doctor.add_argument("--home", help=argparse.SUPPRESS)
     doctor.set_defaults(handler=command_doctor)
+
+    handoff = sub.add_parser("handoff", help="Regenerar instrucciones para Gentle AI")
+    handoff.add_argument("--project", default=".")
+    handoff.set_defaults(handler=command_handoff)
 
     plan = sub.add_parser("plan", help="Seleccionar skills y gates para un cambio")
     plan.add_argument("--project", default=".")
