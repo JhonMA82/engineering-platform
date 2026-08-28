@@ -1,0 +1,36 @@
+name: Deprecar entrada
+description: Proponer retiro o migración.
+title: "[Deprecación]: "
+labels: ["catalog", "deprecation"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Entrada
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Motivo
+    validations:
+      required: true
+  - type: textarea
+    id: migration
+    attributes:
+      label: Alternativa y migración
+    validations:
+      required: true
+  - type: input
+    id: replacement
+    attributes:
+      label: Reemplazo canónico
+      description: ID existente o “ninguno”.
+    validations:
+      required: true
+  - type: textarea
+    id: affected_recipes
+    attributes:
+      label: Recipes y proyectos afectados
+    validations:
+      required: true

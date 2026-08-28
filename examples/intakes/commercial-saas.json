@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/intake.schema.json",
+  "name": "commercial-saas",
+  "project_type": "commercial-saas",
+  "signals": ["billing", "organizations", "cloudflare"],
+  "features": ["audit", "webhooks"],
+  "excluded_features": [],
+  "database": "postgresql-managed",
+  "constraints": ["cloudflare-accepted", "billing-required"]
+}

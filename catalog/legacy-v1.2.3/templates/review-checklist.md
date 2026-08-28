@@ -1,0 +1,22 @@
+# Checklist
+
+- [ ] Repositorio oficial.
+- [ ] Commit/tag fijado.
+- [ ] Licencia.
+- [ ] Dependencias.
+- [ ] Demos identificadas.
+- [ ] Auth.
+- [ ] Autorización.
+- [ ] Tenancy.
+- [ ] Auditoría.
+- [ ] Tests.
+- [ ] Build.
+- [ ] Deployment.
+- [ ] Backup/restore.
+- [ ] i18n.
+- [ ] Accesibilidad.
+- [ ] Observabilidad.
+- [ ] AI-friendly.
+- [ ] Plan de actualización.
+- [ ] Ruta de salida.
+- [ ] ADR.

@@ -1,5 +1,9 @@
-# Golden Paths
+# Golden Paths y Project Recipes
 
-Un Golden Path es el camino por defecto para una categoría. No es obligatorio, pero desviarse requiere razón.
+Los documentos `GP-*.md` explican el propósito humano. La definición ejecutable está en `platform/golden-paths.json` y contiene stack, alternativas, perfiles de datos, features, skills, gates y exclusiones.
 
-Ejemplo: una app administrativa interna empieza en GP-02; no se comparan 10 frameworks de nuevo.
+```bash
+./eng recommend --input examples/intakes/school-requests.json
+```
+
+Una excepción modifica el intake y vuelve a resolver; no se cambia el stack directamente en el proyecto.

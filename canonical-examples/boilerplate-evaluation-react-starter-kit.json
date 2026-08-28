@@ -1,0 +1,21 @@
+{
+  "input": {
+    "repository": "https://github.com/kriasoft/react-starter-kit"
+  },
+  "expected": {
+    "decision": "ALREADY_REGISTERED",
+    "entry_id": "react-starter-kit",
+    "reason_contains": "no crear otra entrada"
+  },
+  "refresh_variant": {
+    "input": {
+      "repository": "https://github.com/kriasoft/react-starter-kit",
+      "observed_commit": "a-different-future-commit"
+    },
+    "expected": {
+      "decision": "ALREADY_REGISTERED_REFRESH",
+      "entry_id": "react-starter-kit",
+      "strategy": "merge-seed"
+    }
+  }
+}

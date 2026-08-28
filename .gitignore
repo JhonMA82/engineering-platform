@@ -1,2 +1,11 @@
 # Local Pi runtime state
 .atl/
+
+# Python/tooling output
+__pycache__/
+*.py[cod]
+.coverage
+.pytest_cache/
+
+# Generated bundles
+*.zip

@@ -1,7 +1,12 @@
 name: validate
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 permissions:
   contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -9,5 +14,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
-      - run: python scripts/validate_platform.py
+          python-version: "3.13"
+      - name: Validate registries and references
+        run: python scripts/validate_platform.py
+      - name: Test resolver, curator and project lifecycle
+        run: python -m unittest discover -s tests -v
+      - name: Exercise canonical CLI decisions
+        run: |
+          ./eng boilerplate evaluate https://github.com/kriasoft/react-starter-kit
+          ./eng new --from examples/intakes/school-requests.json --output /tmp/school-requests --dry-run

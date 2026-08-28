@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "react-starter-kit",
+  "reviewed_at": "2026-08-28",
+  "source": {
+    "repository": "https://github.com/kriasoft/react-starter-kit",
+    "branch": "main",
+    "commit": "0aa7603435f16159ad0b8fef68fb7f6280be7ca1",
+    "license": "MIT"
+  },
+  "integration": {
+    "mode": "seed-fork",
+    "remote": "seed",
+    "update_strategy": "merge-seed",
+    "native_skill": ".agents/skills/merge-seed/SKILL.md"
+  },
+  "verification_status": "source-inspected-pilot-not-yet-executed",
+  "observed_stack": ["React 19", "TanStack Router", "TanStack Query", "tRPC", "Hono", "Drizzle", "Neon PostgreSQL", "Better Auth", "Cloudflare Workers", "Bun", "Vite", "Vitest", "Tailwind CSS 4", "shadcn/ui"],
+  "verification_commands": [
+    "bun install --frozen-lockfile",
+    "bun typecheck",
+    "bun lint",
+    "bun run test -- --run",
+    "bun run build"
+  ],
+  "ownership": {
+    "seed_managed": ["apps/**", "packages/**", "infra/**", "package.json", "bun.lock"],
+    "project_identity": ["README.md", "AGENTS.md", ".engineering/**", "product domain and branding"],
+    "immutable_after_apply": ["database migrations"]
+  },
+  "notes": [
+    "Upstream owns mechanism; the project owns identity and scope.",
+    "The adapter records a reviewed upstream snapshot, not approval for every SaaS project."
+  ]
+}

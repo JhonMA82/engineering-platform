@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform.local/schemas/database-profiles.schema.json",
+  "title": "Database profiles",
+  "type": "object",
+  "required": ["schema_version", "profiles"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "status", "engine", "providers", "use_when", "avoid_when", "required_gates"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "status": {"enum": ["stable", "trial", "experimental", "deprecated"]}
+        }
+      }
+    }
+  }
+}

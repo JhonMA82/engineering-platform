@@ -1,0 +1,57 @@
+name: Proponer boilerplate
+description: Evaluar una nueva opción.
+title: "[Propuesta]: "
+labels: ["catalog", "proposal"]
+body:
+  - type: input
+    id: repo
+    attributes:
+      label: Repositorio oficial
+      description: URL canónica; ejecuta primero eng boilerplate evaluate.
+    validations:
+      required: true
+  - type: textarea
+    id: gap
+    attributes:
+      label: Brecha que cubre
+    validations:
+      required: true
+  - type: textarea
+    id: cases
+    attributes:
+      label: Casos de uso
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas comparadas
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: Licencia observada
+      description: Archivo o fuente primaria; no inferir por el ecosistema.
+    validations:
+      required: true
+  - type: textarea
+    id: maintenance
+    attributes:
+      label: Mantenimiento y actualización
+      description: Actividad, releases y estrategia para conservar cambios del proyecto.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Riesgos y curación
+    validations:
+      required: true
+  - type: checkboxes
+    id: admission
+    attributes:
+      label: Admisión
+      options:
+        - label: Entiendo que una entrada nueva inicia catalog-only y no se convierte en default automáticamente.
+          required: true

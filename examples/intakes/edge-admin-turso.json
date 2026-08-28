@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/intake.schema.json",
+  "name": "edge-admin-turso",
+  "project_type": "admin",
+  "signals": ["workflow", "edge-read-heavy"],
+  "features": [],
+  "excluded_features": ["multitenancy"],
+  "database": "turso-libsql",
+  "constraints": ["explicit-turso-pilot", "postgres-features-not-required"]
+}

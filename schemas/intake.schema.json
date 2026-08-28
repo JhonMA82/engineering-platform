@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform.local/schemas/intake.schema.json",
+  "title": "Project intake",
+  "type": "object",
+  "required": ["name", "project_type"],
+  "properties": {
+    "name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "project_type": {"enum": ["public-web", "admin", "institutional-admin", "python-data", "mobile", "desktop", "multi-app", "commercial-saas", "ai-assistant"]},
+    "signals": {"type": "array", "items": {"type": "string"}},
+    "features": {"type": "array", "items": {"type": "string"}},
+    "excluded_features": {"type": "array", "items": {"type": "string"}},
+    "database": {"type": ["string", "null"]},
+    "constraints": {"type": "array", "items": {"type": "string"}}
+  }
+}

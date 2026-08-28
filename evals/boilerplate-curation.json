@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {"id": "exact-react-starter-kit", "repository": "https://github.com/kriasoft/react-starter-kit", "expected_decision": "ALREADY_REGISTERED", "expected_entry": "react-starter-kit"},
+    {"id": "renormalized-react-starter-kit", "repository": "github.com/KRIASOFT/react-starter-kit.git", "expected_decision": "ALREADY_REGISTERED", "expected_entry": "react-starter-kit"},
+    {"id": "react-starter-kit-new-commit", "repository": "https://github.com/kriasoft/react-starter-kit", "observed_commit": "future-upstream-commit", "expected_decision": "ALREADY_REGISTERED_REFRESH", "expected_entry": "react-starter-kit"},
+    {"id": "unknown-admin", "repository": "https://github.com/example/unknown-admin", "category": "admin-web", "expected_decision": "ADD_AS_CANDIDATE", "expected_alternative": "tanstack-admin"}
+  ]
+}

@@ -1,13 +1,14 @@
-# Versionado — ejemplo
+# Versionado
 
 ```text
-engineering-platform 0.2.0
-hono-api            0.4.0
-tanstack-admin      1.3.2
-auth-pack           0.2.1
-audit-pack          0.1.0
+engineering-platform 0.3.0
+Project Recipe GP-02 1.0.0
+starter release       versión o commit exacto
+feature pack          versión propia al liberarse
 ```
 
-Proyecto A registra versiones exactas en manifest.
+- MAJOR: contrato incompatible o Recipe que exige migración.
+- MINOR: capacidad compatible, nueva Recipe o nueva entrada.
+- PATCH: corrección sin cambio de selección.
 
-Si `hono-api 0.5` rompe una API interna, es MAJOR cuando sea estable y debe incluir upgrade recipe. El proyecto no se actualiza por `git merge` con el starter.
+El manifest registra versión de plataforma y Recipe. Un starter externo registra commit/release solo cuando fue observado; `null` significa que todavía es blueprint, nunca “usar latest”. Cada promoción o cambio de pin actualiza changelog, adapter, tests y Upgrade Recipe aplicable.

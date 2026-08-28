@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {"id": "public-content", "intake": {"name": "public-content", "project_type": "public-web"}, "expected_recipe": "GP-01", "expected_database": null, "expected_features": ["observability"]},
+    {"id": "school-admin", "intake": {"name": "school-admin", "project_type": "institutional-admin", "excluded_features": ["multitenancy"]}, "expected_recipe": "GP-02", "expected_database": "postgresql-managed", "expected_features": ["auth", "rbac", "audit", "observability"]},
+    {"id": "excel-reports", "intake": {"name": "excel-reports", "project_type": "python-data"}, "expected_recipe": "GP-03", "expected_database": "postgresql-managed", "expected_features": ["auth", "audit", "observability"]},
+    {"id": "field-mobile", "intake": {"name": "field-mobile", "project_type": "mobile"}, "expected_recipe": "GP-04", "expected_database": "postgresql-managed", "expected_features": ["auth", "observability"]},
+    {"id": "pdf-desktop", "intake": {"name": "pdf-desktop", "project_type": "desktop"}, "expected_recipe": "GP-05", "expected_database": "sqlite-local", "expected_features": ["observability"]},
+    {"id": "shared-clients", "intake": {"name": "shared-clients", "project_type": "multi-app"}, "expected_recipe": "GP-06", "expected_database": "postgresql-managed", "expected_features": ["auth", "rbac", "audit", "api-keys", "observability"]},
+    {"id": "paid-saas", "intake": {"name": "paid-saas", "project_type": "commercial-saas"}, "expected_recipe": "GP-07", "expected_database": "postgresql-managed", "expected_features": ["auth", "billing", "rbac", "audit", "multitenancy", "observability"]},
+    {"id": "governed-assistant", "intake": {"name": "governed-assistant", "project_type": "ai-assistant"}, "expected_recipe": "GP-08", "expected_database": "postgresql-managed", "expected_features": ["auth", "audit", "ai-tools", "observability"]}
+  ]
+}

@@ -13,9 +13,10 @@ Este documento es el mapa de aprendizaje para juniors. Cada concepto incluye **q
 **Ejemplo:** TanStack Admin para una interfaz administrativa.  
 **Error típico:** elegir un boilerplate porque “se ve moderno” aunque no corresponda al problema.
 
-## 3. Golden Path
-**Qué es:** combinación aprobada de starters, arquitectura y reglas para un tipo de proyecto.  
-**Ejemplo:** GP-02 = TanStack Admin + Hono + PostgreSQL para una app administrativa.  
+## 3. Golden Path / Project Recipe
+**Qué es:** combinación versionada de starters, datos, features, skills, gates y exclusiones para un tipo de proyecto.
+
+**Ejemplo:** GP-02 = TanStack Admin + Hono + PostgreSQL administrado para una app administrativa.
 **Error típico:** convertir cada variante pequeña en un Golden Path nuevo.
 
 ## 4. Feature Pack
@@ -28,10 +29,15 @@ Este documento es el mapa de aprendizaje para juniors. Cada concepto incluye **q
 **Ejemplo:**
 ```json
 {
-  "platform_version": "0.2.0",
-  "golden_path": "GP-02",
-  "starters": {"web":"tanstack-admin@1.x","api":"hono-api@0.x"},
-  "features": ["auth","rbac","audit"]
+  "platform_version": "0.3.0",
+  "scaffold_status": "blueprint",
+  "recipe": {"id": "GP-02", "version": "1.0.0"},
+  "starters": [
+    {"id": "tanstack-admin", "pin": null},
+    {"id": "hono-api", "pin": null}
+  ],
+  "database": "postgresql-managed",
+  "features": ["auth", "rbac", "audit", "observability"]
 }
 ```
 **Error típico:** volver a decidir el stack desde cero en cada tarea.
@@ -48,12 +54,12 @@ Este documento es el mapa de aprendizaje para juniors. Cada concepto incluye **q
 
 ## 8. Harness
 **Qué es:** la capa de orquestación que decide qué contexto, skills, guards y flujo debe usar el agente.  
-**Ejemplo:** una migration carga DB skill + migration guard, no Tauri ni Ignite.  
+**Ejemplo:** un cambio de schema carga `database` y gates de migración, no Tauri ni Ignite.
 **Error típico:** cargar todo el conocimiento del stack en cada prompt.
 
 ## 9. Skill
 **Qué es:** conocimiento especializado y operativo para una tarea o stack.  
-**Ejemplo:** skill de Hono enseña cómo añadir un endpoint siguiendo el patrón aprobado.  
+**Ejemplo:** `contracts` enseña cómo cambiar un endpoint sin romper consumidores.
 **Error típico:** una mega-skill de 5,000 líneas que cubre todos los frameworks.
 
 ## 10. Guard
@@ -83,8 +89,8 @@ Este documento es el mapa de aprendizaje para juniors. Cada concepto incluye **q
 
 ## 15. Upgrade Recipe
 **Qué es:** procedimiento versionado para actualizar un proyecto generado.  
-**Ejemplo:** `hono-api 0.3 → 0.4` detecta API antigua, aplica codemod, ejecuta tests y actualiza manifest.  
-**Error típico:** hacer `git merge starter/main` durante años.
+**Ejemplo:** React Starter Kit usa su Recipe `merge-seed`, ejecuta checks y actualiza el commit del manifest.
+**Error típico:** aplicar una estrategia genérica e ignorar el mecanismo nativo del upstream.
 
 ## 16. Upstream / Curated Starter
 **Qué es:** upstream es el proyecto original; curated starter es la versión probada y adaptada por la consultoría.  

@@ -1,12 +1,11 @@
 # Harness Integration
 
-El harness convierte contexto en ejecución controlada.
+El harness actual es deliberadamente pequeño:
 
-## Ejemplo
-Tarea: “agregar aprobación”.
-- manifest dice GP-02 + auth/rbac/audit;
-- harness carga skills Hono/TanStack/authorization/audit;
-- exige policy + audit tests;
-- no carga mobile/desktop.
+- `.engineering/project.json` limita arquitectura y capacidades;
+- `skills/registry.json` aporta instrucciones concretas;
+- `eng plan` selecciona contexto por tipo de cambio;
+- `eng check` selecciona quality gates por manifest y archivos;
+- schemas, validator y CI detectan divergencia.
 
-El objetivo es menos contexto, menos tokens y menos decisiones inventadas.
+El starter materializado debe mapear cada gate a un comando real. Hasta entonces `eng check` declara `selection-only` y reporta la brecha; no simula haber ejecutado pruebas.

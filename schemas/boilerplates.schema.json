@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform.local/schemas/boilerplates.schema.json",
+  "title": "Boilerplate registry",
+  "type": "object",
+  "required": ["schema_version", "catalog_version", "reviewed_at", "entries"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "catalog_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "reviewed_at": {"type": "string", "format": "date"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "legacy_ids", "name", "kind", "decision_status", "delivery_status", "maintenance_tier", "category", "repository", "profile", "use_when", "avoid_when", "integration"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "legacy_ids": {"type": "array", "items": {"type": "string"}},
+          "repository": {"type": ["string", "null"], "format": "uri"},
+          "decision_status": {"enum": ["default", "alternative", "specialized", "experimental", "reference", "deprecated", "rejected"]},
+          "delivery_status": {"enum": ["catalog-only", "pilot-ready", "curated", "released"]},
+          "maintenance_tier": {"enum": ["A", "B", "C"]},
+          "integration": {
+            "type": "object",
+            "required": ["mode", "update_strategy"],
+            "properties": {
+              "mode": {"enum": ["direct", "overlay", "curated-fork", "seed-fork", "internal", "reference-only"]},
+              "update_strategy": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

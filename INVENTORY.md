@@ -1,89 +1,22 @@
 # Inventory
 
-- `.github/ISSUE_TEMPLATE/config.yml`
-- `.github/ISSUE_TEMPLATE/platform-change.md`
-- `.github/PULL_REQUEST_TEMPLATE.md`
-- `.github/workflows/validate.yml`
-- `AGENTS.md`
-- `CHANGELOG.md`
-- `CONTRIBUTING.md`
-- `README.md`
-- `SECURITY.md`
-- `canonical-examples/README.md`
-- `docs/00-start-here/START_HERE.md`
-- `docs/01-concepts/CONCEPTS_WITH_EXAMPLES.md`
-- `docs/02-strategy/principles.md`
-- `docs/02-strategy/technology-freeze.md`
-- `docs/03-team/onboarding-junior.md`
-- `docs/03-team/team-operating-model.md`
-- `docs/04-project-lifecycle/change-existing-project.md`
-- `docs/04-project-lifecycle/incident-flow.md`
-- `docs/04-project-lifecycle/new-project.md`
-- `docs/04-project-lifecycle/project-lifecycle.md`
-- `docs/05-architecture/architecture-selection.md`
-- `docs/05-architecture/monorepo-pattern.md`
-- `docs/06-ai-harness/guards.md`
-- `docs/06-ai-harness/harness-execution-model.md`
-- `docs/06-ai-harness/skills-and-routing.md`
-- `docs/07-versioning/upgrade-recipes.md`
-- `docs/07-versioning/upstream-strategy.md`
-- `docs/07-versioning/versioning-strategy.md`
-- `docs/08-quality/evals.md`
-- `docs/08-quality/quality-gates.md`
-- `docs/09-security/security-baseline.md`
-- `docs/10-operations/handoff.md`
-- `docs/10-operations/release-flow.md`
-- `docs/11-knowledge/knowledge-loop.md`
-- `docs/12-design-system/design-system-strategy.md`
-- `docs/13-examples/END_TO_END_SCHOOL_REQUESTS.md`
-- `docs/14-deprecated/boilerplates-catalog.md`
-- `docs/decisions/ADR-001-platform-source-of-truth.md`
-- `docs/decisions/ADR-002-golden-paths.md`
-- `docs/decisions/ADR-003-t3-turbo-pattern.md`
-- `evals/README.md`
-- `evals/add-api-endpoint/README.md`
-- `evals/add-crud/README.md`
-- `evals/add-permission/README.md`
-- `evals/fix-regression/README.md`
-- `evals/refactor-module/README.md`
-- `evals/schema-migration/README.md`
-- `evals/tenant-resource/README.md`
-- `examples/school-requests/.engineering/project.json`
-- `examples/school-requests/docs/ADR-001-single-tenant.md`
-- `examples/school-requests/docs/architecture-brief.md`
-- `feature-packs/README.md`
-- `feature-packs/abac/README.md`
-- `feature-packs/ai-tools/README.md`
-- `feature-packs/api-keys/README.md`
-- `feature-packs/audit/README.md`
-- `feature-packs/auth/README.md`
-- `feature-packs/files/README.md`
-- `feature-packs/jobs/README.md`
-- `feature-packs/multitenancy/README.md`
-- `feature-packs/notifications/README.md`
-- `feature-packs/observability/README.md`
-- `feature-packs/rbac/README.md`
-- `feature-packs/webhooks/README.md`
-- `golden-paths/GP-01.md`
-- `golden-paths/GP-02.md`
-- `golden-paths/GP-03.md`
-- `golden-paths/GP-04.md`
-- `golden-paths/GP-05.md`
-- `golden-paths/GP-06.md`
-- `golden-paths/GP-07.md`
-- `golden-paths/README.md`
-- `harness/README.md`
-- `knowledge/README.md`
-- `knowledge/incidents/_template.md`
-- `knowledge/patterns/_template.md`
-- `platform/catalog.json`
-- `platform/feature-packs.json`
-- `platform/golden-paths.json`
-- `scripts/validate_platform.py`
-- `skills/README.md`
-- `skills/registry.json`
-- `templates/adr.md`
-- `templates/architecture-brief.md`
-- `templates/project-intake.md`
-- `templates/project-manifest.json`
-- `upgrades/README.md`
+## Capa operativa
+
+- `eng`, `scripts/eng.py`: interfaz del equipo.
+- `platform/`: boilerplates, Recipes, perfiles de datos y feature packs.
+- `schemas/`: contratos de intake, manifest y registros.
+- `.opencode/skills/`: instrucciones ejecutables del asistente.
+- `curation/` y `upgrades/`: pins, adapters y actualización.
+- `scripts/validate_platform.py`, `tests/`, `.github/workflows/validate.yml`: evidencia automática.
+
+## Conocimiento
+
+- `catalog/legacy-v1.2.3/`: catálogo anterior preservado.
+- `docs/`: estrategia, arquitectura, ciclo, seguridad y operación.
+- `canonical-examples/`, `examples/`, `evals/`, `knowledge/`: ejemplos y aprendizaje.
+
+Para el listado exacto y actual usa:
+
+```bash
+git ls-files
+```

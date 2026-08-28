@@ -1,38 +1,28 @@
 {
-  "schema_version": 1,
-  "platform_version": "0.2.0",
-  "project": {
-    "name": "school-requests",
-    "type": "institutional-admin"
-  },
-  "golden_path": {
-    "id": "GP-02",
-    "version": "0.2.0"
-  },
-  "starters": {
-    "web": {
-      "id": "tanstack-admin",
-      "version": "PINNED"
-    },
-    "api": {
-      "id": "hono-api",
-      "version": "PINNED"
-    }
-  },
-  "database": "postgresql",
-  "features": [
-    "auth",
-    "rbac",
-    "audit"
+  "$schema": "../../../schemas/project.schema.json",
+  "schema_version": 2,
+  "platform_version": "0.3.0",
+  "generated_at": "2026-08-28",
+  "scaffold_status": "blueprint",
+  "project": {"name": "school-requests", "type": "institutional-admin"},
+  "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
+  "starters": [
+    {"id": "tanstack-admin", "delivery_status": "pilot-ready", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": null},
+    {"id": "hono-api", "delivery_status": "catalog-only", "integration_mode": "internal", "update_strategy": "internal-release", "pin": null}
   ],
-  "excluded_features": [
-    "multitenancy",
-    "jobs",
-    "webhooks",
-    "mobile",
-    "desktop"
-  ],
-  "decisions": [
-    "ADR-001-single-tenant"
+  "database": "postgresql-managed",
+  "features": ["auth", "rbac", "audit", "observability", "files", "notifications"],
+  "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
+  "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "backup-restore"],
+  "exclusions": ["jobs-unless-background-work", "mobile-unless-native-value", "multitenancy-unless-shared-installation"],
+  "ownership": {
+    "managed": [".engineering/project.json", ".engineering/intake.json"],
+    "managed_sections": ["AGENTS.md", "ARCHITECTURE.md"],
+    "seeded": ["README.md"],
+    "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"]
+  },
+  "warnings": [
+    "tanstack-admin está pilot-ready: el resultado es blueprint, no código productivo liberado.",
+    "hono-api está catalog-only: el resultado es blueprint, no código productivo liberado."
   ]
 }

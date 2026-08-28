@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/intake.schema.json",
+  "name": "school-requests",
+  "project_type": "institutional-admin",
+  "signals": ["workflow", "requests", "audit"],
+  "features": [],
+  "excluded_features": ["multitenancy", "jobs"],
+  "database": "postgresql-managed",
+  "constraints": ["single-tenant", "small-team"]
+}

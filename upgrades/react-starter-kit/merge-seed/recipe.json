@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "react-starter-kit",
+  "strategy": "merge-seed",
+  "preconditions": [
+    "clean working tree",
+    "current tests pass",
+    "seed remote points to canonical upstream",
+    "current manifest pin is known",
+    "database backup exists when migrations are involved"
+  ],
+  "steps": [
+    "read upstream .agents/skills/merge-seed/SKILL.md",
+    "create a dedicated update branch",
+    "fetch seed and inspect changes since current pin",
+    "merge using zdiff3 and resolve by intent",
+    "preserve project identity, scope and applied migrations",
+    "run all adapter verification commands and Recipe gates",
+    "record local patches and update the manifest pin"
+  ],
+  "rollback": "Discard the unmerged update branch. If deployed, use the project release rollback and database recovery plan; never rewrite applied migrations.",
+  "evidence": ["upstream range", "conflict decisions", "command results", "migration review", "new pin"]
+}

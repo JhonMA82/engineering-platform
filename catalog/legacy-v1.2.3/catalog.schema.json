@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Consulting Boilerplates Catalog",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "catalog_version",
+    "review_date",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer"
+    },
+    "catalog_version": {
+      "type": "string"
+    },
+    "review_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "origin",
+          "status",
+          "category",
+          "default_for",
+          "details",
+          "summary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "repository": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      }
+    }
+  }
+}

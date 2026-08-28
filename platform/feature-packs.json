@@ -1,86 +1,20 @@
 {
-  "schema_version": 1,
+  "$schema": "../schemas/feature-packs.schema.json",
+  "schema_version": 2,
   "features": [
-    {
-      "id": "auth",
-      "requires": [
-        "database"
-      ],
-      "example": "Usuarios de una escuela inician sesión."
-    },
-    {
-      "id": "audit",
-      "requires": [
-        "database"
-      ],
-      "example": "Registrar quién aprobó una solicitud."
-    },
-    {
-      "id": "rbac",
-      "requires": [
-        "auth"
-      ],
-      "example": "DIRECTOR aprueba; CAPTURISTA crea."
-    },
-    {
-      "id": "abac",
-      "requires": [
-        "rbac"
-      ],
-      "example": "Capturista solo edita solicitudes propias en borrador."
-    },
-    {
-      "id": "multitenancy",
-      "requires": [
-        "auth",
-        "database",
-        "rbac",
-        "audit"
-      ],
-      "example": "Una misma instalación sirve a 20 escuelas."
-    },
-    {
-      "id": "api-keys",
-      "requires": [
-        "database"
-      ],
-      "example": "n8n consume endpoints con scope limitado."
-    },
-    {
-      "id": "webhooks",
-      "requires": [
-        "database"
-      ],
-      "example": "Notificar a un sistema externo cuando una solicitud se aprueba."
-    },
-    {
-      "id": "jobs",
-      "requires": [
-        "database"
-      ],
-      "example": "Generar 3,000 PDFs en background."
-    },
-    {
-      "id": "files",
-      "requires": [],
-      "example": "Adjuntar comprobantes."
-    },
-    {
-      "id": "notifications",
-      "requires": [],
-      "example": "Correo al director al recibir solicitud."
-    },
-    {
-      "id": "observability",
-      "requires": [],
-      "example": "Trazar error 500 por requestId."
-    },
-    {
-      "id": "ai-tools",
-      "requires": [
-        "auth"
-      ],
-      "example": "Copiloto consulta solicitudes con permisos del usuario."
-    }
+    {"id": "auth", "status": "planned", "requires": ["database"], "skills": ["authorization", "database"], "gates": ["test", "security"], "example": "Inicio de sesión y sesiones revocables."},
+    {"id": "audit", "status": "planned", "requires": ["database"], "skills": ["database"], "gates": ["test", "migration"], "example": "Registrar actor, acción, recurso y fecha."},
+    {"id": "rbac", "status": "planned", "requires": ["auth"], "skills": ["authorization"], "gates": ["test", "security"], "example": "DIRECTOR aprueba; CAPTURISTA crea."},
+    {"id": "abac", "status": "planned", "requires": ["rbac"], "skills": ["authorization"], "gates": ["test", "security"], "example": "Solo el autor edita su borrador."},
+    {"id": "multitenancy", "status": "planned", "requires": ["auth", "database", "rbac", "audit"], "skills": ["authorization", "database"], "gates": ["test", "migration", "security"], "example": "Una instalación sirve a varias organizaciones con aislamiento probado."},
+    {"id": "api-keys", "status": "planned", "requires": ["database"], "skills": ["authorization", "database"], "gates": ["test", "security"], "example": "Integraciones consumen endpoints con scopes limitados."},
+    {"id": "webhooks", "status": "planned", "requires": ["database"], "skills": ["contracts", "database"], "gates": ["test", "integration", "security"], "example": "Entrega firmada, idempotente y reintentable de eventos."},
+    {"id": "jobs", "status": "planned", "requires": ["database"], "skills": ["database"], "gates": ["test", "integration"], "example": "Trabajo durable, reintentable e idempotente en segundo plano."},
+    {"id": "files", "status": "planned", "requires": [], "skills": ["security-review"], "gates": ["test", "security"], "example": "Adjuntos con tipo, tamaño, acceso y retención controlados."},
+    {"id": "notifications", "status": "planned", "requires": [], "skills": ["contracts"], "gates": ["test", "integration"], "example": "Correo o notificación desde adapters sustituibles."},
+    {"id": "observability", "status": "planned", "requires": [], "skills": ["gate-runner"], "gates": ["test"], "example": "Logs estructurados, requestId y señales de salud."},
+    {"id": "ai-tools", "status": "planned", "requires": ["auth", "audit"], "skills": ["authorization", "security-review"], "gates": ["test", "security", "ai-eval"], "example": "Herramientas con allowlist, confirmación y presupuesto."},
+    {"id": "billing", "status": "planned", "requires": ["auth", "database"], "skills": ["contracts", "security-review"], "gates": ["test", "integration", "billing-sandbox"], "example": "Planes, suscripciones y webhooks de cobro idempotentes."},
+    {"id": "sync", "status": "experimental", "requires": ["database"], "skills": ["database", "security-review"], "gates": ["test", "sync-conflict", "security"], "example": "Sincronización local/remota con política explícita de conflictos."}
   ]
 }

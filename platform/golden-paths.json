@@ -1,68 +1,112 @@
 {
-  "schema_version": 1,
+  "$schema": "../schemas/golden-paths.schema.json",
+  "schema_version": 2,
+  "platform_version": "0.3.0",
   "paths": [
     {
       "id": "GP-01",
+      "version": "1.0.0",
+      "status": "stable",
       "name": "Public Web",
-      "default": [
-        "stardrive"
-      ],
-      "example": "Sitio del programa municipal con noticias y formulario de contacto."
+      "match": {"project_types": ["public-web"], "signals": ["landing", "blog", "docs", "seo", "public-content"]},
+      "stack": {"starters": ["stardrive"], "alternatives": [], "database": {"default": null, "allowed": ["turso-libsql"]}},
+      "features": {"default": ["observability"], "optional": ["auth", "files", "notifications"]},
+      "skills": ["architecture-selector", "project-bootstrap", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "build", "accessibility", "performance", "security"],
+      "exclusions": ["admin-shell", "multitenancy", "jobs", "native-mobile"],
+      "example": "Sitio público con noticias, documentación y contacto."
     },
     {
       "id": "GP-02",
+      "version": "1.0.0",
+      "status": "stable",
       "name": "Admin Application",
-      "default": [
-        "tanstack-admin",
-        "hono-api",
-        "postgresql"
-      ],
-      "example": "Sistema interno de solicitudes de una escuela."
+      "match": {"project_types": ["admin", "institutional-admin"], "signals": ["workflow", "backoffice", "requests", "crm", "records"]},
+      "stack": {"starters": ["tanstack-admin", "hono-api"], "alternatives": ["next-admin", "speedpy"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed", "turso-libsql"]}},
+      "features": {"default": ["auth", "rbac", "audit", "observability"], "optional": ["abac", "api-keys", "files", "jobs", "multitenancy", "notifications", "webhooks"]},
+      "solution_packs": {"default": [], "optional": ["institutional-operations-starter"]},
+      "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security"],
+      "exclusions": ["multitenancy-unless-shared-installation", "mobile-unless-native-value", "jobs-unless-background-work"],
+      "example": "Sistema interno de solicitudes y aprobaciones para una escuela."
     },
     {
       "id": "GP-03",
+      "version": "1.0.0",
+      "status": "stable",
       "name": "Python Data Application",
-      "default": [
-        "speedpy",
-        "postgresql"
-      ],
-      "example": "Carga de Excel, validación y generación de reportes."
+      "match": {"project_types": ["python-data"], "signals": ["excel", "documents", "ocr", "reports", "django-admin"]},
+      "stack": {"starters": ["speedpy"], "alternatives": ["speedpy-lite", "fastapi", "python-service-starter"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed", "sqlite-local"]}},
+      "features": {"default": ["auth", "audit", "observability"], "optional": ["files", "jobs", "notifications", "rbac"]},
+      "skills": ["architecture-selector", "project-bootstrap", "data", "database", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "integration", "migration", "security"],
+      "exclusions": ["separate-spa-unless-required", "microservices", "realtime-unless-measured"],
+      "example": "Carga de Excel, validación, conciliación y generación de reportes."
     },
     {
       "id": "GP-04",
+      "version": "1.0.0",
+      "status": "stable",
       "name": "Mobile Application",
-      "default": [
-        "ignite",
-        "hono-api"
-      ],
-      "example": "App de inspectores de campo."
+      "match": {"project_types": ["mobile"], "signals": ["camera", "gps", "push", "field-app", "app-store"]},
+      "stack": {"starters": ["ignite", "hono-api"], "alternatives": [], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed", "turso-sync"]}},
+      "features": {"default": ["auth", "observability"], "optional": ["api-keys", "files", "notifications", "sync"]},
+      "skills": ["architecture-selector", "project-bootstrap", "database", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "integration", "build", "security"],
+      "exclusions": ["offline-write-sync-unless-designed", "desktop-shell", "multiple-backends"],
+      "example": "Aplicación de inspectores con cámara, ubicación y trabajo de campo."
     },
     {
       "id": "GP-05",
+      "version": "1.0.0",
+      "status": "stable",
       "name": "Desktop Application",
-      "default": [
-        "tauri-ui"
-      ],
-      "example": "Herramienta offline para procesar archivos locales."
+      "match": {"project_types": ["desktop"], "signals": ["local-files", "native-integration", "offline", "installer"]},
+      "stack": {"starters": ["tauri-ui"], "alternatives": [], "database": {"default": "sqlite-local", "allowed": ["sqlite-local", "turso-sync"]}},
+      "features": {"default": ["observability"], "optional": ["auth", "files", "sync"]},
+      "skills": ["architecture-selector", "project-bootstrap", "database", "security-review", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "build", "security", "installer"],
+      "exclusions": ["generic-shell-commands", "broad-filesystem-permissions", "server-backend-unless-shared"],
+      "example": "Herramienta instalada para procesar archivos locales sin conexión."
     },
     {
       "id": "GP-06",
+      "version": "1.0.0",
+      "status": "stable",
       "name": "Multi-App Platform",
-      "default": [
-        "hono-api"
-      ],
-      "example": "Web administrativa + móvil + escritorio compartiendo API."
+      "match": {"project_types": ["multi-app"], "signals": ["web-and-mobile", "web-and-desktop", "shared-api", "multiple-clients"]},
+      "stack": {"starters": ["tanstack-admin", "hono-api"], "alternatives": ["fastapi"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
+      "features": {"default": ["auth", "rbac", "audit", "api-keys", "observability"], "optional": ["files", "jobs", "multitenancy", "notifications", "webhooks"]},
+      "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "contract", "integration", "migration", "build", "security"],
+      "exclusions": ["duplicated-domain-logic", "client-specific-backends", "premature-microservices"],
+      "example": "Web administrativa, móvil y escritorio compartiendo contratos y API."
     },
     {
       "id": "GP-07",
+      "version": "1.0.0",
+      "status": "trial",
       "name": "Commercial SaaS",
-      "default": [
-        "react-starter-kit"
-      ],
-      "alternatives": [
-        "open-saas"
-      ],
-      "example": "SaaS comercial con billing y organizaciones."
+      "match": {"project_types": ["commercial-saas"], "signals": ["billing", "plans", "organizations", "subscriptions", "cloudflare"]},
+      "stack": {"starters": ["react-starter-kit"], "alternatives": ["open-saas"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
+      "features": {"default": ["auth", "billing", "multitenancy", "observability"], "optional": ["api-keys", "audit", "files", "jobs", "notifications", "webhooks"]},
+      "skills": ["architecture-selector", "project-bootstrap", "react-starter-kit-updater", "security-review", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "billing-sandbox"],
+      "exclusions": ["institutional-single-tenant", "provider-neutral-contract", "billing-not-required"],
+      "example": "SaaS comercial con organizaciones, planes y cobro recurrente."
+    },
+    {
+      "id": "GP-08",
+      "version": "0.1.0",
+      "status": "trial",
+      "name": "Governed AI Assistant",
+      "match": {"project_types": ["ai-assistant"], "signals": ["chat", "rag", "citations", "tools", "copilot"]},
+      "stack": {"starters": ["ai-assistant-starter"], "alternatives": ["vercel-chatbot"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
+      "features": {"default": ["auth", "audit", "ai-tools", "observability"], "optional": ["files", "jobs", "multitenancy", "notifications"]},
+      "skills": ["architecture-selector", "project-bootstrap", "authorization", "security-review", "gate-runner"],
+      "gates": ["lint", "typecheck", "test", "integration", "security", "ai-eval", "cost-budget"],
+      "exclusions": ["autonomous-sensitive-actions", "uncited-factual-answers", "unbounded-model-spend"],
+      "example": "Asistente interno con fuentes, citas, permisos por herramienta y auditoría."
     }
   ]
 }

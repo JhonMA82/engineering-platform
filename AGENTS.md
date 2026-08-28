@@ -1,40 +1,38 @@
 # AGENTS.md
 
 ## Propósito
-Gobierna cómo un agente trabaja con la Engineering Platform.
 
-## Antes de modificar un proyecto
-Leer en orden:
-1. `.engineering/project.json`;
-2. `AGENTS.md` del proyecto;
-3. Golden Path;
-4. feature packs instalados;
-5. ADRs relevantes;
-6. canonical examples del cambio.
+Gobierna cómo un agente modifica esta Engineering Platform. Para un proyecto generado prevalece su propio `AGENTS.md` y `.engineering/project.json`.
 
-## Ejemplo
-Tarea: “agrega campo `priority` a solicitudes”.
+## Fuente de verdad
 
-Correcto:
-- detectar GP-02;
-- cargar TanStack + Hono + DB;
-- crear migration;
-- actualizar contrato API;
-- actualizar UI;
-- ejecutar migration test + OpenAPI diff + tests.
+1. `platform/boilerplates.json` para entradas y madurez;
+2. `platform/golden-paths.json` para Recipes;
+3. `platform/database-profiles.json` y `platform/feature-packs.json` para composición;
+4. `skills/registry.json` para routing;
+5. fichas y ADRs para evidencia y motivo.
 
-Incorrecto:
-- agregar Redis;
-- crear microservicio;
-- cambiar ORM;
-- introducir multitenancy.
+## Antes de cambiar la plataforma
+
+1. Lee el registro afectado, su schema, ficha, Recipe y tests.
+2. Distingue cambio de proyecto de cambio reusable de plataforma.
+3. Conserva ids; usa `legacy_ids` para renames.
+4. No promociones `delivery_status` sin artefacto, pin, checks y piloto correspondientes.
+5. Actualiza registro, ficha, ejemplo/eval, validator y changelog juntos.
+6. Ejecuta `make check`.
+
+## Boilerplates
+
+Ante una URL usa el skill `boilerplate-curator` y `./eng boilerplate evaluate`. Revisa coincidencia exacta, alias, fork y cobertura antes de añadir. Una candidata inicia `catalog-only`; popularidad no justifica un default.
 
 ## Invariantes
+
 - arquitectura mínima suficiente;
-- frontend no es autoridad de seguridad;
-- todo cambio DB tiene migration;
-- toda ruta pública tiene contrato OpenAPI;
+- single-tenant y monolito modular como opciones de primera clase;
+- frontend nunca es autoridad de seguridad;
+- todo cambio de datos tiene migración y recuperación;
 - todo bug produce regression test;
-- recursos tenant requieren tenant isolation test;
-- no usar `latest` en dependencias productivas;
-- no copiar código de referencias con licencia incompatible.
+- recursos tenant requieren prueba de aislamiento;
+- no usar `latest` ni marcadores como `PINNED`;
+- no copiar referencias sin licencia compatible;
+- no afirmar que un starter está listo si solo existe su ficha.

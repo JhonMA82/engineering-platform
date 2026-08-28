@@ -1,18 +1,22 @@
-# Modelo operativo del equipo — con ejemplo
+# Modelo operativo para 1–20 personas
 
-## Flujo diario de un junior
-Tarea: “agregar prioridad a solicitudes”.
+La plataforma no añade procesos distintos por tamaño. Intake, Recipe, manifest, skills y gates son iguales; solo cambia quién revisa una excepción.
 
-1. Lee `.engineering/project.json` → GP-02, auth/rbac/audit.
-2. Pide al harness contexto para `feature + db-change`.
-3. Revisa plan antes de aplicar.
-4. IA modifica schema, migration, API y UI.
-5. Junior revisa el diff.
-6. Ejecuta gates: migration + contracts + unit/integration + UI.
-7. Abre PR explicando riesgo y verificación.
+| Equipo | Revisión mínima |
+|---|---|
+| 1 | Autorrevisión explícita de Recipe y warnings |
+| 2–5 | Otra persona revisa cambios de stack, datos o seguridad |
+| 6–12 | Owner por activo Tier A y revisión de cambios de plataforma |
+| 13–20 | Rotación de mantenimiento y ventana planificada de upgrades |
 
-## Qué no debe hacer
-- pedir “hazlo completo” sin leer manifest;
-- aceptar librerías nuevas sin razón;
-- saltarse migration porque “Drizzle ya sabe”; 
-- copiar la solución de otro repo sin validar licencia/arquitectura.
+## Flujo diario
+
+Para “agregar prioridad a solicitudes”:
+
+1. `eng doctor` confirma que el proyecto sigue GP-02.
+2. `eng plan --change-type schema` selecciona skill de datos y gates.
+3. El asistente modifica schema, migración, API y UI respetando ownership.
+4. El desarrollador revisa el diff y ejecuta los comandos reales de migración, types y tests.
+5. Solo una decisión reusable o un incidente repetido vuelve a la plataforma.
+
+No se convoca comité para una feature normal. Una excepción de Recipe, un nuevo boilerplate o una promoción de delivery sí requiere evidencia y revisión.

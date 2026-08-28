@@ -1,37 +1,18 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "skills": [
-    {
-      "id": "architecture-selector",
-      "example": "Selecciona GP-03 para una app dominada por Excel."
-    },
-    {
-      "id": "hono",
-      "example": "Agregar endpoint siguiendo contract/use-case/repository."
-    },
-    {
-      "id": "tanstack",
-      "example": "Crear pantalla de solicitudes con tabla y filtros."
-    },
-    {
-      "id": "speedpy",
-      "example": "Importador Excel con validación."
-    },
-    {
-      "id": "authorization",
-      "example": "Añadir request.approve y tests."
-    },
-    {
-      "id": "migrations",
-      "example": "Agregar priority con migration segura."
-    },
-    {
-      "id": "security-review",
-      "example": "Revisar API key scopes."
-    },
-    {
-      "id": "deployment",
-      "example": "Crear smoke checks de release."
-    }
+    {"id": "architecture-selector", "path": ".opencode/skills/architecture-selector/SKILL.md", "scope": "platform", "purpose": "Convertir necesidades en una Recipe y explicar exclusiones."},
+    {"id": "project-bootstrap", "path": ".opencode/skills/project-bootstrap/SKILL.md", "scope": "platform", "purpose": "Crear un blueprint desde intake sin inventar versiones ni capacidades."},
+    {"id": "boilerplate-curator", "path": ".opencode/skills/boilerplate-curator/SKILL.md", "scope": "platform", "purpose": "Registrar, actualizar o rechazar una propuesta sin duplicar el catálogo."},
+    {"id": "project-doctor", "path": ".opencode/skills/project-doctor/SKILL.md", "scope": "project", "purpose": "Detectar divergencia entre manifest, Recipe y repositorio."},
+    {"id": "change-planner", "path": ".opencode/skills/change-planner/SKILL.md", "scope": "project", "purpose": "Elegir skills, archivos y gates mínimos para un cambio."},
+    {"id": "gate-runner", "path": ".opencode/skills/gate-runner/SKILL.md", "scope": "project", "purpose": "Seleccionar y ejecutar gates verificables según el cambio."},
+    {"id": "contracts", "path": ".opencode/skills/contracts/SKILL.md", "scope": "project", "purpose": "Mantener contratos API y compatibilidad entre clientes."},
+    {"id": "database", "path": ".opencode/skills/database/SKILL.md", "scope": "project", "purpose": "Diseñar cambios de datos, migraciones y recuperación."},
+    {"id": "data", "path": ".opencode/skills/data/SKILL.md", "scope": "project", "purpose": "Implementar importaciones y transformaciones reproducibles."},
+    {"id": "authorization", "path": ".opencode/skills/authorization/SKILL.md", "scope": "project", "purpose": "Modelar permisos y probar denegación, aislamiento y auditoría."},
+    {"id": "security-review", "path": ".opencode/skills/security-review/SKILL.md", "scope": "project", "purpose": "Revisar fronteras de confianza y riesgos del cambio."},
+    {"id": "react-starter-kit-updater", "path": ".opencode/skills/react-starter-kit-updater/SKILL.md", "scope": "project", "purpose": "Actualizar React Starter Kit conservando identidad con merge-seed."},
+    {"id": "knowledge-capture", "path": ".opencode/skills/knowledge-capture/SKILL.md", "scope": "platform", "purpose": "Convertir soluciones repetibles en conocimiento o mejora de la plataforma."}
   ]
 }

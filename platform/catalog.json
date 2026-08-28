@@ -1,199 +1,45 @@
 {
-  "schema_version": 1,
-  "platform_version": "0.2.0",
-  "reviewed_at": "2026-08-07",
-  "technology_catalog": [
-    {
-      "id": "stardrive",
-      "name": "Stardrive",
-      "status": "adopted",
-      "category": "public-web",
-      "repo": "https://github.com/peltmonger/stardrive",
-      "use_when": [
-        "landing",
-        "blog",
-        "docs",
-        "public-content"
-      ],
-      "avoid_when": [
-        "complex-admin"
-      ]
-    },
-    {
-      "id": "tanstack-admin",
-      "name": "TanStack Shadcn Admin Dashboard",
-      "status": "preferred",
-      "category": "admin-web",
-      "repo": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
-      "use_when": [
-        "admin",
-        "crm",
-        "workflow",
-        "external-api"
-      ],
-      "avoid_when": [
-        "content-first",
-        "simple-python-ui"
-      ]
-    },
-    {
-      "id": "next-admin",
-      "name": "Next Shadcn Admin Dashboard",
-      "status": "adopted",
-      "category": "admin-web",
-      "repo": "https://github.com/arhamkhnz/next-shadcn-admin-dashboard",
-      "use_when": [
-        "next-ecosystem",
-        "public-private-hybrid"
-      ],
-      "avoid_when": [
-        "external-api-primary"
-      ]
-    },
-    {
-      "id": "ignite",
-      "name": "Ignite",
-      "status": "adopted",
-      "category": "mobile",
-      "repo": "https://github.com/infinitered/ignite",
-      "use_when": [
-        "native-mobile",
-        "field-app"
-      ],
-      "avoid_when": [
-        "pwa-enough"
-      ]
-    },
-    {
-      "id": "tauri-ui",
-      "name": "Tauri UI",
-      "status": "adopted",
-      "category": "desktop",
-      "repo": "https://github.com/agmmnn/tauri-ui",
-      "use_when": [
-        "desktop",
-        "local-files",
-        "native-capabilities"
-      ],
-      "avoid_when": [
-        "browser-enough"
-      ]
-    },
-    {
-      "id": "speedpy",
-      "name": "SpeedPy",
-      "status": "adopted",
-      "category": "python-data",
-      "repo": "https://github.com/speedpy/speedpy",
-      "use_when": [
-        "excel",
-        "documents",
-        "reports",
-        "python-data",
-        "django-admin"
-      ],
-      "avoid_when": [
-        "react-heavy-ui",
-        "tiny-stateless-api"
-      ]
-    },
-    {
-      "id": "hono-api",
-      "name": "Consulting Hono API Starter",
-      "status": "strategic",
-      "category": "typescript-api",
-      "repo": null,
-      "use_when": [
-        "multiple-clients",
-        "integrations",
-        "typescript-domain",
-        "openapi"
-      ],
-      "avoid_when": [
-        "speedpy-solves-all",
-        "no-server-needed"
-      ]
-    },
-    {
-      "id": "fastapi",
-      "name": "Full Stack FastAPI Template",
-      "status": "secondary",
-      "category": "python-api",
-      "repo": "https://github.com/fastapi/full-stack-fastapi-template",
-      "use_when": [
-        "python-api",
-        "ai-data-backend"
-      ],
-      "avoid_when": [
-        "speedpy-simpler",
-        "typescript-domain"
-      ]
-    },
-    {
-      "id": "react-starter-kit",
-      "name": "React Starter Kit",
-      "status": "specialized",
-      "category": "saas-edge",
-      "repo": "https://github.com/kriasoft/react-starter-kit",
-      "use_when": [
-        "commercial-saas",
-        "cloudflare-first"
-      ],
-      "avoid_when": [
-        "neutral-self-host-required"
-      ]
-    },
-    {
-      "id": "open-saas",
-      "name": "Open SaaS",
-      "status": "specialized",
-      "category": "saas",
-      "repo": "https://github.com/wasp-lang/open-saas",
-      "use_when": [
-        "saas",
-        "billing",
-        "auth",
-        "jobs"
-      ],
-      "avoid_when": [
-        "institutional-single-tenant"
-      ]
-    },
+  "schema_version": 2,
+  "platform_version": "0.3.0",
+  "reviewed_at": "2026-08-28",
+  "source_of_truth": {
+    "boilerplates": "platform/boilerplates.json",
+    "recipes": "platform/golden-paths.json",
+    "feature_packs": "platform/feature-packs.json",
+    "database_profiles": "platform/database-profiles.json",
+    "skills": "skills/registry.json"
+  },
+  "tools": [
     {
       "id": "n8n",
       "name": "n8n",
       "status": "adopted",
       "category": "automation",
-      "repo": "https://github.com/n8n-io/n8n",
-      "use_when": [
-        "automation",
-        "integration"
-      ],
-      "avoid_when": [
-        "critical-domain-logic-unversioned"
-      ]
+      "repository": "https://github.com/n8n-io/n8n",
+      "use_when": ["orchestration", "integration", "human-visible-workflows"],
+      "avoid_when": ["unversioned-critical-domain-logic"]
     }
   ],
-  "references_only": [
+  "references": [
     {
       "id": "t3-turbo",
-      "repo": "https://github.com/t3-oss/create-t3-turbo",
+      "repository": "https://github.com/t3-oss/create-t3-turbo",
       "reason": "Patrón apps/* + packages/*; no adoptar tRPC por defecto."
     },
     {
       "id": "nextjs-fastify-saas-rbac",
-      "repo": "https://github.com/rcrdk/nextjs-fastify-saas-rbac",
-      "reason": "Referencia funcional de organizations/memberships/invitations/RBAC."
+      "repository": "https://github.com/rcrdk/nextjs-fastify-saas-rbac",
+      "reason": "Referencia funcional de organizaciones, membresías, invitaciones y RBAC."
     },
     {
       "id": "clean-stack",
-      "repo": "https://github.com/axelhamil/clean-stack",
-      "reason": "Referencia arquitectónica; no copiar código sin licencia compatible."
+      "repository": "https://github.com/axelhamil/clean-stack",
+      "reason": "Referencia arquitectónica; verificar licencia antes de reutilizar código."
     },
     {
       "id": "bun-hono-boilerplate",
-      "repo": "https://github.com/samudrajovanka/bun-hono-boilerplate",
-      "reason": "Referencia estructural Hono+Bun+Drizzle."
+      "repository": "https://github.com/samudrajovanka/bun-hono-boilerplate",
+      "reason": "Referencia estructural Hono, Bun y Drizzle; no es starter liberado."
     }
   ]
 }

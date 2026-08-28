@@ -1,13 +1,16 @@
-# Selección arquitectónica — ejemplos
+# Selección arquitectónica
 
-| Caso | Elección | Razón |
+| Caso | Recipe | Señal decisiva |
 |---|---|---|
-| Blog municipal | GP-01 / Stardrive | contenido público |
-| Solicitudes de una escuela | GP-02 / TanStack+Hono | app operativa |
-| Limpiar 50 archivos Excel | GP-03 / SpeedPy | Python/data domina |
-| Inspectores en campo | GP-04 / Ignite | móvil nativo |
-| Procesador local de PDFs | GP-05 / Tauri | archivos locales/offline |
-| Web + móvil + escritorio | GP-06 | múltiples apps |
-| SaaS comercial con billing | GP-07 | full-stack SaaS |
+| Blog municipal | GP-01 / Stardrive | contenido y SEO |
+| Solicitudes de una escuela | GP-02 / TanStack + Hono | operación privada y API |
+| Limpiar 50 Excel | GP-03 / SpeedPy | Python y datos dominan |
+| Inspectores en campo | GP-04 / Ignite | capacidades nativas |
+| Procesador local de PDF | GP-05 / Tauri | filesystem y offline |
+| Web + móvil | GP-06 | varios clientes, dominio compartido |
+| SaaS con billing | GP-07 / React Starter Kit | cobro y organizaciones reales |
+| Asistente con citas y tools | GP-08 | IA es el producto y necesita gobierno |
 
-Si dos sirven, elegir la de menor complejidad operacional.
+Si dos caminos sirven, elige el de menor complejidad operacional. Una señal no basta para activar todos los packs: `billing` justifica GP-07, pero no jobs o webhooks ajenos al flujo de cobro.
+
+Los datos se seleccionan dentro de los perfiles permitidos por la Recipe. Turso/libSQL necesita ventaja edge o sync y un piloto explícito; no sustituye PostgreSQL por default.

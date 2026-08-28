@@ -2,11 +2,13 @@
 
 | Cambio | Skills |
 |---|---|
-| nuevo endpoint Hono | hono + contracts |
-| cambio schema | database + migrations |
-| botón + tabla TanStack | tanstack + design-system |
+| nuevo endpoint | contracts + authorization si es sensible |
+| cambio schema | database |
+| botón + tabla | gate-runner + reglas del starter materializado |
 | permiso | authorization + security-review |
-| deploy | deployment |
-| Excel SpeedPy | speedpy + data |
+| actualización React Starter Kit | react-starter-kit-updater + gate-runner |
+| Excel o transformación | data + database si persiste |
 
-Error típico: cargar 12 skills para una tarea de una línea y saturar el contexto.
+El registro ejecutable está en `skills/registry.json`. `./eng plan` selecciona el subconjunto para el manifest y tipo de cambio.
+
+Error típico: cargar todas las skills o mencionar una que no tiene implementación.

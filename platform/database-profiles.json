@@ -1,0 +1,56 @@
+{
+  "$schema": "../schemas/database-profiles.schema.json",
+  "schema_version": 1,
+  "profiles": [
+    {
+      "id": "postgresql-managed",
+      "name": "PostgreSQL administrado",
+      "status": "stable",
+      "engine": "postgresql",
+      "providers": ["project-choice"],
+      "use_when": ["multi-user", "relational-domain", "server-backend"],
+      "avoid_when": ["fully-local-single-user"],
+      "required_gates": ["migration", "backup-restore", "security"]
+    },
+    {
+      "id": "sqlite-local",
+      "name": "SQLite local",
+      "status": "stable",
+      "engine": "sqlite",
+      "providers": ["local-file"],
+      "use_when": ["desktop-local", "single-node", "simple-deployment"],
+      "avoid_when": ["many-concurrent-writers", "shared-managed-database"],
+      "required_gates": ["migration", "backup-restore"]
+    },
+    {
+      "id": "turso-libsql",
+      "name": "Turso/libSQL remoto",
+      "status": "trial",
+      "engine": "libsql",
+      "providers": ["turso"],
+      "use_when": ["edge-read-heavy", "small-distributed-app", "libsql-compatible"],
+      "avoid_when": ["postgres-specific-features", "provider-neutral-is-contractual"],
+      "required_gates": ["migration", "backup-restore", "latency", "security"]
+    },
+    {
+      "id": "turso-sync",
+      "name": "Turso Embedded Replicas",
+      "status": "experimental",
+      "engine": "libsql",
+      "providers": ["turso"],
+      "use_when": ["offline-read", "edge-local-read", "controlled-sync"],
+      "avoid_when": ["conflict-heavy-offline-writes", "team-lacks-sync-tests"],
+      "required_gates": ["migration", "backup-restore", "sync-conflict", "security"]
+    },
+    {
+      "id": "turso-database",
+      "name": "Turso Database",
+      "status": "experimental",
+      "engine": "turso-database",
+      "providers": ["turso"],
+      "use_when": ["validated-product-fit", "explicit-pilot"],
+      "avoid_when": ["default-new-project", "no-pilot-budget"],
+      "required_gates": ["migration", "backup-restore", "compatibility", "security"]
+    }
+  ]
+}

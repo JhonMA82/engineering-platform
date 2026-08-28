@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform.local/schemas/project.schema.json",
+  "title": "Resolved engineering project",
+  "type": "object",
+  "required": ["schema_version", "platform_version", "generated_at", "scaffold_status", "project", "recipe", "starters", "database", "features", "skills", "gates", "exclusions", "ownership"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "platform_version": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date"},
+    "scaffold_status": {"enum": ["blueprint", "materialized"]},
+    "project": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1}
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^GP-[0-9]{2}$"},
+        "version": {"type": "string"}
+      }
+    },
+    "starters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "delivery_status", "integration_mode", "pin"],
+        "properties": {
+          "pin": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "database": {"type": ["string", "null"]},
+    "features": {"type": "array", "items": {"type": "string"}},
+    "skills": {"type": "array", "items": {"type": "string"}},
+    "gates": {"type": "array", "items": {"type": "string"}},
+    "exclusions": {"type": "array", "items": {"type": "string"}},
+    "ownership": {
+      "type": "object",
+      "required": ["managed", "managed_sections", "seeded", "user_owned"]
+    }
+  }
+}
