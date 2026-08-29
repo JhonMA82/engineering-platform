@@ -1,14 +1,15 @@
 {
   "$schema": "../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.4.4",
-  "generated_at": "2026-08-28",
+  "platform_version": "0.5.0",
+  "generated_at": "2026-08-29",
   "scaffold_status": "blueprint",
+  "readiness": "code-ready",
   "project": {"name": "school-requests", "type": "institutional-admin", "summary": "Sistema interno de solicitudes escolares."},
   "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
   "starters": [
-    {"id": "tanstack-admin", "delivery_status": "pilot-ready", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": null},
-    {"id": "hono-api", "delivery_status": "catalog-only", "integration_mode": "internal", "update_strategy": "internal-release", "pin": null}
+    {"id": "tanstack-admin", "delivery_status": "curated", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard", "adapter": "curation/tanstack-admin/adapter.json", "destination": "apps/admin"},
+    {"id": "hono-api", "delivery_status": "released", "integration_mode": "internal", "update_strategy": "internal-release", "pin": "platform-0.5.0", "repository": null, "adapter": "curation/hono-api/adapter.json", "destination": "apps/api"}
   ],
   "database": "postgresql-managed",
   "features": ["auth", "rbac", "audit", "observability"],
@@ -21,6 +22,6 @@
     "seeded": ["README.md"],
     "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"]
   },
-  "warnings": ["hono-api aún está catalog-only; este manifest representa un blueprint, no un release interno."],
+  "warnings": [],
   "definition_status": "confirmed"
 }

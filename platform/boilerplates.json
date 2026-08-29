@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/boilerplates.schema.json",
   "schema_version": 1,
-  "catalog_version": "2.0.0",
+  "catalog_version": "2.1.0",
   "reviewed_at": "2026-08-28",
   "decision_statuses": {
     "default": "Primera opción para su categoría.",
@@ -31,14 +31,15 @@
       "kind": "external-starter",
       "origin": "user",
       "decision_status": "default",
-      "delivery_status": "pilot-ready",
+      "delivery_status": "curated",
       "maintenance_tier": "A",
       "category": "public-web",
       "repository": "https://github.com/peltmonger/stardrive",
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/stardrive.md",
       "use_when": ["landing", "blog", "documentation", "public-content"],
       "avoid_when": ["complex-admin", "private-workflow"],
-      "integration": {"mode": "overlay", "update_strategy": "curated-diff"}
+      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/stardrive/adapter.json"},
+      "upstream": {"branch": "main", "commit": "5c449810b763140ac72133ff4ae63d8497cce77a", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
       "id": "tanstack-admin",
@@ -47,14 +48,15 @@
       "kind": "external-starter",
       "origin": "user-and-recommendation",
       "decision_status": "default",
-      "delivery_status": "pilot-ready",
+      "delivery_status": "curated",
       "maintenance_tier": "A",
       "category": "admin-web",
       "repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/tanstack-shadcn-admin-dashboard.md",
       "use_when": ["admin", "crm", "workflow", "external-api"],
       "avoid_when": ["content-first", "simple-python-ui"],
-      "integration": {"mode": "overlay", "update_strategy": "curated-diff"}
+      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/tanstack-admin/adapter.json"},
+      "upstream": {"branch": "main", "commit": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
       "id": "next-admin",
@@ -79,14 +81,15 @@
       "kind": "external-starter",
       "origin": "user",
       "decision_status": "default",
-      "delivery_status": "pilot-ready",
+      "delivery_status": "curated",
       "maintenance_tier": "B",
       "category": "mobile",
       "repository": "https://github.com/infinitered/ignite",
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/ignite.md",
       "use_when": ["native-mobile", "field-app"],
       "avoid_when": ["pwa-enough", "desktop-only"],
-      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff"}
+      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff", "adapter": "curation/ignite/adapter.json"},
+      "upstream": {"branch": "master", "commit": "e829d2f922c5568a59a77bfb6232aeb500be3f13", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
       "id": "tauri-ui",
@@ -95,14 +98,15 @@
       "kind": "external-starter",
       "origin": "user",
       "decision_status": "default",
-      "delivery_status": "pilot-ready",
+      "delivery_status": "curated",
       "maintenance_tier": "B",
       "category": "desktop",
       "repository": "https://github.com/agmmnn/tauri-ui",
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/tauri-ui.md",
       "use_when": ["desktop", "local-files", "native-capabilities"],
       "avoid_when": ["browser-enough", "mobile-only"],
-      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff"}
+      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff", "adapter": "curation/tauri-ui/adapter.json"},
+      "upstream": {"branch": "main", "commit": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
       "id": "speedpy",
@@ -111,14 +115,15 @@
       "kind": "external-starter",
       "origin": "user",
       "decision_status": "default",
-      "delivery_status": "pilot-ready",
+      "delivery_status": "curated",
       "maintenance_tier": "A",
       "category": "python-data",
       "repository": "https://github.com/speedpy/speedpy",
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/speedpy.md",
       "use_when": ["excel", "documents", "reports", "python-data", "django-admin"],
       "avoid_when": ["react-heavy-ui", "tiny-stateless-api"],
-      "integration": {"mode": "overlay", "update_strategy": "curated-diff"}
+      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/speedpy/adapter.json"},
+      "upstream": {"branch": "main", "commit": "3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
       "id": "fastapi",
@@ -159,7 +164,7 @@
       "kind": "external-starter",
       "origin": "user",
       "decision_status": "specialized",
-      "delivery_status": "pilot-ready",
+      "delivery_status": "curated",
       "maintenance_tier": "C",
       "category": "saas-edge",
       "repository": "https://github.com/kriasoft/react-starter-kit",
@@ -278,14 +283,15 @@
       "kind": "internal-starter",
       "origin": "assistant",
       "decision_status": "specialized",
-      "delivery_status": "catalog-only",
+      "delivery_status": "released",
       "maintenance_tier": "C",
       "category": "ai-product",
       "repository": null,
       "profile": "catalog/legacy-v1.2.3/docs/internal-starters/ai-assistant-starter.md",
       "use_when": ["governed-assistant", "sources-and-citations", "tool-permissions"],
       "avoid_when": ["plain-form-or-search-is-enough", "autonomous-sensitive-actions"],
-      "integration": {"mode": "internal", "update_strategy": "internal-release"}
+      "integration": {"mode": "internal", "update_strategy": "internal-release", "adapter": "curation/ai-assistant-starter/adapter.json"},
+      "upstream": {"commit": "platform-0.5.0", "observed_at": "2026-08-29", "license": "UNLICENSED"}
     },
     {
       "id": "python-service-starter",
@@ -310,14 +316,15 @@
       "kind": "internal-starter",
       "origin": "platform-strategy",
       "decision_status": "default",
-      "delivery_status": "catalog-only",
+      "delivery_status": "released",
       "maintenance_tier": "A",
       "category": "typescript-api",
       "repository": null,
       "profile": "catalog/profiles/hono-api.md",
       "use_when": ["multiple-clients", "integrations", "typescript-domain", "openapi"],
       "avoid_when": ["speedpy-solves-all", "no-server-needed"],
-      "integration": {"mode": "internal", "update_strategy": "internal-release"}
+      "integration": {"mode": "internal", "update_strategy": "internal-release", "adapter": "curation/hono-api/adapter.json"},
+      "upstream": {"commit": "platform-0.5.0", "observed_at": "2026-08-29", "license": "UNLICENSED"}
     }
   ]
 }

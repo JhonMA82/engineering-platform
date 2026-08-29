@@ -1,7 +1,7 @@
 ---
 name: project-discovery
 description: 'Descubre, confirma y prepara una idea de proyecto nuevo con Engineering Platform. Úsala cuando el usuario quiera iniciar un producto desde cero, seleccionar una Recipe o generar el handoff para Gentle AI.'
-compatibility: 'Requiere Python 3.11+, el ejecutable eng incluido y un destino vacío o que contenga únicamente los metadatos gestionados de Gentle AI: `.atl/` y `.gitignore` en la raíz, con el estado anidado permitido dentro de `.atl/`.'
+compatibility: 'Requiere Python 3.11+, el ejecutable eng incluido y un destino vacío o que contenga únicamente `.atl/`, `.gitignore` y `.git`.'
 ---
 
 # Project Discovery
@@ -11,16 +11,16 @@ Tu objetivo es reducir ambigüedad suficiente para iniciar, no redactar un docum
 ## Invariantes
 
 - Trabaja únicamente en el `cwd` indicado por `/new-project`.
-- El destino puede estar vacío o contener únicamente `.atl/` y `.gitignore` en la raíz; `.atl/` contiene metadatos de Gentle AI y puede contener estado anidado. Si contiene cualquier otro contenido del usuario, detente: no crees un proyecto anidado ni sobrescribas trabajo.
+- El destino puede estar vacío o contener únicamente `.atl/`, `.gitignore` y `.git`. Si contiene cualquier otro contenido del usuario, detente: no crees un proyecto anidado ni sobrescribas trabajo.
 - Haz de una a tres preguntas cortas por ronda. Empieza por problema, usuarios y resultado; pregunta detalles solo si cambian arquitectura, riesgo o alcance.
 - No preguntes por stack, boilerplate o patrón salvo que exista una restricción técnica real. Engineering Platform toma esas decisiones.
 - Separa `must_have` de `out_of_scope`. No conviertas deseos futuros en alcance inicial.
 - Muestra un resumen y solicita confirmación explícita antes de escribir una definición con estado `confirmed`.
-- No desarrolles el producto. Termina con el blueprint y el handoff para Gentle.
+- No desarrolles el producto. Termina con el código base materializado, verificado y el handoff para Gentle.
 
 ## Flujo
 
-1. Confirma que el destino está vacío o contiene únicamente `.atl/` y `.gitignore` en la raíz; `.atl/` contiene metadatos de Gentle AI y puede contener estado anidado. Conoce el nombre kebab-case derivado de la carpeta.
+1. Confirma que el destino está vacío o contiene únicamente `.atl/`, `.gitignore` y `.git`. Conoce el nombre kebab-case derivado de la carpeta.
 2. Descubre progresivamente:
    - problema y usuarios;
    - resultado observable y alcance mínimo;
@@ -32,7 +32,7 @@ Tu objetivo es reducir ambigüedad suficiente para iniciar, no redactar un docum
 5. Tras la confirmación, crea `.engineering/project-definition.json` conforme a `schemas/project-definition.schema.json`. Usa `discovery.status: confirmed` y `discovery.confirmed_by: user` solo después de la confirmación.
 6. Ejecuta `<eng> bootstrap --from .engineering/project-definition.json --output .`.
 7. Ejecuta `<eng> doctor --project .` y corrige únicamente problemas de definición o generación.
-8. Entrega un resumen corto: Recipe, stack, estado real del scaffold y ruta `GENTLE.md`.
+8. Entrega un resumen corto: Recipe, stack, readiness, checks y ruta `GENTLE.md`.
 
 `<eng>` es la ruta absoluta recibida como argumento del skill. Si no fue proporcionada, usa `eng` desde `PATH`.
 

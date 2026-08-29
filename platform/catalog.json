@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "platform_version": "0.4.4",
-  "reviewed_at": "2026-08-28",
+  "platform_version": "0.5.0",
+  "reviewed_at": "2026-08-29",
   "source_of_truth": {
     "boilerplates": "platform/boilerplates.json",
     "recipes": "platform/golden-paths.json",

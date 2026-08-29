@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "tauri-ui",
+  "reviewed_at": "2026-08-29",
+  "source": {"repository": "https://github.com/agmmnn/tauri-ui", "branch": "main", "commit": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea", "license": "MIT", "local_path": "starters/tauri-ui"},
+  "integration": {"mode": "direct", "remote": "seed-tauri-ui", "update_strategy": "regenerate-and-diff"},
+  "materializer": {
+    "type": "local-copy",
+    "destination": ".",
+    "setup": [["npm", "ci"]],
+    "checks": [
+      {"gate": "typecheck", "command": ["npm", "run", "typecheck"]},
+      {"gate": "build", "command": ["npm", "run", "build"]}
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "hono-api",
+  "reviewed_at": "2026-08-29",
+  "source": {"repository": null, "commit": "platform-0.5.0", "license": "UNLICENSED", "local_path": "starters/hono-api"},
+  "integration": {"mode": "internal", "remote": null, "update_strategy": "internal-release"},
+  "materializer": {
+    "type": "local-copy",
+    "destination": "apps/api",
+    "setup": [["npm", "ci"]],
+    "checks": [
+      {"gate": "typecheck", "command": ["npm", "run", "typecheck"]},
+      {"gate": "test", "command": ["npm", "test"]}
+    ]
+  }
+}

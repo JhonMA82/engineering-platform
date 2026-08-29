@@ -3,7 +3,7 @@
 ```mermaid
 flowchart TD
     A["Intake: solicitudes internas"] --> B["Recipe GP-02"]
-    B --> C["Manifest y blueprint"]
+    B --> C["Manifest y código base"]
     C --> D["Features y gates"]
     D --> E["Release y operación"]
     E --> F["Incidentes a knowledge"]

@@ -101,7 +101,7 @@ class RecipeResolverTests(unittest.TestCase):
             manifest, errors, warnings = inspect_project(output)
             self.assertEqual(manifest["project"]["name"], "school-requests")
             self.assertEqual(errors, [])
-            self.assertTrue(warnings)
+            self.assertEqual(warnings, [])
             self.assertEqual(result["scaffold_status"], "blueprint")
 
     def test_does_not_overwrite_nonempty_directory(self) -> None:
@@ -293,7 +293,46 @@ class PiWorkflowTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(manifest["definition_status"], "confirmed")
         self.assertTrue((project / "GENTLE.md").exists())
-        self.assertTrue(any("pilot-ready" in item for item in warnings))
+        self.assertEqual(warnings, [])
+
+    def test_internal_starter_materializes_real_code(self) -> None:
+        intake = {
+            "name": "assistant-app",
+            "project_type": "ai-assistant",
+            "signals": ["chat", "tools"],
+            "features": [],
+            "excluded_features": [],
+            "database": "postgresql-managed",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "assistant-app"
+            manifest = write_project(
+                intake, output, materialize=True, skip_setup=True, skip_checks=True
+            )
+            self.assertEqual(manifest["scaffold_status"], "materialized")
+            self.assertEqual(manifest["readiness"], "code-ready")
+            self.assertTrue((output / "src/app.ts").exists())
+            self.assertTrue((output / ".engineering/materialization.json").exists())
+            self.assertTrue((output / ".git").is_dir())
+
+    def test_materialization_failure_leaves_target_unchanged(self) -> None:
+        intake = self.definition()["intake"]
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "school-requests"
+            (output / ".atl").mkdir(parents=True)
+            marker = output / ".atl/state.json"
+            marker.write_text("{}", encoding="utf-8")
+            with patch("scripts.eng.materialize_project", side_effect=PlatformError("boom")):
+                with self.assertRaises(PlatformError):
+                    write_project(intake, output, materialize=True)
+            self.assertEqual(marker.read_text(encoding="utf-8"), "{}")
+            self.assertFalse((output / ".engineering").exists())
+
+    def test_pi_command_accepts_managed_metadata(self) -> None:
+        extension = (Path(__file__).parents[1] / "extensions/engineering-platform.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('[".git", ".atl", ".gitignore"]', extension)
 
     def test_global_install_can_be_verified_without_touching_user_home(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

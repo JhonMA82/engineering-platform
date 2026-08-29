@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "stardrive",
+  "reviewed_at": "2026-08-29",
+  "source": {"repository": "https://github.com/peltmonger/stardrive", "branch": "main", "commit": "5c449810b763140ac72133ff4ae63d8497cce77a", "license": "MIT"},
+  "integration": {"mode": "overlay", "remote": "seed-stardrive", "update_strategy": "curated-diff"},
+  "materializer": {
+    "type": "git-copy",
+    "destination": ".",
+    "setup": [["npm", "ci"]],
+    "checks": [
+      {"gate": "typecheck", "command": ["npm", "run", "check"]},
+      {"gate": "build", "command": ["npm", "run", "build"]}
+    ]
+  }
+}

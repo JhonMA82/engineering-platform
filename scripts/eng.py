@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -254,6 +255,9 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
     for starter_id in recipe["stack"]["starters"]:
         item = boilerplate_index[starter_id]
         pin = item.get("upstream", {}).get("commit")
+        adapter_path = item.get("integration", {}).get("adapter")
+        adapter = read_json(ROOT / adapter_path) if adapter_path else None
+        materializer = (adapter or {}).get("materializer", {})
         starters.append(
             {
                 "id": starter_id,
@@ -261,11 +265,14 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
                 "integration_mode": item["integration"]["mode"],
                 "update_strategy": item["integration"]["update_strategy"],
                 "pin": pin,
+                "repository": item.get("repository"),
+                "adapter": adapter_path,
+                "destination": materializer.get("destination"),
             }
         )
-        if item["delivery_status"] != "released":
+        if not adapter_path or not pin:
             warnings.append(
-                f"{starter_id} está {item['delivery_status']}: el resultado es blueprint, no código productivo liberado."
+                f"{starter_id} no tiene adapter y pin materializables: el resultado será blueprint."
             )
     if recipe["status"] != "stable":
         warnings.append(f"{recipe['id']} está en canal {recipe['status']} y requiere aceptación explícita.")
@@ -283,7 +290,8 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
         "schema_version": 2,
         "platform_version": PLATFORM_VERSION,
         "generated_at": date.today().isoformat(),
-        "scaffold_status": "materialized" if all(item["delivery_status"] == "released" for item in starters) else "blueprint",
+        "scaffold_status": "blueprint",
+        "readiness": "code-ready",
         "project": {"name": project_name, "type": intake["project_type"]},
         "recipe": {"id": recipe["id"], "version": recipe["version"], "status": recipe["status"]},
         "starters": starters,
@@ -419,7 +427,7 @@ def _ensure_target_is_safe(
         raise PlatformError(f"La salida existe y no es un directorio: {output}")
     if require_managed_metadata:
         entries = {path.name for path in output.iterdir()}
-        managed = {".atl", ".gitignore"}
+        managed = {".atl", ".gitignore", ".git"}
         if entries and not entries.issubset(managed):
             raise PlatformError(
                 f"El destino ya existe y no contiene únicamente metadatos gestionados: {output}"
@@ -454,6 +462,211 @@ def _ensure_target_is_safe(
         )
 
 
+def _safe_relative(value: str, field: str) -> Path:
+    relative = Path(value)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise PlatformError(f"{field} debe ser una ruta relativa segura: {value}")
+    return relative
+
+
+def _run_record(command: list[str], cwd: Path, *, gate: str | None = None) -> dict[str, Any]:
+    if not command or any(not isinstance(item, str) or not item for item in command):
+        raise PlatformError("El adapter contiene un comando inválido")
+    executable = shutil.which(command[0])
+    if not executable:
+        raise PlatformError(f"Falta el ejecutable requerido por el adapter: {command[0]}")
+    completed = subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=False)
+    record: dict[str, Any] = {
+        "command": command,
+        "workdir": ".",
+        "returncode": completed.returncode,
+    }
+    if gate:
+        record["gate"] = gate
+    if completed.stdout.strip():
+        record["stdout"] = completed.stdout.strip()[-4000:]
+    if completed.stderr.strip():
+        record["stderr"] = completed.stderr.strip()[-4000:]
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or "sin salida"
+        raise PlatformError(f"Falló {' '.join(command)} en {cwd}: {detail[-1000:]}")
+    return record
+
+
+def _copy_materialized_tree(source: Path, destination: Path) -> None:
+    if not source.is_dir():
+        raise PlatformError(f"La fuente materializable no existe: {source}")
+    for path in source.rglob("*"):
+        relative = path.relative_to(source)
+        if ".git" in relative.parts or "node_modules" in relative.parts:
+            continue
+        if path.is_symlink():
+            raise PlatformError(f"El starter contiene un enlace simbólico no permitido: {relative}")
+        target = destination / relative
+        if path.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        if target.exists():
+            if relative == Path(".gitignore") and target.is_file():
+                current = target.read_text(encoding="utf-8").splitlines()
+                incoming = path.read_text(encoding="utf-8").splitlines()
+                target.write_text("\n".join(unique(current + incoming)).rstrip() + "\n", encoding="utf-8")
+                continue
+            raise PlatformError(f"El starter intentó sobrescribir {target}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+
+
+def _content_sha256(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+        relative = path.relative_to(root)
+        if path.is_dir() or {".git", "node_modules", ".engineering"}.intersection(relative.parts):
+            continue
+        digest.update(relative.as_posix().encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _actual_project_data(project: Path) -> dict[str, Any]:
+    tree: list[str] = []
+    packages: list[dict[str, Any]] = []
+    environment_files: list[str] = []
+    for path in sorted(project.rglob("*"), key=lambda item: item.as_posix()):
+        relative = path.relative_to(project)
+        if {".git", "node_modules", "dist", "target", "__pycache__"}.intersection(relative.parts):
+            continue
+        if len(relative.parts) <= 3:
+            tree.append(relative.as_posix() + ("/" if path.is_dir() else ""))
+        if path.is_file() and path.name in {".env.example", ".env.sample", "env.example"}:
+            environment_files.append(relative.as_posix())
+        if path.is_file() and path.name == "package.json" and len(relative.parts) <= 4:
+            package = read_json(path)
+            parent = path.parent
+            manager = "npm"
+            if (parent / "bun.lock").exists() or (parent / "bun.lockb").exists():
+                manager = "bun"
+            elif (parent / "pnpm-lock.yaml").exists():
+                manager = "pnpm"
+            elif (parent / "yarn.lock").exists():
+                manager = "yarn"
+            packages.append({
+                "path": parent.relative_to(project).as_posix() or ".",
+                "name": package.get("name"),
+                "package_manager": manager,
+                "scripts": sorted(package.get("scripts", {})),
+            })
+    return {"actual_tree": tree, "packages": packages, "environment_files": environment_files}
+
+
+def _preserve_upstream_instructions(project: Path, starter_id: str) -> None:
+    docs = project / "docs/boilerplates"
+    for name in ("README.md", "AGENTS.md"):
+        source = project / name
+        if not source.exists():
+            continue
+        docs.mkdir(parents=True, exist_ok=True)
+        target = docs / f"{starter_id}-{name}"
+        if not target.exists():
+            source.rename(target)
+
+
+def materialize_project(
+    manifest: dict[str, Any],
+    project: Path,
+    *,
+    skip_setup: bool = False,
+    skip_checks: bool = False,
+) -> dict[str, Any]:
+    starter_records: list[dict[str, Any]] = []
+    setup_records: list[dict[str, Any]] = []
+    check_records: list[dict[str, Any]] = []
+    for starter in manifest["starters"]:
+        adapter_path = starter.get("adapter")
+        if not adapter_path or not starter.get("pin"):
+            raise PlatformError(f"{starter['id']} no tiene adapter y pin materializables")
+        adapter = read_json(ROOT / adapter_path)
+        materializer = adapter.get("materializer", {})
+        kind = materializer.get("type")
+        destination_relative = _safe_relative(materializer.get("destination", "."), "destination")
+        destination = project / destination_relative
+        destination.mkdir(parents=True, exist_ok=True)
+        source = adapter.get("source", {})
+        generator_record: dict[str, Any] | None = None
+        if kind == "git-copy":
+            repository = source.get("repository")
+            commit = source.get("commit")
+            if not repository or not commit:
+                raise PlatformError(f"{starter['id']} necesita repository y commit exacto")
+            with tempfile.TemporaryDirectory(prefix=f"eng-{starter['id']}-") as temporary:
+                clone = Path(temporary) / "source"
+                clone.mkdir()
+                _run_record(["git", "init", "--quiet"], clone)
+                _run_record(["git", "remote", "add", "origin", repository], clone)
+                _run_record(["git", "fetch", "--quiet", "--depth", "1", "origin", commit], clone)
+                _run_record(["git", "checkout", "--quiet", "FETCH_HEAD"], clone)
+                _copy_materialized_tree(clone, destination)
+        elif kind == "local-copy":
+            local_path = _safe_relative(source.get("local_path", ""), "source.local_path")
+            _copy_materialized_tree(ROOT / local_path, destination)
+        elif kind == "command-generator":
+            working = project / _safe_relative(materializer.get("working_directory", "."), "working_directory")
+            working.mkdir(parents=True, exist_ok=True)
+            generator_record = _run_record(materializer.get("command", []), working)
+            generator_record["workdir"] = working.relative_to(project).as_posix() or "."
+            if not destination.exists() or not any(destination.iterdir()):
+                raise PlatformError(f"El generador de {starter['id']} no creó {destination_relative}")
+        else:
+            raise PlatformError(f"Materializer desconocido para {starter['id']}: {kind}")
+        if destination_relative == Path("."):
+            _preserve_upstream_instructions(project, starter["id"])
+        for command in materializer.get("setup", []):
+            if skip_setup:
+                setup_records.append({"starter": starter["id"], "command": command, "workdir": destination_relative.as_posix(), "status": "skipped"})
+            else:
+                record = _run_record(command, destination)
+                record.update({"starter": starter["id"], "workdir": destination_relative.as_posix()})
+                setup_records.append(record)
+        for check in materializer.get("checks", []):
+            if skip_checks:
+                check_records.append({"starter": starter["id"], "gate": check.get("gate"), "command": check.get("command", []), "workdir": destination_relative.as_posix(), "status": "skipped"})
+            else:
+                record = _run_record(check.get("command", []), destination, gate=check.get("gate"))
+                record.update({"starter": starter["id"], "workdir": destination_relative.as_posix()})
+                check_records.append(record)
+        starter_records.append({
+            "id": starter["id"], "type": kind, "destination": destination_relative.as_posix(),
+            "repository": source.get("repository"), "branch": source.get("branch"),
+            "commit": source.get("commit"), "content_sha256": _content_sha256(destination),
+            "generator": generator_record,
+        })
+    actual = _actual_project_data(project)
+    readiness = "verified" if not skip_checks and check_records else "code-ready"
+    return {
+        "schema_version": 1,
+        "platform_version": PLATFORM_VERSION,
+        "generated_at": date.today().isoformat(),
+        "readiness": readiness,
+        "starters": starter_records,
+        "setup": setup_records,
+        "checks": check_records,
+        **actual,
+    }
+
+
+def _initialize_seed_repository(project: Path, materialization: dict[str, Any]) -> None:
+    if not (project / ".git").exists():
+        _run_record(["git", "init", "--quiet"], project)
+    existing = subprocess.run(["git", "remote"], cwd=project, text=True, capture_output=True, check=False).stdout.split()
+    for starter in materialization.get("starters", []):
+        repository = starter.get("repository")
+        remote = f"seed-{starter['id']}"
+        if repository and remote not in existing:
+            _run_record(["git", "remote", "add", remote, repository], project)
+
+
 def gentle_handoff_data(
     manifest: dict[str, Any], definition: dict[str, Any] | None
 ) -> dict[str, Any]:
@@ -461,10 +674,18 @@ def gentle_handoff_data(
     delivery = (definition or {}).get("delivery", {})
     patterns = ["modular-monolith", "explicit-contracts", "least-privilege", "incremental-delivery"]
     patterns.append("tenant-isolation" if "multitenancy" in manifest["features"] else "single-tenant-first")
+    materialization = manifest.get("materialization", {})
+    structure = dict(manifest["ownership"])
+    structure.update({
+        "actual_tree": materialization.get("actual_tree", []),
+        "packages": materialization.get("packages", []),
+        "environment_files": materialization.get("environment_files", []),
+    })
     return {
         "schema_version": 1,
         "platform_version": manifest["platform_version"],
         "scaffold_status": manifest["scaffold_status"],
+        "readiness": manifest.get("readiness", "code-ready"),
         "project": manifest["project"],
         "idea": idea,
         "stack": {
@@ -473,8 +694,13 @@ def gentle_handoff_data(
             "database": manifest["database"],
             "features": manifest["features"],
             "skills": manifest["skills"],
+            "sources": materialization.get("starters", []),
         },
-        "structure": manifest["ownership"],
+        "structure": structure,
+        "verification": {
+            "setup": materialization.get("setup", []),
+            "checks": materialization.get("checks", []),
+        },
         "patterns": patterns,
         "delivery": delivery,
         "quality_gates": manifest["gates"],
@@ -506,6 +732,22 @@ def gentle_markdown(handoff: dict[str, Any]) -> str:
         f"- {item}" for item in handoff.get("delivery", {}).get("acceptance_criteria", [])
     ) or "- Completar los quality gates aplicables."
     structure = handoff["structure"]
+    sources = "\n".join(
+        f"- `{item['id']}` → `{item['destination']}` @ `{item['commit']}`"
+        + (f" ({item['repository']})" if item.get("repository") else " (starter interno)")
+        for item in stack.get("sources", [])
+    ) or "- Aún no materializado."
+    packages = "\n".join(
+        f"- `{item['path']}`: `{item.get('package_manager', 'desconocido')}`; scripts: "
+        + (", ".join(f"`{script}`" for script in item.get("scripts", [])) or "ninguno")
+        for item in structure.get("packages", [])
+    ) or "- No detectados."
+    actual_tree = "\n".join(f"- `{item}`" for item in structure.get("actual_tree", [])[:80]) or "- Aún no detectada."
+    checks = "\n".join(
+        f"- `{item.get('gate', 'setup')}` en `{item.get('workdir', '.')}`: "
+        f"`{' '.join(item.get('command', []))}` ({item.get('status', 'passed')})"
+        for item in handoff.get("verification", {}).get("checks", [])
+    ) or "- Pendientes de registrar."
     read_first = ", ".join(f"`{item}`" for item in handoff["read_first"])
     return f"""# Handoff a Gentle AI
 
@@ -524,12 +766,29 @@ Problema: {idea.get('problem', 'Consulta la definición del proyecto.')}
 - Skills: {', '.join(f'`{item}`' for item in stack['skills']) or 'ninguno'}
 - Patrones: {', '.join(f'`{item}`' for item in handoff['patterns'])}
 - Estado: `{handoff['scaffold_status']}`
+- Readiness: `{handoff['readiness']}`
+
+## Fuentes exactas
+
+{sources}
 
 ## Estructura y ownership
 
 - Gestionado por la plataforma: {', '.join(f'`{item}`' for item in structure['managed'])}
 - Secciones gestionadas: {', '.join(f'`{item}`' for item in structure['managed_sections'])}
 - Código propiedad del proyecto: {', '.join(f'`{item}`' for item in structure['user_owned'])}
+
+### Paquetes detectados
+
+{packages}
+
+### Árbol real
+
+{actual_tree}
+
+### Verificación
+
+{checks}
 
 ## Alcance mínimo
 
@@ -549,7 +808,7 @@ Problema: {idea.get('problem', 'Consulta la definición del proyecto.')}
 2. Decide entre ejecución directa y SDD según riesgo, ambigüedad, contratos, datos y permisos; registra brevemente el motivo.
 3. Conserva la Recipe, el stack, los patrones y las exclusiones. Propón una decisión explícita antes de desviarte.
 4. Implementa el incremento vertical mínimo y ejecuta los quality gates indicados en `.engineering/project.json`.
-5. No interpretes un starter `pilot-ready` o `catalog-only` como código productivo liberado.
+5. Si readiness es `code-ready`, ejecuta `eng check --run` antes de tratar el proyecto como verificado.
 """
 
 
@@ -572,6 +831,9 @@ def write_project(
     *,
     definition: dict[str, Any] | None = None,
     allowed_existing: set[Path] | None = None,
+    materialize: bool = False,
+    skip_setup: bool = False,
+    skip_checks: bool = False,
 ) -> dict[str, Any]:
     manifest = resolve_recipe(intake)
     _ensure_target_is_safe(output, allowed_existing)
@@ -584,18 +846,50 @@ def write_project(
     manifest["ownership"]["managed"].extend(
         [".engineering/gentle-handoff.json", "GENTLE.md"]
     )
-    engineering = output / ".engineering"
-    engineering.mkdir(parents=True, exist_ok=True)
-    if definition:
-        (engineering / "project-definition.json").write_text(
-            dump_json(definition), encoding="utf-8"
-        )
-    (engineering / "project.json").write_text(dump_json(manifest), encoding="utf-8")
-    (engineering / "intake.json").write_text(dump_json(intake), encoding="utf-8")
-    (output / "ARCHITECTURE.md").write_text(architecture_markdown(manifest), encoding="utf-8")
-    (output / "AGENTS.md").write_text(agents_markdown(manifest), encoding="utf-8")
-    (output / "README.md").write_text(readme_markdown(manifest), encoding="utf-8")
-    write_handoff(output, manifest, definition)
+    if materialize:
+        manifest["ownership"]["managed"].append(".engineering/materialization.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f".{output.name}-eng-", dir=output.parent) as temporary:
+        staged = Path(temporary) / output.name
+        if output.exists():
+            shutil.copytree(output, staged, symlinks=True)
+        else:
+            staged.mkdir()
+        if materialize:
+            materialization = materialize_project(
+                manifest, staged, skip_setup=skip_setup, skip_checks=skip_checks
+            )
+            manifest["scaffold_status"] = "materialized"
+            manifest["readiness"] = materialization["readiness"]
+            manifest["materialization"] = materialization
+            _initialize_seed_repository(staged, materialization)
+        engineering = staged / ".engineering"
+        engineering.mkdir(parents=True, exist_ok=True)
+        if definition:
+            (engineering / "project-definition.json").write_text(
+                dump_json(definition), encoding="utf-8"
+            )
+        (engineering / "intake.json").write_text(dump_json(intake), encoding="utf-8")
+        (staged / "ARCHITECTURE.md").write_text(architecture_markdown(manifest), encoding="utf-8")
+        (staged / "AGENTS.md").write_text(agents_markdown(manifest), encoding="utf-8")
+        (staged / "README.md").write_text(readme_markdown(manifest), encoding="utf-8")
+        if materialize:
+            manifest["materialization"].update(_actual_project_data(staged))
+            (engineering / "materialization.json").write_text(
+                dump_json(manifest["materialization"]), encoding="utf-8"
+            )
+        (engineering / "project.json").write_text(dump_json(manifest), encoding="utf-8")
+        write_handoff(staged, manifest, definition)
+        if output.exists():
+            backup = Path(temporary) / f"{output.name}.existing"
+            output.rename(backup)
+            try:
+                staged.rename(output)
+            except Exception:
+                backup.rename(output)
+                raise
+        else:
+            staged.rename(output)
     return manifest
 
 
@@ -627,7 +921,7 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
         entry = boilerplates.get(starter.get("id"))
         if not entry:
             errors.append(f"Boilerplate inexistente: {starter.get('id')}")
-        elif entry["delivery_status"] != "released":
+        elif entry["delivery_status"] not in {"curated", "released"}:
             warnings.append(f"{entry['id']} continúa {entry['delivery_status']}")
             if manifest.get("scaffold_status") == "materialized":
                 errors.append(
@@ -637,6 +931,14 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
             errors.append(f"{starter.get('id')} conserva el marcador PINNED")
         if manifest.get("scaffold_status") == "materialized" and not starter.get("pin"):
             errors.append(f"{starter.get('id')} materializado sin pin reproducible")
+        if manifest.get("scaffold_status") == "materialized" and not starter.get("adapter"):
+            errors.append(f"{starter.get('id')} materializado sin adapter")
+    if manifest.get("scaffold_status") == "materialized":
+        materialization_path = project / ".engineering/materialization.json"
+        if not materialization_path.exists():
+            errors.append("scaffold materialized sin materialization.json")
+        elif manifest.get("readiness") not in {"code-ready", "verified"}:
+            errors.append(f"readiness inválido: {manifest.get('readiness')}")
     if manifest.get("database") is not None and manifest.get("database") not in databases:
         errors.append(f"Perfil de base de datos inexistente: {manifest.get('database')}")
     if recipe and manifest.get("database") not in recipe.get("stack", {}).get("database", {}).get("allowed", []):
@@ -740,6 +1042,11 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
     updated_manifest["ownership"]["managed"].extend(
         [".engineering/gentle-handoff.json", "GENTLE.md"]
     )
+    if current_manifest.get("scaffold_status") == "materialized":
+        updated_manifest["scaffold_status"] = "materialized"
+        updated_manifest["readiness"] = current_manifest.get("readiness", "code-ready")
+        updated_manifest["materialization"] = current_manifest.get("materialization", {})
+        updated_manifest["ownership"]["managed"].append(".engineering/materialization.json")
     added = [
         item
         for item in updated_manifest["features"]
@@ -756,6 +1063,11 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
         "warnings": updated_manifest["warnings"],
     }
     if apply:
+        if updated_manifest.get("scaffold_status") == "materialized":
+            updated_manifest["materialization"].update(_actual_project_data(project))
+            (engineering / "materialization.json").write_text(
+                dump_json(updated_manifest["materialization"]), encoding="utf-8"
+            )
         intake_path.write_text(dump_json(updated_intake), encoding="utf-8")
         if definition:
             definition_path.write_text(dump_json(definition), encoding="utf-8")
@@ -767,6 +1079,7 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
             agents_markdown(updated_manifest), encoding="utf-8"
         )
         write_handoff(project, updated_manifest, definition)
+        result["handoff_status"] = "handoff-updated-code-change-required"
     return result
 
 
@@ -869,6 +1182,9 @@ def command_bootstrap(args: argparse.Namespace) -> int:
         output,
         definition=definition,
         allowed_existing=allowed,
+        materialize=True,
+        skip_setup=args.skip_setup,
+        skip_checks=args.skip_checks,
     )
     print(f"Proyecto {result['scaffold_status']} creado en {output}")
     print(f"Handoff para Gentle generado en {output / 'GENTLE.md'}")
@@ -884,6 +1200,12 @@ def command_handoff(args: argparse.Namespace) -> int:
         raise PlatformError("El proyecto no pasa doctor: " + "; ".join(errors))
     definition_path = project / ".engineering/project-definition.json"
     definition = validate_project_definition(read_json(definition_path)) if definition_path.exists() else None
+    if manifest.get("scaffold_status") == "materialized":
+        manifest.setdefault("materialization", {}).update(_actual_project_data(project))
+        (project / ".engineering/materialization.json").write_text(
+            dump_json(manifest["materialization"]), encoding="utf-8"
+        )
+        (project / ".engineering/project.json").write_text(dump_json(manifest), encoding="utf-8")
     write_handoff(project, manifest, definition)
     print(
         dump_json(
@@ -1162,6 +1484,53 @@ def command_check(args: argparse.Namespace) -> int:
         if any(item.endswith((".tsx", ".jsx", ".html", ".css")) for item in files):
             selected.add("accessibility")
         gates.intersection_update(selected)
+    if args.run:
+        if manifest.get("scaffold_status") != "materialized":
+            raise PlatformError("El proyecto es blueprint; ejecuta eng bootstrap para materializar código")
+        materialization_path = Path(args.project).resolve() / ".engineering/materialization.json"
+        materialization = read_json(materialization_path)
+        executed_setup: list[dict[str, Any]] = []
+        executed_checks: list[dict[str, Any]] = []
+        project = Path(args.project).resolve()
+        for registered in materialization.get("setup", []):
+            record = _run_record(registered["command"], project / _safe_relative(registered.get("workdir", "."), "workdir"))
+            record.update({"starter": registered.get("starter"), "workdir": registered.get("workdir", ".")})
+            executed_setup.append(record)
+        for registered in materialization.get("checks", []):
+            gate = registered.get("gate")
+            if files and gate not in gates:
+                continue
+            record = _run_record(
+                registered["command"],
+                project / _safe_relative(registered.get("workdir", "."), "workdir"),
+                gate=gate,
+            )
+            record.update({"starter": registered.get("starter"), "workdir": registered.get("workdir", ".")})
+            executed_checks.append(record)
+        materialization["setup"] = executed_setup
+        materialization["checks"] = executed_checks
+        materialization.update(_actual_project_data(project))
+        if not files and executed_checks:
+            materialization["readiness"] = "verified"
+            manifest["readiness"] = "verified"
+        manifest["materialization"] = materialization
+        materialization_path.write_text(dump_json(materialization), encoding="utf-8")
+        (project / ".engineering/project.json").write_text(dump_json(manifest), encoding="utf-8")
+        definition_path = project / ".engineering/project-definition.json"
+        definition = validate_project_definition(read_json(definition_path)) if definition_path.exists() else None
+        write_handoff(project, manifest, definition)
+        result = {
+            "ok": True,
+            "mode": "executed",
+            "readiness": manifest.get("readiness"),
+            "selected_gates": sorted(gates),
+            "setup": executed_setup,
+            "checks": executed_checks,
+            "errors": [],
+            "warnings": warnings,
+        }
+        print(dump_json(result), end="")
+        return 0
     result = {
         "ok": not errors,
         "mode": "selection-only",
@@ -1185,15 +1554,33 @@ def command_update(args: argparse.Namespace) -> int:
     manifest, errors, warnings = inspect_project(Path(args.project).resolve())
     if errors:
         raise PlatformError("El proyecto no pasa doctor: " + "; ".join(errors))
-    actions = [
-        {
-            "id": starter["id"],
-            "pin": starter.get("pin"),
+    entries = by_id(data()["boilerplates"]["entries"])
+    actions = []
+    for starter in manifest["starters"]:
+        entry = entries[starter["id"]]
+        upstream = entry.get("upstream", {})
+        repository = entry.get("repository")
+        action = {
+            "id": starter["id"], "pin": starter.get("pin"),
             "strategy": starter.get("update_strategy"),
-            "action": "check-upstream" if args.check else "create-reviewed-update-branch",
+            "action": "create-reviewed-update-branch",
         }
-        for starter in manifest["starters"]
-    ]
+        if args.check:
+            if repository and upstream.get("branch"):
+                completed = subprocess.run(
+                    ["git", "ls-remote", repository, f"refs/heads/{upstream['branch']}"],
+                    text=True, capture_output=True, check=False,
+                )
+                if completed.returncode != 0 or not completed.stdout.strip():
+                    raise PlatformError(f"No se pudo consultar upstream de {starter['id']}")
+                observed = completed.stdout.split()[0]
+                action.update({
+                    "observed_commit": observed,
+                    "action": "up-to-date" if observed == starter.get("pin") else "update-available",
+                })
+            else:
+                action["action"] = "internal-release-current"
+        actions.append(action)
     print(dump_json({"actions": actions, "warnings": warnings}), end="")
     return 0
 
@@ -1234,6 +1621,8 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("--from", dest="input", required=True)
     bootstrap.add_argument("--output", default=".")
     bootstrap.add_argument("--dry-run", action="store_true")
+    bootstrap.add_argument("--skip-setup", action="store_true", help="Materializar sin instalar dependencias")
+    bootstrap.add_argument("--skip-checks", action="store_true", help="Materializar sin ejecutar gates")
     bootstrap.set_defaults(handler=command_bootstrap)
 
     start = sub.add_parser(
@@ -1277,6 +1666,7 @@ def build_parser() -> argparse.ArgumentParser:
     check = sub.add_parser("check", help="Seleccionar gates por manifest y archivos")
     check.add_argument("--project", default=".")
     check.add_argument("--changed-files", nargs="*")
+    check.add_argument("--run", action="store_true", help="Ejecutar setup y checks registrados por los adapters")
     check.set_defaults(handler=command_check)
 
     add = sub.add_parser("add", help="Planear o aplicar un feature pack")

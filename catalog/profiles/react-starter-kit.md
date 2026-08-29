@@ -4,7 +4,7 @@
 |---|---|
 | ID canónico | `react-starter-kit` |
 | Decisión | `specialized` |
-| Entrega | `pilot-ready` |
+| Entrega | `curated` |
 | Categoría | SaaS full-stack Cloudflare-first |
 | Repositorio | <https://github.com/kriasoft/react-starter-kit> |
 | Commit observado | `0aa7603435f16159ad0b8fef68fb7f6280be7ca1` |

@@ -8,11 +8,11 @@ Sistema interno para registrar, adjuntar y aprobar solicitudes escolares con tra
 
 ## Stack
 
-- `tanstack-admin` (`pilot-ready`, overlay).
-- `hono-api` (`catalog-only`, internal).
+- `tanstack-admin` (`curated`, overlay) fijado a `e6e5d3b`.
+- `hono-api` (`released`, internal) fijado a `platform-0.5.0`.
 - Datos: `postgresql-managed`.
 - Features: auth, RBAC, audit, observability, files y notifications.
-- Estado: `blueprint` hasta que los starters tengan releases internos reproducibles.
+- Estado de este fixture documental: `blueprint`; `eng bootstrap` materializa ambos starters.
 
 ## Gates
 

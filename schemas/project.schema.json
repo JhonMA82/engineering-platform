@@ -3,12 +3,14 @@
   "$id": "https://engineering-platform.local/schemas/project.schema.json",
   "title": "Resolved engineering project",
   "type": "object",
-  "required": ["schema_version", "platform_version", "generated_at", "scaffold_status", "project", "recipe", "starters", "database", "features", "skills", "gates", "exclusions", "ownership"],
+  "required": ["schema_version", "platform_version", "generated_at", "scaffold_status", "readiness", "project", "recipe", "starters", "database", "features", "skills", "gates", "exclusions", "ownership"],
   "properties": {
     "schema_version": {"const": 2},
     "platform_version": {"type": "string"},
     "generated_at": {"type": "string", "format": "date"},
     "scaffold_status": {"enum": ["blueprint", "materialized"]},
+    "readiness": {"enum": ["code-ready", "verified"]},
+    "materialization": {"type": "object"},
     "definition_status": {"enum": ["confirmed"]},
     "project": {
       "type": "object",

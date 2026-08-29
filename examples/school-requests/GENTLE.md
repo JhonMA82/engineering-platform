@@ -7,13 +7,13 @@ Sistema interno para registrar, adjuntar y aprobar solicitudes escolares.
 ## Stack, patrones y estructura
 
 - Recipe: `GP-02@1.0.0`.
-- Boilerplates: `tanstack-admin` (`pilot-ready`) y `hono-api` (`catalog-only`).
+- Boilerplates: `tanstack-admin` (`curated`) y `hono-api` (`released`).
 - Datos: `postgresql-managed`.
 - Features: `auth`, `rbac`, `audit`, `observability`, `files` y `notifications`.
 - Skills: `architecture-selector`, `project-bootstrap`, `contracts`, `authorization`, `database`, `security-review` y `gate-runner`.
 - Patrones: monolito modular, contratos explícitos, mínimo privilegio y single-tenant-first.
 - Código del proyecto: `apps/**`, `packages/**`, `src/**` y `tests/**`.
-- Estado: `blueprint`; los starters aún no son releases internos productivos.
+- Estado: `blueprint` porque este ejemplo es un fixture ligero; un bootstrap real queda `materialized`.
 
 ## Alcance mínimo
 

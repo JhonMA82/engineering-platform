@@ -130,6 +130,37 @@ def validate_registry() -> None:
         adapter = item.get("integration", {}).get("adapter")
         if adapter and not (ROOT / adapter).exists():
             error(f"{item['id']}: adapter inexistente {adapter}")
+        if adapter and (ROOT / adapter).exists():
+            adapter_doc = load(adapter)
+            if adapter_doc.get("boilerplate_id") != item["id"]:
+                error(f"{item['id']}: adapter declara otro boilerplate_id")
+            source = adapter_doc.get("source", {})
+            upstream = item.get("upstream", {})
+            if source.get("commit") != upstream.get("commit"):
+                error(f"{item['id']}: pin distinto entre registro y adapter")
+            if source.get("repository") != item.get("repository"):
+                error(f"{item['id']}: repository distinto entre registro y adapter")
+            materializer = adapter_doc.get("materializer", {})
+            kind = materializer.get("type")
+            if kind not in {"git-copy", "local-copy", "command-generator"}:
+                error(f"{item['id']}: materializer inválido {kind}")
+            destination = materializer.get("destination")
+            if not isinstance(destination, str) or destination.startswith("/") or ".." in destination.split("/"):
+                error(f"{item['id']}: destination inseguro")
+            if kind == "git-copy" and (not source.get("repository") or not source.get("commit")):
+                error(f"{item['id']}: git-copy necesita repository y commit")
+            if kind == "local-copy":
+                local_path = source.get("local_path")
+                if not isinstance(local_path, str) or not (ROOT / local_path).is_dir():
+                    error(f"{item['id']}: local_path inexistente {local_path}")
+            if kind == "command-generator" and not materializer.get("command"):
+                error(f"{item['id']}: command-generator sin comando")
+            for command in materializer.get("setup", []):
+                if not isinstance(command, list) or not command:
+                    error(f"{item['id']}: comando setup inválido")
+            for check in materializer.get("checks", []):
+                if not check.get("gate") or not check.get("command"):
+                    error(f"{item['id']}: check inválido")
 
     for skill in skills.values():
         path = skill.get("path")
@@ -149,6 +180,10 @@ def validate_registry() -> None:
         for starter_id in stack.get("starters", []) + stack.get("alternatives", []):
             if starter_id not in boilerplates:
                 error(f"{recipe['id']}: boilerplate desconocido {starter_id}")
+        for starter_id in stack.get("starters", []):
+            starter = boilerplates.get(starter_id, {})
+            if not starter.get("integration", {}).get("adapter") or not starter.get("upstream", {}).get("commit"):
+                error(f"{recipe['id']}: starter default no materializable {starter_id}")
         for pack_id in recipe.get("solution_packs", {}).get("default", []) + recipe.get("solution_packs", {}).get("optional", []):
             if pack_id not in boilerplates or boilerplates[pack_id].get("kind") != "solution-pack":
                 error(f"{recipe['id']}: solution pack inválido {pack_id}")

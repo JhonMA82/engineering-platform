@@ -14,6 +14,17 @@
     "update_strategy": "merge-seed",
     "native_skill": ".agents/skills/merge-seed/SKILL.md"
   },
+  "materializer": {
+    "type": "git-copy",
+    "destination": ".",
+    "setup": [["bun", "install", "--frozen-lockfile"]],
+    "checks": [
+      {"gate": "typecheck", "command": ["bun", "typecheck"]},
+      {"gate": "lint", "command": ["bun", "lint"]},
+      {"gate": "test", "command": ["bun", "run", "test", "--", "--run"]},
+      {"gate": "build", "command": ["bun", "run", "build"]}
+    ]
+  },
   "verification_status": "source-inspected-pilot-not-yet-executed",
   "observed_stack": ["React 19", "TanStack Router", "TanStack Query", "tRPC", "Hono", "Drizzle", "Neon PostgreSQL", "Better Auth", "Cloudflare Workers", "Bun", "Vite", "Vitest", "Tailwind CSS 4", "shadcn/ui"],
   "verification_commands": [

@@ -20,19 +20,20 @@ El skill `project-discovery` pregunta progresivamente por problema, usuarios, re
 eng bootstrap --from .engineering/project-definition.json --output .
 ```
 
-Se valida la definición, se resuelve la Recipe y se crean manifest, arquitectura, reglas para agentes y handoff a Gentle. Una desviación se decide aquí, no después de generar.
+Se valida la definición, se resuelve la Recipe, se materializan los starters en un staging temporal, se instalan dependencias, se ejecutan checks y solo entonces se publica el destino. Una desviación se decide aquí, no después de generar.
 
 ## 3. Verificación
 
 ```bash
 eng doctor --project .
+eng check --project . --run
 ```
 
-`scaffold_status: blueprint` significa que el equipo aún debe usar o construir el adapter liberado correspondiente. El comando no clona ramas sin pin ni convierte fichas en código.
+`scaffold_status: materialized` confirma que el código existe. `readiness: verified` confirma además que pasaron los checks; `code-ready` exige ejecutar `eng check --run`.
 
 ## 4. Materialización
 
-Solo un adapter `released` puede materializar automáticamente. Debe registrar upstream, pin, licencia, modo de integración, ownership, checks y Upgrade Recipe. Después se ejecutan gates vacíos y se crea la primera vertical de dominio.
+Cada starter default tiene adapter, pin, licencia, destino, setup y checks. Los externos se copian desde el commit exacto; los internos desde `starters/`; Ignite usa su generador versionado. Si algo falla, el destino original queda intacto.
 
 ## 5. Gentle y aprendizaje
 

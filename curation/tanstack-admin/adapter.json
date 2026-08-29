@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "tanstack-admin",
+  "reviewed_at": "2026-08-29",
+  "source": {"repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard", "branch": "main", "commit": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "license": "MIT"},
+  "integration": {"mode": "overlay", "remote": "seed-tanstack-admin", "update_strategy": "curated-diff"},
+  "materializer": {
+    "type": "git-copy",
+    "destination": "apps/admin",
+    "setup": [["npm", "ci"]],
+    "checks": [
+      {"gate": "lint", "command": ["npm", "run", "check"]},
+      {"gate": "build", "command": ["npm", "run", "build"]}
+    ]
+  }
+}

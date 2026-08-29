@@ -1,0 +1,15 @@
+{
+  "name": "governed-ai-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/test/**/*.test.js",
+    "start": "node dist/src/index.js"
+  },
+  "dependencies": {"@hono/node-server": "^1.19.0", "hono": "^4.9.0", "zod": "^4.1.0"},
+  "devDependencies": {"@types/node": "^24.3.0", "tsx": "^4.20.0", "typescript": "^5.9.0"}
+}

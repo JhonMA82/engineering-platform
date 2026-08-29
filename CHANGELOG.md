@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0] - 2026-08-29
+
+- `eng bootstrap` ahora materializa código real de forma transaccional desde adapters con pin exacto.
+- Curados Stardrive, TanStack Admin, Ignite, Tauri UI, SpeedPy y React Starter Kit; liberados Hono API y Governed AI Assistant internos.
+- Añadidos `.engineering/materialization.json`, readiness `code-ready|verified`, remotes `seed-*` y detección del árbol, paquetes, scripts y archivos de entorno reales.
+- `GENTLE.md` recibe idea, fuentes, stack, patrones, estructura real, criterios y evidencia para elegir ejecución directa o SDD.
+- `eng check --run` ejecuta checks registrados; `eng update --check` consulta ramas upstream reales.
+- Corregido `/new-project` para admitir `.atl/`, `.gitignore` y `.git` sin aceptar contenido de usuario.
+- Ampliada la suite a 38 pruebas, incluyendo materialización y rollback transaccional.
+
 ## [0.4.4] - 2026-08-28
 
 - Migración automática del launcher gestionado entre instalaciones versionadas.

@@ -19,7 +19,7 @@ En la primera salida identifica Recipe, starters, datos, features, skills, gates
 2. Ejecuta `eng start <nombre>` o abre Pi en una carpeta vacía y usa `/new-project`.
 3. Responde sobre problema, usuarios, resultado, alcance y restricciones; no elijas framework.
 4. Confirma la definición y lee `.engineering/project.json`, `GENTLE.md`, `ARCHITECTURE.md` y `AGENTS.md` generados.
-5. Si el resultado dice `blueprint`, falta materialización curada: no lo presentes como starter productivo.
+5. Usa `eng bootstrap` para materializar; `eng new` produce solo el blueprint intencional para automatización sin código.
 6. Para un cambio usa `eng plan`; al terminar usa `eng check` y los comandos reales del starter.
 
 ## Ejemplo mental

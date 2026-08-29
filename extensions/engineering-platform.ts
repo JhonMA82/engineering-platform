@@ -8,7 +8,7 @@ const ENG = join(PACKAGE_ROOT, "eng");
 const PACKAGE_VERSION = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8")).version as string;
 
 function projectFiles(cwd: string): string[] {
-  return readdirSync(cwd).filter((name) => name !== ".git");
+  return readdirSync(cwd).filter((name) => ![".git", ".atl", ".gitignore"].includes(name));
 }
 
 export default function engineeringPlatform(pi: ExtensionAPI) {

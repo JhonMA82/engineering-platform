@@ -3,17 +3,17 @@
 | Campo | Decisión |
 |---|---|
 | Estado de decisión | Default para API TypeScript separada |
-| Estado de entrega | `catalog-only` |
+| Estado de entrega | `released` en `platform-0.5.0` |
 | Mantenimiento | Tier A |
-| Repositorio | Pendiente de extracción interna |
+| Repositorio | Starter interno `starters/hono-api` |
 
 ## Tesis
 
 El equipo necesita una API TypeScript pequeña y aburrida cuando varios clientes comparten dominio o hay integraciones. Hono es el mecanismo; el valor interno debe estar en contratos, autorización, errores, migraciones, observabilidad y generadores comprobados.
 
-## Límite honesto
+## Entrega
 
-Todavía no existe un release interno. La Recipe puede generar el blueprint y los contratos de decisión, pero no debe presentarlo como código productivo hasta que haya un piloto real, pin, tests, CI y estrategia de actualización.
+El adapter copia el release interno a `apps/api`, instala el lock npm y ejecuta typecheck y pruebas. Auth, persistencia y OpenAPI continúan como capacidades de proyecto o Feature Packs: no se anuncian como incluidas en el núcleo.
 
 ## Estructura objetivo
 
@@ -26,9 +26,9 @@ Todavía no existe un release interno. La Recipe puede generar el blueprint y lo
 
 ## Criterios para liberar
 
-- [ ] Extraído o validado en un proyecto real.
-- [ ] Pin reproducible de runtime y dependencias.
+- [x] Starter interno versionado y validado.
+- [x] Pin reproducible de runtime y dependencias.
 - [ ] Auth, RBAC y migraciones como packs opcionales, no acoplados al núcleo.
-- [ ] OpenAPI y cliente de ejemplo.
-- [ ] Gates de lint, types, unidad, contrato, integración, build y seguridad.
-- [ ] Upgrade recipe y responsable Tier A.
+- [ ] OpenAPI y cliente de ejemplo cuando lo requiera el contrato.
+- [x] Gates base de types, build y unidad; los demás se añaden por Recipe.
+- [x] Actualización por release interno y responsable Tier A.

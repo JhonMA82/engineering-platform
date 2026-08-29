@@ -2,7 +2,7 @@
 
 Una base de ingeniería minimalista, práctica y opinionada para que una consultoría de **1 a 20 personas** inicie y mantenga proyectos sin volver a discutir el stack desde cero.
 
-> Versión: **0.4.4** · Revisión: **2026-08-28**
+> Versión: **0.5.0** · Revisión: **2026-08-29**
 
 La idea es “Omarchy para proyectos”: pocos defaults buenos, comandos directos y automatización visible. No es un portal, un framework universal ni una colección de repositorios de moda.
 
@@ -14,7 +14,7 @@ Un agente descubre la idea y la convierte en una **Project Recipe** reproducible
 flowchart TD
     A["Preguntas progresivas"] --> B["Definición confirmada"]
     B --> C["Project Recipe"]
-    C --> D["Blueprint o starter liberado"]
+    C --> D["Código materializado y verificado"]
     D --> E["Handoff a Gentle"]
 ```
 
@@ -49,10 +49,11 @@ El agente pregunta hasta confirmar problema, usuarios, alcance y restricciones; 
 
 - `.engineering/project-definition.json`: idea confirmada;
 - `.engineering/project.json`: Recipe, stack, features, skills y gates;
+- `.engineering/materialization.json`: fuentes exactas, pins, destinos y checks ejecutados;
 - `ARCHITECTURE.md` y `AGENTS.md`: estructura y reglas;
 - `GENTLE.md` y `.engineering/gentle-handoff.json`: contexto para que Gentle elija ejecución directa o SDD.
 
-Mientras un starter no tenga artefacto interno `released`, `eng new` crea un **blueprint**: decisiones y contexto correctos, sin fingir que existe código productivo curado.
+`eng new` conserva la ruta de **blueprint** para automatización sin código. El flujo Pi usa `eng bootstrap`: clona cada commit exacto o copia el starter interno, instala dependencias, ejecuta sus checks, inicia Git y genera el handoff desde la estructura real. `--skip-setup --skip-checks` deja el proyecto en `code-ready`; `eng check --run` lo verifica después.
 
 ## Ejemplo de decisión
 
@@ -66,7 +67,7 @@ Necesidad: “Una escuela necesita solicitudes internas, adjuntos y aprobación�
 | Features | `auth`, `rbac`, `audit`, `observability`, `files` |
 | Skills | selector, bootstrap, autorización, datos y gates |
 | Exclusiones | multitenancy, jobs y mobile hasta que exista una necesidad |
-| Entrega actual | `blueprint`, porque Hono API aún no está liberado |
+| Entrega actual | `materialized`: `apps/admin` + `apps/api` |
 
 ## Catálogo sin duplicados
 

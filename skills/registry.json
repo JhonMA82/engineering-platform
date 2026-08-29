@@ -2,7 +2,7 @@
   "schema_version": 2,
   "skills": [
     {"id": "architecture-selector", "path": ".opencode/skills/architecture-selector/SKILL.md", "scope": "platform", "purpose": "Convertir necesidades en una Recipe y explicar exclusiones."},
-    {"id": "project-bootstrap", "path": ".opencode/skills/project-bootstrap/SKILL.md", "scope": "platform", "purpose": "Crear un blueprint desde intake sin inventar versiones ni capacidades."},
+    {"id": "project-bootstrap", "path": ".opencode/skills/project-bootstrap/SKILL.md", "scope": "platform", "purpose": "Materializar una Recipe desde adapters y pins reproducibles."},
     {"id": "boilerplate-curator", "path": ".opencode/skills/boilerplate-curator/SKILL.md", "scope": "platform", "purpose": "Registrar, actualizar o rechazar una propuesta sin duplicar el catálogo."},
     {"id": "project-doctor", "path": ".opencode/skills/project-doctor/SKILL.md", "scope": "project", "purpose": "Detectar divergencia entre manifest, Recipe y repositorio."},
     {"id": "change-planner", "path": ".opencode/skills/change-planner/SKILL.md", "scope": "project", "purpose": "Elegir skills, archivos y gates mínimos para un cambio."},
