@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.3] - 2026-08-28
+
+- Derivada la versión de la extensión Pi y del CLI `eng` desde `package.json`.
+- Corregido el frontmatter del skill `project-discovery` para aceptar correctamente valores con dos puntos.
+- Añadida una regresión para el launcher ejecutado mediante un enlace simbólico.
+
 ## [0.4.2] - 2026-08-28
 
 - Formalizada la política de entrega versionada antes del primer push y la preservación de los tags anteriores.
