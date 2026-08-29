@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.1] - 2026-08-29
+
+- Ajustado `project-discovery` para iniciar con la idea libre del usuario, preguntar progresivamente sin formularios ni opciones predeterminadas y registrar la procedencia del patrón de entrevista.
+
 ## [0.5.0] - 2026-08-29
 
 - `eng bootstrap` ahora materializa código real de forma transaccional desde adapters con pin exacto.
