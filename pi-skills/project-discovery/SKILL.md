@@ -1,7 +1,7 @@
 ---
 name: project-discovery
-description: Descubre, confirma y prepara una idea de proyecto nuevo con Engineering Platform. Úsala cuando el usuario quiera iniciar un producto desde cero, seleccionar una Recipe o generar el handoff para Gentle AI.
-compatibility: Requiere Python 3.11+, el ejecutable eng incluido y un destino vacío o que contenga únicamente los metadatos gestionados de Gentle AI: `.atl/` y `.gitignore` en la raíz, con el estado anidado permitido dentro de `.atl/`.
+description: 'Descubre, confirma y prepara una idea de proyecto nuevo con Engineering Platform. Úsala cuando el usuario quiera iniciar un producto desde cero, seleccionar una Recipe o generar el handoff para Gentle AI.'
+compatibility: 'Requiere Python 3.11+, el ejecutable eng incluido y un destino vacío o que contenga únicamente los metadatos gestionados de Gentle AI: `.atl/` y `.gitignore` en la raíz, con el estado anidado permitido dentro de `.atl/`.'
 ---
 
 # Project Discovery
