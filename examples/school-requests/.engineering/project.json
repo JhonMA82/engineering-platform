@@ -1,7 +1,7 @@
 {
   "$schema": "../../../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.4.3",
+  "platform_version": "0.4.4",
   "generated_at": "2026-08-28",
   "scaffold_status": "blueprint",
   "project": {"name": "school-requests", "type": "institutional-admin", "summary": "Sistema interno para registrar, adjuntar y aprobar solicitudes escolares."},

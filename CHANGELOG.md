@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.4] - 2026-08-28
+
+- Migración automática del launcher gestionado entre instalaciones versionadas.
+- Desinstalación limpia de todas las copias gestionadas y sus registros en Pi, preservando archivos ajenos.
+- Añadidas regresiones para la migración y la limpieza segura de instalaciones globales.
+
 ## [0.4.3] - 2026-08-28
 
 - Derivada la versión de la extensión Pi y del CLI `eng` desde `package.json`.
