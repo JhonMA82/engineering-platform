@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "platform_version": "0.4.1",
+  "platform_version": "0.4.2",
   "scaffold_status": "blueprint",
   "project": {
     "name": "school-requests",

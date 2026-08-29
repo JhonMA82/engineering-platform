@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.2] - 2026-08-28
+
+- Formalizada la política de entrega versionada antes del primer push y la preservación de los tags anteriores.
+
 ## [0.4.1] - 2026-08-28
 
 - Corregido el launcher global cuando `eng` se invoca mediante un enlace simbólico.
