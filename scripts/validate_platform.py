@@ -238,8 +238,8 @@ def validate_concepts() -> None:
 
 def validate_pi_package() -> None:
     package = load("package.json")
-    if package.get("version") != "0.4.2":
-        error("package.json: versión Pi distinta de 0.4.2")
+    if not isinstance(package.get("version"), str) or not package["version"]:
+        error("package.json: falta la versión Pi")
     if "pi-package" not in package.get("keywords", []):
         error("package.json: falta keyword pi-package")
     manifest = package.get("pi", {})

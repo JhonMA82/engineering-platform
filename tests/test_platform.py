@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.eng import (
+    PLATFORM_VERSION,
     PlatformError,
     add_feature_to_project,
     change_plan,
@@ -169,7 +170,7 @@ class PiWorkflowTests(unittest.TestCase):
     def test_pi_package_declares_native_resources(self) -> None:
         root = Path(__file__).parents[1]
         package = loads((root / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual(package["version"], "0.4.2")
+        self.assertEqual(package["version"], PLATFORM_VERSION)
         self.assertEqual(package["pi"]["extensions"], ["./extensions/engineering-platform.ts"])
         self.assertIn("./.opencode/skills", package["pi"]["skills"])
         self.assertTrue((root / "pi-skills/project-discovery/SKILL.md").exists())
@@ -314,7 +315,7 @@ class PiWorkflowTests(unittest.TestCase):
             home = Path(temporary)
             self.assertTrue((home / ".local/bin/eng").is_symlink())
             self.assertTrue(
-                (home / ".local/share/engineering-platform/0.4.2/package.json").exists()
+                (home / ".local/share/engineering-platform" / PLATFORM_VERSION / "package.json").exists()
             )
             with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
                 with patch("scripts.eng.subprocess.run", return_value=completed):
@@ -328,7 +329,7 @@ class PiWorkflowTests(unittest.TestCase):
                             )
                         )
             self.assertFalse((home / ".local/bin/eng").exists())
-            self.assertFalse((home / ".local/share/engineering-platform/0.4.2").exists())
+            self.assertFalse((home / ".local/share/engineering-platform" / PLATFORM_VERSION).exists())
 
 
 class LauncherTests(unittest.TestCase):
@@ -340,6 +341,7 @@ class LauncherTests(unittest.TestCase):
             launcher = package / "eng"
             launcher.parent.mkdir(parents=True)
             shutil.copy2(repository / "eng", launcher)
+            shutil.copy2(repository / "package.json", package / "package.json")
             shutil.copytree(repository / "scripts", package / "scripts")
 
             link = root / "bin/eng"
@@ -353,7 +355,7 @@ class LauncherTests(unittest.TestCase):
             )
 
             self.assertEqual(completed.returncode, 0, completed.stderr)
-            self.assertEqual(completed.stdout.strip(), "eng 0.4.2")
+            self.assertEqual(completed.stdout.strip(), f"eng {PLATFORM_VERSION}")
 
 
 class PlatformValidatorTests(unittest.TestCase):

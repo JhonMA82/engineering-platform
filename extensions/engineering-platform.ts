@@ -1,10 +1,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ENG = join(PACKAGE_ROOT, "eng");
+const PACKAGE_VERSION = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8")).version as string;
 
 function projectFiles(cwd: string): string[] {
   return readdirSync(cwd).filter((name) => name !== ".git");
@@ -37,7 +38,7 @@ export default function engineeringPlatform(pi: ExtensionAPI) {
       }
       pi.setSessionName(`new:${folderName}`);
       pi.appendEntry("engineering-platform:discovery", {
-        version: "0.4.0",
+        version: PACKAGE_VERSION,
         cwd: ctx.cwd,
         status: "started",
       });
