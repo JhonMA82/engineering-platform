@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import unittest
 from argparse import Namespace
-from json import loads
+from json import dumps, loads
 from pathlib import Path
 from unittest.mock import patch
 
@@ -330,6 +330,153 @@ class PiWorkflowTests(unittest.TestCase):
                         )
             self.assertFalse((home / ".local/bin/eng").exists())
             self.assertFalse((home / ".local/share/engineering-platform" / PLATFORM_VERSION).exists())
+
+    def test_global_install_migrates_managed_launcher(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            previous_install = home / ".local/share/engineering-platform/previous"
+            previous_install.mkdir(parents=True)
+            (previous_install / "eng").write_text("#!/bin/sh\n", encoding="utf-8")
+            launcher = home / ".local/bin/eng"
+            launcher.parent.mkdir(parents=True)
+            launcher.symlink_to(previous_install / "eng")
+            completed = Namespace(returncode=0, stdout="engineering-platform", stderr="")
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", return_value=completed):
+                    command_install(
+                        Namespace(
+                            target="pi",
+                            home=temporary,
+                            force=False,
+                            dry_run=False,
+                            global_install=True,
+                        )
+                    )
+            expected = home / ".local/share/engineering-platform" / PLATFORM_VERSION / "eng"
+            self.assertEqual(launcher.resolve(), expected.resolve())
+            self.assertTrue(previous_install.exists())
+
+    def test_global_install_preserves_unmanaged_launcher(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            external_launcher = home / "custom/eng"
+            external_launcher.parent.mkdir(parents=True)
+            external_launcher.write_text("#!/bin/sh\n", encoding="utf-8")
+            launcher = home / ".local/bin/eng"
+            launcher.parent.mkdir(parents=True)
+            launcher.symlink_to(external_launcher)
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with self.assertRaises(PlatformError):
+                    command_install(
+                        Namespace(
+                            target="pi",
+                            home=temporary,
+                            force=False,
+                            dry_run=False,
+                            global_install=True,
+                        )
+                    )
+            self.assertEqual(launcher.resolve(), external_launcher.resolve())
+
+    def test_global_uninstall_removes_all_managed_installations(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            managed_root = home / ".local/share/engineering-platform"
+            installations = {
+                "0.4.2": managed_root / "0.4.2",
+                PLATFORM_VERSION: managed_root / PLATFORM_VERSION,
+            }
+            for version, installation in installations.items():
+                installation.mkdir(parents=True)
+                (installation / "eng").write_text("#!/bin/sh\n", encoding="utf-8")
+                (installation / "package.json").write_text(
+                    dumps({"name": "engineering-platform", "version": version}),
+                    encoding="utf-8",
+                )
+            launcher = home / ".local/bin/eng"
+            launcher.parent.mkdir(parents=True)
+            launcher.symlink_to(installations["0.4.2"] / "eng")
+            completed = Namespace(returncode=0, stdout="removed", stderr="")
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", return_value=completed) as run:
+                    with patch("builtins.print") as output:
+                        command_uninstall(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+            status = loads(output.call_args.args[0])
+            self.assertTrue(status["removed"])
+            self.assertTrue(status["launcher_removed"])
+            self.assertEqual(run.call_count, 2)
+            self.assertFalse(launcher.exists())
+            self.assertFalse(managed_root.exists())
+            self.assertTrue(all(not installation.exists() for installation in installations.values()))
+
+    def test_global_uninstall_preserves_unmanaged_launcher(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            installation = home / ".local/share/engineering-platform" / PLATFORM_VERSION
+            installation.mkdir(parents=True)
+            (installation / "eng").write_text("#!/bin/sh\n", encoding="utf-8")
+            (installation / "package.json").write_text(
+                dumps({"name": "engineering-platform", "version": PLATFORM_VERSION}),
+                encoding="utf-8",
+            )
+            external_launcher = home / "custom/eng"
+            external_launcher.parent.mkdir(parents=True)
+            external_launcher.write_text("#!/bin/sh\n", encoding="utf-8")
+            launcher = home / ".local/bin/eng"
+            launcher.parent.mkdir(parents=True)
+            launcher.symlink_to(external_launcher)
+            completed = Namespace(returncode=0, stdout="removed", stderr="")
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", return_value=completed):
+                    with patch("builtins.print"):
+                        command_uninstall(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+            self.assertFalse(installation.exists())
+            self.assertTrue(launcher.is_symlink())
+            self.assertEqual(launcher.resolve(), external_launcher.resolve())
+
+    def test_global_uninstall_removes_stale_managed_launcher_without_current_install(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            previous_install = home / ".local/share/engineering-platform/0.4.2"
+            previous_install.mkdir(parents=True)
+            (previous_install / "eng").write_text("#!/bin/sh\n", encoding="utf-8")
+            (previous_install / "package.json").write_text(
+                dumps({"name": "engineering-platform", "version": "0.4.2"}),
+                encoding="utf-8",
+            )
+            launcher = home / ".local/bin/eng"
+            launcher.parent.mkdir(parents=True)
+            launcher.symlink_to(previous_install / "eng")
+            completed = Namespace(returncode=0, stdout="removed", stderr="")
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", return_value=completed):
+                    with patch("builtins.print") as output:
+                        command_uninstall(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+            status = loads(output.call_args.args[0])
+            self.assertTrue(status["removed"])
+            self.assertFalse(launcher.exists())
+            self.assertFalse(previous_install.exists())
 
 
 class LauncherTests(unittest.TestCase):

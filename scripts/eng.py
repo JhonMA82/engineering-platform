@@ -899,6 +899,45 @@ def command_handoff(args: argparse.Namespace) -> int:
     return 0
 
 
+def _managed_launcher_target(launcher: Path, install_root: Path) -> Path | None:
+    if not launcher.is_symlink():
+        return None
+    managed_root = install_root.parent
+    if managed_root.is_symlink():
+        return None
+    try:
+        target = launcher.resolve()
+    except (OSError, RuntimeError):
+        return None
+    managed_root = managed_root.resolve()
+    if target.name != "eng" or target.parent.parent != managed_root:
+        return None
+    return target
+
+
+def _managed_installations(home: Path) -> list[Path]:
+    managed_root = home / ".local/share/engineering-platform"
+    if managed_root.is_symlink() or not managed_root.is_dir():
+        return []
+    try:
+        candidates = list(managed_root.iterdir())
+    except OSError as exc:
+        raise PlatformError(f"No se pudo leer {managed_root}: {exc}") from exc
+    installations: list[Path] = []
+    for candidate in sorted(candidates, key=lambda item: item.name):
+        if candidate.is_symlink() or not candidate.is_dir():
+            continue
+        if not re.fullmatch(r"\d+\.\d+\.\d+", candidate.name):
+            continue
+        try:
+            package = read_json(candidate / "package.json")
+        except PlatformError:
+            continue
+        if package.get("name") == "engineering-platform" and package.get("version") == candidate.name:
+            installations.append(candidate)
+    return installations
+
+
 def _global_install_status(home: Path) -> dict[str, Any]:
     install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
     launcher = home / ".local/bin/eng"
@@ -958,9 +997,14 @@ def command_install(args: argparse.Namespace) -> int:
             shutil.copytree(ROOT, staged, ignore=INSTALL_IGNORES)
             staged.rename(install_root)
     launcher.parent.mkdir(parents=True, exist_ok=True)
+    expected_launcher = (install_root / "eng").resolve()
     if launcher.exists() or launcher.is_symlink():
-        if not launcher.is_symlink() or launcher.resolve() != (install_root / "eng").resolve():
+        current_launcher = _managed_launcher_target(launcher, install_root)
+        if current_launcher is None:
             raise PlatformError(f"No se sobrescribirá el launcher existente: {launcher}")
+        if current_launcher != expected_launcher:
+            launcher.unlink()
+            launcher.symlink_to(install_root / "eng")
     else:
         launcher.symlink_to(install_root / "eng")
     completed = subprocess.run(
@@ -983,36 +1027,65 @@ def command_uninstall(args: argparse.Namespace) -> int:
     home = Path(args.home).expanduser().resolve() if args.home else Path.home()
     install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
     launcher = home / ".local/bin/eng"
+    managed_root = install_root.parent
+    installations = _managed_installations(home)
+    managed_launcher = _managed_launcher_target(launcher, install_root)
     result = {
         "target": "pi",
         "package": str(install_root),
+        "packages": [str(path) for path in installations],
         "launcher": str(launcher),
         "removed": False,
+        "launcher_removed": False,
     }
     if args.dry_run:
         result["dry_run"] = True
+        result["launcher_managed"] = managed_launcher is not None
         print(dump_json(result), end="")
         return 0
-    if not install_root.exists():
+    if not installations:
+        if managed_launcher is not None:
+            launcher.unlink()
+            result["launcher_removed"] = True
+            result["removed"] = True
+        if managed_root.is_dir() and not managed_root.is_symlink():
+            try:
+                managed_root.rmdir()
+            except OSError:
+                pass
         print(dump_json(result), end="")
         return 0
     pi_executable = shutil.which("pi")
     if not pi_executable:
         raise PlatformError("No se encontró `pi` en PATH; no se eliminará una instalación parcialmente registrada")
-    completed = subprocess.run(
-        [pi_executable, "remove", str(install_root)],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise PlatformError(
-            "Pi no pudo retirar el paquete; no se borraron archivos: "
-            + (completed.stderr.strip() or completed.stdout.strip())
+    pi_outputs: list[str] = []
+    for installation in installations:
+        completed = subprocess.run(
+            [pi_executable, "remove", str(installation)],
+            text=True,
+            capture_output=True,
+            check=False,
         )
-    if launcher.is_symlink() and launcher.resolve() == (install_root / "eng").resolve():
+        if completed.returncode != 0:
+            raise PlatformError(
+                f"Pi no pudo retirar {installation}; no se borraron archivos: "
+                + (completed.stderr.strip() or completed.stdout.strip())
+            )
+        if completed.stdout.strip():
+            pi_outputs.append(completed.stdout.strip())
+    for installation in installations:
+        shutil.rmtree(installation)
+    if managed_launcher is not None:
         launcher.unlink()
-    shutil.rmtree(install_root)
+        result["launcher_removed"] = True
+    if managed_root.is_dir() and not managed_root.is_symlink():
+        try:
+            managed_root.rmdir()
+        except OSError:
+            pass
+    result["packages_removed"] = [str(path) for path in installations]
+    if pi_outputs:
+        result["pi_output"] = "\n".join(pi_outputs)
     result["removed"] = True
     print(dump_json(result), end="")
     return 0

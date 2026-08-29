@@ -13,7 +13,7 @@ eng doctor --global
 
 El instalador conserva una copia versionada en `~/.local/share/engineering-platform/0.4.3`, crea `~/.local/bin/eng` y ejecuta `pi install` sobre esa copia. Si `~/.local/bin` no está en `PATH`, `eng doctor --global` muestra la ruta que falta.
 
-Para retirarla, `eng uninstall --global --target pi` llama primero a `pi remove` y después elimina únicamente el launcher propio y la copia `0.4.3`.
+Para retirarla, `eng uninstall --global --target pi` llama a `pi remove` para cada copia versionada gestionada, elimina el launcher propio y conserva cualquier launcher externo o archivo ajeno.
 
 Pi también permite instalar directamente un tag publicado:
 

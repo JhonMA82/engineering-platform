@@ -131,7 +131,7 @@ Así Turso se evalúa por capacidad y riesgo, no como reemplazo global de Postgr
 | `eng bootstrap` | Convierte una definición confirmada en proyecto y handoff |
 | `eng start` | Crea `workspace/proyecto` y abre Pi dentro de esa carpeta |
 | `eng install` | Instala globalmente el paquete Pi y el launcher `eng` |
-| `eng uninstall` | Retira el paquete Pi y solo la copia versionada instalada |
+| `eng uninstall` | Retira Pi y todas las copias versionadas gestionadas |
 | `eng doctor` | Detecta divergencia e ids inválidos |
 | `eng handoff` | Regenera las instrucciones para Gentle AI |
 | `eng plan` | Selecciona skills y gates por tipo de cambio |
