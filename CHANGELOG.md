@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.2] - 2026-08-29
+
+- Corregido `eng install --global --target pi` para retirar del registro las instalaciones locales versionadas anteriores antes de eliminar sus directorios, evitando que Pi cargue skills obsoletos.
+- Añadidas regresiones para preservar las instalaciones cuando `pi remove` falla y conservar paquetes externos.
+
 ## [0.5.1] - 2026-08-29
 
 - Ajustado `project-discovery` para iniciar con la idea libre del usuario, preguntar progresivamente sin formularios ni opciones predeterminadas y registrar la procedencia del patrón de entrevista.

@@ -395,6 +395,92 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertEqual(launcher.resolve(), expected.resolve())
             self.assertTrue(previous_install.exists())
 
+    def test_global_install_retires_stale_managed_pi_package_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            stale_install = home / ".local/share/engineering-platform/0.5.0"
+            stale_install.mkdir(parents=True)
+            (stale_install / "package.json").write_text(
+                dumps({"name": "engineering-platform", "version": "0.5.0"}),
+                encoding="utf-8",
+            )
+            direct_package = "git:github.com/JhonMA82/engineering-platform@v0.5.1"
+            registered = [str(stale_install), direct_package]
+            commands: list[list[str]] = []
+
+            def fake_pi(command: list[str], **_: object) -> Namespace:
+                commands.append(command)
+                if command[1] == "install":
+                    registered.append(command[2])
+                    return Namespace(returncode=0, stdout="installed", stderr="")
+                if command[1] == "remove":
+                    registered.remove(command[2])
+                    return Namespace(returncode=0, stdout="removed", stderr="")
+                return Namespace(returncode=0, stdout="\n".join(registered), stderr="")
+
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", side_effect=fake_pi):
+                    with patch("builtins.print"):
+                        command_install(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                force=False,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+
+            current_install = home / ".local/share/engineering-platform" / PLATFORM_VERSION
+            remove_commands = [command for command in commands if command[1] == "remove"]
+            self.assertEqual(remove_commands, [["/fake/pi", "remove", str(stale_install)]])
+            self.assertLess(
+                commands.index(["/fake/pi", "install", str(current_install)]),
+                commands.index(remove_commands[0]),
+            )
+            self.assertIn(str(current_install), registered)
+            self.assertIn(direct_package, registered)
+            self.assertNotIn(str(stale_install), registered)
+            self.assertFalse(stale_install.exists())
+
+    def test_global_install_preserves_stale_installation_when_pi_removal_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            stale_install = home / ".local/share/engineering-platform/0.5.0"
+            stale_install.mkdir(parents=True)
+            (stale_install / "package.json").write_text(
+                dumps({"name": "engineering-platform", "version": "0.5.0"}),
+                encoding="utf-8",
+            )
+            commands: list[list[str]] = []
+
+            def failing_pi(command: list[str], **_: object) -> Namespace:
+                commands.append(command)
+                if command[1] == "remove":
+                    return Namespace(returncode=1, stdout="", stderr="x" * 5000)
+                return Namespace(returncode=0, stdout="installed", stderr="")
+
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", side_effect=failing_pi):
+                    with self.assertRaises(PlatformError) as raised:
+                        command_install(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                force=False,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+
+            current_install = home / ".local/share/engineering-platform" / PLATFORM_VERSION
+            launcher = home / ".local/bin/eng"
+            self.assertLessEqual(len(str(raised.exception)), 1200)
+            self.assertTrue(stale_install.exists())
+            self.assertTrue(current_install.exists())
+            self.assertEqual(launcher.resolve(), (current_install / "eng").resolve())
+            self.assertEqual([command[1] for command in commands], ["install", "remove"])
+
     def test_global_install_preserves_unmanaged_launcher(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             home = Path(temporary)

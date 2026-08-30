@@ -1,6 +1,6 @@
 {
   "name": "engineering-platform",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Pi-first project discovery, Recipe resolution and Gentle AI handoff for small development consultancies.",
   "type": "module",
   "license": "UNLICENSED",

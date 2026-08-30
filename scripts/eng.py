@@ -1260,6 +1260,31 @@ def _managed_installations(home: Path) -> list[Path]:
     return installations
 
 
+def _retire_stale_managed_installations(
+    pi_executable: str, home: Path, install_root: Path
+) -> list[Path]:
+    stale_installations = [
+        installation
+        for installation in _managed_installations(home)
+        if installation != install_root
+    ]
+    for installation in stale_installations:
+        completed = subprocess.run(
+            [pi_executable, "remove", str(installation)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if completed.returncode != 0:
+            detail = completed.stderr.strip() or completed.stdout.strip() or "sin salida"
+            raise PlatformError(
+                f"Pi no pudo retirar {installation}; no se borraron archivos: {detail[-1000:]}"
+            )
+    for installation in stale_installations:
+        shutil.rmtree(installation)
+    return stale_installations
+
+
 def _global_install_status(home: Path) -> dict[str, Any]:
     install_root = home / ".local/share/engineering-platform" / PLATFORM_VERSION
     launcher = home / ".local/bin/eng"
@@ -1339,8 +1364,11 @@ def command_install(args: argparse.Namespace) -> int:
         raise PlatformError(
             "Pi no pudo registrar el paquete: " + (completed.stderr.strip() or completed.stdout.strip())
         )
+    retired_installations = _retire_stale_managed_installations(pi_executable, home, install_root)
     status = _global_install_status(home)
     status["pi_output"] = completed.stdout.strip()
+    if retired_installations:
+        status["retired_packages"] = [str(path) for path in retired_installations]
     print(dump_json(status), end="")
     return 0
 
