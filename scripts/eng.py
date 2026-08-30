@@ -1277,9 +1277,10 @@ def _retire_stale_managed_installations(
         )
         if completed.returncode != 0:
             detail = completed.stderr.strip() or completed.stdout.strip() or "sin salida"
-            raise PlatformError(
-                f"Pi no pudo retirar {installation}; no se borraron archivos: {detail[-1000:]}"
-            )
+            if detail != f"No matching package found for {installation}":
+                raise PlatformError(
+                    f"Pi no pudo retirar {installation}; no se borraron archivos: {detail[-1000:]}"
+                )
     for installation in stale_installations:
         shutil.rmtree(installation)
     return stale_installations

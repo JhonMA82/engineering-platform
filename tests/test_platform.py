@@ -443,6 +443,51 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertNotIn(str(stale_install), registered)
             self.assertFalse(stale_install.exists())
 
+    def test_global_install_removes_unregistered_stale_managed_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            stale_install = home / ".local/share/engineering-platform/0.4.2"
+            stale_install.mkdir(parents=True)
+            (stale_install / "package.json").write_text(
+                dumps({"name": "engineering-platform", "version": "0.4.2"}),
+                encoding="utf-8",
+            )
+            registered: list[str] = []
+            commands: list[list[str]] = []
+
+            def fake_pi(command: list[str], **_: object) -> Namespace:
+                commands.append(command)
+                if command[1] == "install":
+                    registered.append(command[2])
+                    return Namespace(returncode=0, stdout="installed", stderr="")
+                if command[1] == "remove":
+                    self.assertTrue(stale_install.exists())
+                    return Namespace(
+                        returncode=1,
+                        stdout="",
+                        stderr=f"No matching package found for {command[2]}",
+                    )
+                return Namespace(returncode=0, stdout="\n".join(registered), stderr="")
+
+            with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
+                with patch("scripts.eng.subprocess.run", side_effect=fake_pi):
+                    with patch("builtins.print") as output:
+                        result = command_install(
+                            Namespace(
+                                target="pi",
+                                home=temporary,
+                                force=False,
+                                dry_run=False,
+                                global_install=True,
+                            )
+                        )
+
+            status = loads(output.call_args.args[0])
+            self.assertEqual(result, 0)
+            self.assertTrue(status["ok"])
+            self.assertEqual([command[1] for command in commands], ["install", "remove", "list"])
+            self.assertFalse(stale_install.exists())
+
     def test_global_install_preserves_stale_installation_when_pi_removal_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             home = Path(temporary)

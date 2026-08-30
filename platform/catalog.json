@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "platform_version": "0.5.2",
+  "platform_version": "0.5.3",
   "reviewed_at": "2026-08-29",
   "source_of_truth": {
     "boilerplates": "platform/boilerplates.json",

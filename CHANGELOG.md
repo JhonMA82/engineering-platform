@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.3] - 2026-08-29
+
+- Corregido el instalador global para tolerar copias locales gestionadas que ya no están registradas en Pi, sin ocultar fallos reales de retiro.
+- Añadida una regresión para el escenario de directorio gestionado sin registro.
+
 ## [0.5.2] - 2026-08-29
 
 - Corregido `eng install --global --target pi` para retirar del registro las instalaciones locales versionadas anteriores antes de eliminar sus directorios, evitando que Pi cargue skills obsoletos.
