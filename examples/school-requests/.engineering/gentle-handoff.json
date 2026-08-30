@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "platform_version": "0.5.3",
+  "platform_version": "0.5.4",
   "scaffold_status": "blueprint",
   "readiness": "code-ready",
   "project": {

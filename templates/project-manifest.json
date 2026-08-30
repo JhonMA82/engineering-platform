@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.5.3",
+  "platform_version": "0.5.4",
   "generated_at": "2026-08-29",
   "scaffold_status": "blueprint",
   "readiness": "code-ready",

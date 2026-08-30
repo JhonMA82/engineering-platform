@@ -1,6 +1,6 @@
 # Integración Pi-first
 
-Engineering Platform `0.5.3` se distribuye como paquete Pi nativo. `package.json` declara una extensión, el skill de descubrimiento, los 13 skills operativos y prompts; Pi los carga globalmente mediante su gestor de paquetes.
+Engineering Platform `0.5.4` se distribuye como paquete Pi nativo. `package.json` declara una extensión, el skill de descubrimiento, los 13 skills operativos y prompts; Pi los carga globalmente mediante su gestor de paquetes.
 
 ## Instalación
 
@@ -11,15 +11,15 @@ Desde una copia estable del repositorio:
 eng doctor --global
 ```
 
-El instalador conserva una copia versionada en `~/.local/share/engineering-platform/0.5.3`, crea `~/.local/bin/eng` y ejecuta `pi install` sobre esa copia. Si `~/.local/bin` no está en `PATH`, `eng doctor --global` muestra la ruta que falta.
-Al actualizar, retira del registro de Pi las copias locales gestionadas anteriores, aunque alguna ya no esté registrada, antes de borrar sus directorios; no toca paquetes externos ni fuentes Git instaladas directamente.
+El instalador conserva una copia versionada en `~/.local/share/engineering-platform/0.5.4`, crea `~/.local/bin/eng` y ejecuta `pi install` sobre esa copia. Si `~/.local/bin` no está en `PATH`, `eng doctor --global` muestra la ruta que falta.
+Al actualizar, retira del registro de Pi las copias locales gestionadas anteriores, aunque alguna ya no esté registrada, y las fuentes Git anteriores de Engineering Platform antes de borrar sus directorios; no toca paquetes externos ni fuentes Git de otros paquetes.
 
 Para retirarla, `eng uninstall --global --target pi` llama a `pi remove` para cada copia versionada gestionada, elimina el launcher propio y conserva cualquier launcher externo o archivo ajeno.
 
 Pi también permite instalar directamente un tag publicado:
 
 ```bash
-pi install git:github.com/JhonMA82/engineering-platform@v0.5.3
+pi install git:github.com/JhonMA82/engineering-platform@v0.5.4
 ```
 
 La instalación directa habilita `/new-project`, `/engineering-status`, `/skill:project-discovery`, los skills registrados en cada Recipe y `/project-handoff`; el launcher `eng start` requiere además instalar el binario desde un checkout o ZIP.

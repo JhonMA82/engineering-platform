@@ -33,6 +33,7 @@ INSTALL_IGNORES = shutil.ignore_patterns(
     "*.pyc",
     "*.zip",
 )
+PI_ENGINEERING_PLATFORM_GIT_SOURCE_PREFIX = "git:github.com/JhonMA82/engineering-platform@"
 
 
 class PlatformError(ValueError):
@@ -1260,6 +1261,60 @@ def _managed_installations(home: Path) -> list[Path]:
     return installations
 
 
+def _user_engineering_platform_git_sources(output: str) -> list[str]:
+    sources: list[str] = []
+    in_user_packages = False
+    for line in output.splitlines():
+        if line.strip() == "User packages:":
+            in_user_packages = True
+            continue
+        if not in_user_packages:
+            continue
+        if line and not line[0].isspace():
+            break
+        indentation = len(line) - len(line.lstrip())
+        tokens = line.strip().split()
+        if indentation != 2 or not tokens:
+            continue
+        source = tokens[0]
+        if source.startswith(PI_ENGINEERING_PLATFORM_GIT_SOURCE_PREFIX):
+            sources.append(source)
+    return unique(sources)
+
+
+def _remove_pi_package(pi_executable: str, source: str) -> None:
+    completed = subprocess.run(
+        [pi_executable, "remove", source],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        return
+    detail = completed.stderr.strip() or completed.stdout.strip() or "sin salida"
+    if detail == f"No matching package found for {source}":
+        return
+    raise PlatformError(
+        f"Pi no pudo retirar {source}; no se borraron archivos: {detail[-1000:]}"
+    )
+
+
+def _retire_conflicting_engineering_platform_sources(pi_executable: str) -> None:
+    listed = subprocess.run(
+        [pi_executable, "list", "--no-approve"],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if listed.returncode != 0:
+        detail = listed.stderr.strip() or listed.stdout.strip() or "sin salida"
+        raise PlatformError(
+            f"Pi no pudo listar los paquetes de usuario; no se retiraron paquetes: {detail[-1000:]}"
+        )
+    for source in _user_engineering_platform_git_sources(listed.stdout):
+        _remove_pi_package(pi_executable, source)
+
+
 def _retire_stale_managed_installations(
     pi_executable: str, home: Path, install_root: Path
 ) -> list[Path]:
@@ -1269,18 +1324,7 @@ def _retire_stale_managed_installations(
         if installation != install_root
     ]
     for installation in stale_installations:
-        completed = subprocess.run(
-            [pi_executable, "remove", str(installation)],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if completed.returncode != 0:
-            detail = completed.stderr.strip() or completed.stdout.strip() or "sin salida"
-            if detail != f"No matching package found for {installation}":
-                raise PlatformError(
-                    f"Pi no pudo retirar {installation}; no se borraron archivos: {detail[-1000:]}"
-                )
+        _remove_pi_package(pi_executable, str(installation))
     for installation in stale_installations:
         shutil.rmtree(installation)
     return stale_installations
@@ -1365,6 +1409,7 @@ def command_install(args: argparse.Namespace) -> int:
         raise PlatformError(
             "Pi no pudo registrar el paquete: " + (completed.stderr.strip() or completed.stdout.strip())
         )
+    _retire_conflicting_engineering_platform_sources(pi_executable)
     retired_installations = _retire_stale_managed_installations(pi_executable, home, install_root)
     status = _global_install_status(home)
     status["pi_output"] = completed.stdout.strip()

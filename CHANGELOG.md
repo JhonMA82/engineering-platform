@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.4] - 2026-08-29
+
+- Corregido el instalador global para retirar fuentes Git anteriores de Engineering Platform y evitar colisiones con la copia local actual en Pi.
+- Añadidas regresiones para preservar paquetes externos y paquetes instalados en el ámbito del proyecto.
+
 ## [0.5.3] - 2026-08-29
 
 - Corregido el instalador global para tolerar copias locales gestionadas que ya no están registradas en Pi, sin ocultar fallos reales de retiro.
