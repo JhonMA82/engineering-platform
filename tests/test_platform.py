@@ -15,6 +15,7 @@ from scripts.eng import (
     add_feature_to_project,
     change_plan,
     command_install,
+    command_check,
     command_start,
     command_uninstall,
     evaluate_boilerplate,
@@ -315,6 +316,99 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertTrue((output / ".engineering/materialization.json").exists())
             self.assertTrue((output / ".git").is_dir())
 
+    def test_materialization_is_single_source_and_keeps_safe_templates(self) -> None:
+        intake = {
+            "name": "assistant-app",
+            "project_type": "ai-assistant",
+            "signals": ["chat", "tools"],
+            "features": [],
+            "excluded_features": [],
+            "database": "postgresql-managed",
+        }
+        definition = self.definition()
+        definition["intake"] = intake
+        definition["idea"]["summary"] = "Asistente interno con controles y auditoría."
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "assistant-app"
+            write_project(
+                intake,
+                output,
+                definition=definition,
+                materialize=True,
+                skip_setup=True,
+                skip_checks=True,
+            )
+            manifest = loads((output / ".engineering/project.json").read_text(encoding="utf-8"))
+            handoff = loads(
+                (output / ".engineering/gentle-handoff.json").read_text(encoding="utf-8")
+            )
+            self.assertNotIn("materialization", manifest)
+            self.assertEqual(
+                manifest["$schema"],
+                f"https://raw.githubusercontent.com/JhonMA82/engineering-platform/v{PLATFORM_VERSION}/schemas/project.schema.json",
+            )
+            self.assertEqual(handoff["schema_version"], 2)
+            self.assertNotIn("stack", handoff)
+            self.assertTrue((output / ".env.example").exists())
+            self.assertEqual((output / ".git/HEAD").read_text(encoding="utf-8"), "ref: refs/heads/main\n")
+            self.assertEqual(
+                loads((output / ".engineering/project-definition.json").read_text(encoding="utf-8"))["$schema"],
+                f"https://raw.githubusercontent.com/JhonMA82/engineering-platform/v{PLATFORM_VERSION}/schemas/project-definition.schema.json",
+            )
+
+    def test_partial_check_preserves_unselected_checks_and_reuses_setup(self) -> None:
+        intake = {
+            "name": "assistant-app",
+            "project_type": "ai-assistant",
+            "signals": ["chat", "tools"],
+            "features": [],
+            "excluded_features": [],
+            "database": "postgresql-managed",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "assistant-app"
+            write_project(
+                intake, output, materialize=True, skip_setup=True, skip_checks=True
+            )
+            materialization_path = output / ".engineering/materialization.json"
+            materialization = loads(materialization_path.read_text(encoding="utf-8"))
+            materialization["checks"].append(
+                {
+                    "starter": "assistant-app",
+                    "gate": "build",
+                    "command": ["npm", "run", "build"],
+                    "workdir": ".",
+                    "status": "skipped",
+                }
+            )
+            materialization["readiness"] = "verified"
+            materialization_path.write_text(dumps(materialization), encoding="utf-8")
+            manifest = loads((output / ".engineering/project.json").read_text(encoding="utf-8"))
+            manifest["readiness"] = "verified"
+            (output / ".engineering/project.json").write_text(dumps(manifest), encoding="utf-8")
+            calls: list[tuple[list[str], str | None]] = []
+
+            def fake_run(command: list[str], _cwd: Path, *, gate: str | None = None) -> dict:
+                calls.append((command, gate))
+                record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
+                if gate:
+                    record["gate"] = gate
+                return record
+
+            args = Namespace(project=str(output), changed_files=["src/app.ts"], run=True)
+            with patch("scripts.eng._run_record", side_effect=fake_run), patch("builtins.print"):
+                self.assertEqual(command_check(args), 0)
+            self.assertEqual([gate for _, gate in calls], [None, "typecheck", "test"])
+            after = loads(materialization_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(after["checks"]), 3)
+            self.assertEqual(after["checks"][-1]["gate"], "build")
+            self.assertEqual(after["readiness"], "code-ready")
+
+            calls.clear()
+            with patch("scripts.eng._run_record", side_effect=fake_run), patch("builtins.print"):
+                self.assertEqual(command_check(args), 0)
+            self.assertEqual([gate for _, gate in calls], ["typecheck", "test"])
+
     def test_materialization_failure_leaves_target_unchanged(self) -> None:
         intake = self.definition()["intake"]
         with tempfile.TemporaryDirectory() as temporary:
@@ -355,6 +449,14 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertTrue((home / ".local/bin/eng").is_symlink())
             self.assertTrue(
                 (home / ".local/share/engineering-platform" / PLATFORM_VERSION / "package.json").exists()
+            )
+            self.assertTrue(
+                (
+                    home
+                    / ".local/share/engineering-platform"
+                    / PLATFORM_VERSION
+                    / "starters/ai-assistant/.env.example"
+                ).exists()
             )
             with patch("scripts.eng.shutil.which", return_value="/fake/pi"):
                 with patch("scripts.eng.subprocess.run", return_value=completed):

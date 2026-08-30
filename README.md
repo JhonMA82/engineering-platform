@@ -51,9 +51,9 @@ El agente pregunta hasta confirmar problema, usuarios, alcance y restricciones; 
 - `.engineering/project.json`: Recipe, stack, features, skills y gates;
 - `.engineering/materialization.json`: fuentes exactas, pins, destinos y checks ejecutados;
 - `ARCHITECTURE.md` y `AGENTS.md`: estructura y reglas;
-- `GENTLE.md` y `.engineering/gentle-handoff.json`: contexto para que Gentle elija ejecución directa o SDD.
+- `GENTLE.md`: handoff breve para Gentle; `.engineering/gentle-handoff.json` solo indexa las fuentes de verdad para agentes.
 
-`eng new` conserva la ruta de **blueprint** para automatización sin código. El flujo Pi usa `eng bootstrap`: clona cada commit exacto o copia el starter interno, instala dependencias, ejecuta sus checks, inicia Git y genera el handoff desde la estructura real. `--skip-setup --skip-checks` deja el proyecto en `code-ready`; `eng check --run` lo verifica después.
+`eng new` conserva la ruta de **blueprint** para automatización sin código. El flujo Pi usa `eng bootstrap`: clona cada commit exacto o copia el starter interno, instala dependencias, ejecuta sus checks, inicia Git en `main` y genera el handoff desde la estructura real. `--skip-setup --skip-checks` deja el proyecto en `code-ready`; `eng check --run` lo verifica después. Si ya pasó el setup, `eng check --run` lo reutiliza; usa `--force-setup` para repetirlo.
 
 ## Ejemplo de decisión
 

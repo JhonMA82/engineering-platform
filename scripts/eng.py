@@ -22,18 +22,38 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parents[1]
 PLATFORM_VERSION = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["version"]
 DEFINITION_SCHEMA_VERSION = 1
-INSTALL_IGNORES = shutil.ignore_patterns(
-    ".git",
-    ".atl",
-    ".env",
-    ".env.*",
-    "__pycache__",
-    ".pytest_cache",
-    "node_modules",
-    "*.pyc",
-    "*.zip",
+PROJECT_SCHEMA_URL = (
+    "https://raw.githubusercontent.com/JhonMA82/engineering-platform/"
+    f"v{PLATFORM_VERSION}/schemas/project.schema.json"
+)
+DEFINITION_SCHEMA_URL = (
+    "https://raw.githubusercontent.com/JhonMA82/engineering-platform/"
+    f"v{PLATFORM_VERSION}/schemas/project-definition.schema.json"
 )
 PI_ENGINEERING_PLATFORM_GIT_SOURCE_PREFIX = "git:github.com/JhonMA82/engineering-platform@"
+
+
+def _install_ignores(_directory: str, names: list[str]) -> set[str]:
+    """Exclude runtime/secrets from the Pi package, keeping env templates."""
+    ignored: set[str] = set()
+    for name in names:
+        if name in {
+            ".git",
+            ".atl",
+            "__pycache__",
+            ".pytest_cache",
+            "node_modules",
+            "dist",
+            "target",
+        }:
+            ignored.add(name)
+        elif name == ".env" or (
+            name.startswith(".env.") and name not in {".env.example", ".env.sample"}
+        ):
+            ignored.add(name)
+        elif name.endswith((".pyc", ".zip")):
+            ignored.add(name)
+    return ignored
 
 
 class PlatformError(ValueError):
@@ -287,7 +307,7 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
         raise PlatformError("name debe usar kebab-case, por ejemplo school-requests")
 
     return {
-        "$schema": "https://raw.githubusercontent.com/JhonMA82/engineering-platform/main/schemas/project.schema.json",
+        "$schema": PROJECT_SCHEMA_URL,
         "schema_version": 2,
         "platform_version": PLATFORM_VERSION,
         "generated_at": date.today().isoformat(),
@@ -481,6 +501,7 @@ def _run_record(command: list[str], cwd: Path, *, gate: str | None = None) -> di
         "command": command,
         "workdir": ".",
         "returncode": completed.returncode,
+        "status": "passed" if completed.returncode == 0 else "failed",
     }
     if gate:
         record["gate"] = gate
@@ -659,7 +680,7 @@ def materialize_project(
 
 def _initialize_seed_repository(project: Path, materialization: dict[str, Any]) -> None:
     if not (project / ".git").exists():
-        _run_record(["git", "init", "--quiet"], project)
+        _run_record(["git", "init", "--quiet", "--initial-branch", "main"], project)
     existing = subprocess.run(["git", "remote"], cwd=project, text=True, capture_output=True, check=False).stdout.split()
     for starter in materialization.get("starters", []):
         repository = starter.get("repository")
@@ -668,44 +689,44 @@ def _initialize_seed_repository(project: Path, materialization: dict[str, Any]) 
             _run_record(["git", "remote", "add", remote, repository], project)
 
 
+def _read_materialization(
+    project: Path, manifest: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Read the materialization record, with v0.5.x embedded-data compatibility."""
+    path = project / ".engineering/materialization.json"
+    if path.exists():
+        return read_json(path)
+    embedded = (manifest or {}).get("materialization")
+    return deepcopy(embedded) if isinstance(embedded, dict) else {}
+
+
 def gentle_handoff_data(
     manifest: dict[str, Any], definition: dict[str, Any] | None
 ) -> dict[str, Any]:
-    idea = (definition or {}).get("idea", {})
-    delivery = (definition or {}).get("delivery", {})
-    patterns = ["modular-monolith", "explicit-contracts", "least-privilege", "incremental-delivery"]
-    patterns.append("tenant-isolation" if "multitenancy" in manifest["features"] else "single-tenant-first")
-    materialization = manifest.get("materialization", {})
-    structure = dict(manifest["ownership"])
-    structure.update({
-        "actual_tree": materialization.get("actual_tree", []),
-        "packages": materialization.get("packages", []),
-        "environment_files": materialization.get("environment_files", []),
-    })
+    source_of_truth = {
+        "decisions": ".engineering/project.json",
+        "architecture": "ARCHITECTURE.md",
+        "rules": "AGENTS.md",
+    }
+    if definition:
+        source_of_truth["idea"] = ".engineering/project-definition.json"
+    if manifest.get("scaffold_status") == "materialized":
+        source_of_truth["materialization"] = ".engineering/materialization.json"
+    read_first = ["GENTLE.md"]
+    if "idea" in source_of_truth:
+        read_first.append(source_of_truth["idea"])
+    read_first.extend(
+        source_of_truth[key]
+        for key in ("decisions", "architecture", "rules", "materialization")
+        if key in source_of_truth
+    )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "platform_version": manifest["platform_version"],
         "scaffold_status": manifest["scaffold_status"],
         "readiness": manifest.get("readiness", "code-ready"),
-        "project": manifest["project"],
-        "idea": idea,
-        "stack": {
-            "recipe": manifest["recipe"],
-            "starters": manifest["starters"],
-            "database": manifest["database"],
-            "features": manifest["features"],
-            "skills": manifest["skills"],
-            "sources": materialization.get("starters", []),
-        },
-        "structure": structure,
-        "verification": {
-            "setup": materialization.get("setup", []),
-            "checks": materialization.get("checks", []),
-        },
-        "patterns": patterns,
-        "delivery": delivery,
-        "quality_gates": manifest["gates"],
-        "exclusions": manifest["exclusions"],
+        "project": {"name": manifest["project"]["name"]},
+        "source_of_truth": source_of_truth,
         "strategy": {
             "owner": "gentle-ai",
             "allowed": ["direct", "sdd"],
@@ -716,98 +737,57 @@ def gentle_handoff_data(
                 "persisten incógnitas de producto de alto impacto",
             ],
         },
-        "read_first": (
-            [".engineering/project-definition.json"] if definition else []
-        )
-        + [".engineering/project.json", "ARCHITECTURE.md", "AGENTS.md"],
+        "read_first": read_first,
     }
 
 
-def gentle_markdown(handoff: dict[str, Any]) -> str:
-    idea = handoff.get("idea", {})
-    stack = handoff["stack"]
-    starters = ", ".join(f"`{item['id']}`" for item in stack["starters"])
-    must_have = "\n".join(f"- {item}" for item in idea.get("must_have", [])) or "- No definido."
-    out_of_scope = "\n".join(f"- {item}" for item in idea.get("out_of_scope", [])) or "- Ninguno adicional."
-    acceptance = "\n".join(
-        f"- {item}" for item in handoff.get("delivery", {}).get("acceptance_criteria", [])
-    ) or "- Completar los quality gates aplicables."
-    structure = handoff["structure"]
-    sources = "\n".join(
-        f"- `{item['id']}` → `{item['destination']}` @ `{item['commit']}`"
-        + (f" ({item['repository']})" if item.get("repository") else " (starter interno)")
-        for item in stack.get("sources", [])
-    ) or "- Aún no materializado."
-    packages = "\n".join(
-        f"- `{item['path']}`: `{item.get('package_manager', 'desconocido')}`; scripts: "
-        + (", ".join(f"`{script}`" for script in item.get("scripts", [])) or "ninguno")
-        for item in structure.get("packages", [])
-    ) or "- No detectados."
-    actual_tree = "\n".join(f"- `{item}`" for item in structure.get("actual_tree", [])[:80]) or "- Aún no detectada."
-    checks = "\n".join(
-        f"- `{item.get('gate', 'setup')}` en `{item.get('workdir', '.')}`: "
-        f"`{' '.join(item.get('command', []))}` ({item.get('status', 'passed')})"
-        for item in handoff.get("verification", {}).get("checks", [])
-    ) or "- Pendientes de registrar."
+def gentle_markdown(
+    manifest: dict[str, Any],
+    definition: dict[str, Any] | None,
+    handoff: dict[str, Any],
+) -> str:
+    idea = (definition or {}).get("idea", {})
+    starters = ", ".join(
+        f"`{item['id']}` → `{item.get('destination') or 'por definir'}`"
+        for item in manifest.get("starters", [])
+    ) or "ninguno"
+    patterns = [
+        "modular-monolith",
+        "explicit-contracts",
+        "least-privilege",
+        "incremental-delivery",
+        "tenant-isolation"
+        if "multitenancy" in manifest.get("features", [])
+        else "single-tenant-first",
+    ]
     read_first = ", ".join(f"`{item}`" for item in handoff["read_first"])
+    sources = handoff["source_of_truth"]
     return f"""# Handoff a Gentle AI
 
-## Idea confirmada
+## Contexto breve
 
-{idea.get('summary', handoff['project'].get('summary', 'Sin resumen.'))}
+- Proyecto: `{manifest['project']['name']}`
+- Idea: {idea.get('summary', manifest['project'].get('summary', 'Consulta la definición del proyecto.'))}
+- Problema: {idea.get('problem', 'Consulta la definición del proyecto.')}
+- Recipe: `{manifest['recipe']['id']}@{manifest['recipe']['version']}`
+- Boilerplates: {starters}
+- Base de datos: `{manifest.get('database') or 'ninguna'}`
+- Patrones: {', '.join(f'`{item}`' for item in patterns)}
+- Estado: `{handoff['scaffold_status']}` · readiness `{handoff['readiness']}`
 
-Problema: {idea.get('problem', 'Consulta la definición del proyecto.')}
+## Fuentes de verdad
 
-## Stack y base
-
-- Recipe: `{stack['recipe']['id']}@{stack['recipe']['version']}`
-- Boilerplates: {starters or 'ninguno'}
-- Base de datos: `{stack['database'] or 'ninguna'}`
-- Features: {', '.join(f'`{item}`' for item in stack['features']) or 'ninguno'}
-- Skills: {', '.join(f'`{item}`' for item in stack['skills']) or 'ninguno'}
-- Patrones: {', '.join(f'`{item}`' for item in handoff['patterns'])}
-- Estado: `{handoff['scaffold_status']}`
-- Readiness: `{handoff['readiness']}`
-
-## Fuentes exactas
-
-{sources}
-
-## Estructura y ownership
-
-- Gestionado por la plataforma: {', '.join(f'`{item}`' for item in structure['managed'])}
-- Secciones gestionadas: {', '.join(f'`{item}`' for item in structure['managed_sections'])}
-- Código propiedad del proyecto: {', '.join(f'`{item}`' for item in structure['user_owned'])}
-
-### Paquetes detectados
-
-{packages}
-
-### Árbol real
-
-{actual_tree}
-
-### Verificación
-
-{checks}
-
-## Alcance mínimo
-
-{must_have}
-
-## Fuera de alcance
-
-{out_of_scope}
-
-## Criterios de aceptación
-
-{acceptance}
+- Idea y alcance: `{sources.get('idea', 'no disponible')}`
+- Stack, skills, gates y ownership: `{sources['decisions']}`
+- Arquitectura: `{sources['architecture']}`
+- Reglas: `{sources['rules']}`
+- Materialización, pins y verificación: `{sources.get('materialization', 'no materializado')}`
 
 ## Instrucciones de ejecución
 
 1. Lee, en orden: {read_first}.
 2. Decide entre ejecución directa y SDD según riesgo, ambigüedad, contratos, datos y permisos; registra brevemente el motivo.
-3. Conserva la Recipe, el stack, los patrones y las exclusiones. Propón una decisión explícita antes de desviarte.
+3. Conserva la Recipe, el stack, los patrones y las exclusiones; consulta las fuentes antes de desviarte.
 4. Implementa el incremento vertical mínimo y ejecuta los quality gates indicados en `.engineering/project.json`.
 5. Si readiness es `code-ready`, ejecuta `eng check --run` antes de tratar el proyecto como verificado.
 """
@@ -822,7 +802,9 @@ def write_handoff(
     (project / ".engineering/gentle-handoff.json").write_text(
         dump_json(handoff), encoding="utf-8"
     )
-    (project / "GENTLE.md").write_text(gentle_markdown(handoff), encoding="utf-8")
+    (project / "GENTLE.md").write_text(
+        gentle_markdown(manifest, definition, handoff), encoding="utf-8"
+    )
     return handoff
 
 
@@ -838,10 +820,12 @@ def write_project(
 ) -> dict[str, Any]:
     manifest = resolve_recipe(intake)
     _ensure_target_is_safe(output, allowed_existing)
+    definition_for_output = deepcopy(definition) if definition else None
     if definition:
         validate_project_definition(definition)
         manifest["project"]["summary"] = definition["idea"]["summary"]
         manifest["definition_status"] = "confirmed"
+        definition_for_output["$schema"] = DEFINITION_SCHEMA_URL
     if definition:
         manifest["ownership"]["managed"].append(".engineering/project-definition.json")
     manifest["ownership"]["managed"].extend(
@@ -862,25 +846,24 @@ def write_project(
             )
             manifest["scaffold_status"] = "materialized"
             manifest["readiness"] = materialization["readiness"]
-            manifest["materialization"] = materialization
             _initialize_seed_repository(staged, materialization)
         engineering = staged / ".engineering"
         engineering.mkdir(parents=True, exist_ok=True)
-        if definition:
+        if definition_for_output:
             (engineering / "project-definition.json").write_text(
-                dump_json(definition), encoding="utf-8"
+                dump_json(definition_for_output), encoding="utf-8"
             )
         (engineering / "intake.json").write_text(dump_json(intake), encoding="utf-8")
         (staged / "ARCHITECTURE.md").write_text(architecture_markdown(manifest), encoding="utf-8")
         (staged / "AGENTS.md").write_text(agents_markdown(manifest), encoding="utf-8")
         (staged / "README.md").write_text(readme_markdown(manifest), encoding="utf-8")
         if materialize:
-            manifest["materialization"].update(_actual_project_data(staged))
+            materialization.update(_actual_project_data(staged))
             (engineering / "materialization.json").write_text(
-                dump_json(manifest["materialization"]), encoding="utf-8"
+                dump_json(materialization), encoding="utf-8"
             )
         (engineering / "project.json").write_text(dump_json(manifest), encoding="utf-8")
-        write_handoff(staged, manifest, definition)
+        write_handoff(staged, manifest, definition_for_output)
         if output.exists():
             backup = Path(temporary) / f"{output.name}.existing"
             output.rename(backup)
@@ -997,10 +980,19 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
         handoff = read_json(handoff_path)
         if handoff.get("platform_version") != manifest.get("platform_version"):
             errors.append("El handoff de Gentle y el manifest usan versiones distintas")
-        if handoff.get("stack", {}).get("recipe", {}).get("id") != manifest.get("recipe", {}).get("id"):
-            errors.append("El handoff de Gentle y el manifest usan Recipes distintas")
-        if handoff.get("stack", {}).get("skills") != manifest.get("skills"):
-            errors.append("El handoff de Gentle y el manifest declaran skills distintos")
+        if handoff.get("schema_version") == 1:
+            if handoff.get("stack", {}).get("recipe", {}).get("id") != manifest.get("recipe", {}).get("id"):
+                errors.append("El handoff de Gentle y el manifest usan Recipes distintas")
+            if handoff.get("stack", {}).get("skills") != manifest.get("skills"):
+                errors.append("El handoff de Gentle y el manifest declaran skills distintos")
+        elif handoff.get("schema_version") == 2:
+            sources = handoff.get("source_of_truth", {})
+            if sources.get("decisions") != ".engineering/project.json":
+                errors.append("El handoff no apunta al manifest como fuente de decisiones")
+            if manifest.get("scaffold_status") == "materialized" and sources.get("materialization") != ".engineering/materialization.json":
+                errors.append("El handoff no apunta al registro de materialización")
+        else:
+            errors.append(f"schema_version de handoff no soportado: {handoff.get('schema_version')}")
         if handoff.get("strategy", {}).get("owner") != "gentle-ai":
             errors.append("El handoff no delega la estrategia de desarrollo a Gentle AI")
     return manifest, errors, warnings
@@ -1046,7 +1038,6 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
     if current_manifest.get("scaffold_status") == "materialized":
         updated_manifest["scaffold_status"] = "materialized"
         updated_manifest["readiness"] = current_manifest.get("readiness", "code-ready")
-        updated_manifest["materialization"] = current_manifest.get("materialization", {})
         updated_manifest["ownership"]["managed"].append(".engineering/materialization.json")
     added = [
         item
@@ -1065,9 +1056,10 @@ def add_feature_to_project(project: Path, feature_id: str, *, apply: bool = Fals
     }
     if apply:
         if updated_manifest.get("scaffold_status") == "materialized":
-            updated_manifest["materialization"].update(_actual_project_data(project))
+            materialization = _read_materialization(project, current_manifest)
+            materialization.update(_actual_project_data(project))
             (engineering / "materialization.json").write_text(
-                dump_json(updated_manifest["materialization"]), encoding="utf-8"
+                dump_json(materialization), encoding="utf-8"
             )
         intake_path.write_text(dump_json(updated_intake), encoding="utf-8")
         if definition:
@@ -1202,11 +1194,11 @@ def command_handoff(args: argparse.Namespace) -> int:
     definition_path = project / ".engineering/project-definition.json"
     definition = validate_project_definition(read_json(definition_path)) if definition_path.exists() else None
     if manifest.get("scaffold_status") == "materialized":
-        manifest.setdefault("materialization", {}).update(_actual_project_data(project))
+        materialization = _read_materialization(project, manifest)
+        materialization.update(_actual_project_data(project))
         (project / ".engineering/materialization.json").write_text(
-            dump_json(manifest["materialization"]), encoding="utf-8"
+            dump_json(materialization), encoding="utf-8"
         )
-        (project / ".engineering/project.json").write_text(dump_json(manifest), encoding="utf-8")
     write_handoff(project, manifest, definition)
     print(
         dump_json(
@@ -1386,7 +1378,7 @@ def command_install(args: argparse.Namespace) -> int:
         install_root.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="engineering-platform-", dir=install_root.parent) as temporary:
             staged = Path(temporary) / PLATFORM_VERSION
-            shutil.copytree(ROOT, staged, ignore=INSTALL_IGNORES)
+            shutil.copytree(ROOT, staged, ignore=_install_ignores)
             staged.rename(install_root)
     launcher.parent.mkdir(parents=True, exist_ok=True)
     expected_launcher = (install_root / "eng").resolve()
@@ -1545,6 +1537,20 @@ def command_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _execution_record_key(record: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        record.get("starter"),
+        record.get("gate"),
+        tuple(record.get("command", [])),
+        record.get("workdir", "."),
+    )
+
+
+def _execution_record_passed(record: dict[str, Any]) -> bool:
+    # returncode keeps compatibility with records written before status existed.
+    return record.get("status") == "passed" or record.get("returncode") == 0
+
+
 def command_check(args: argparse.Namespace) -> int:
     manifest, errors, warnings = inspect_project(Path(args.project).resolve())
     files = args.changed_files or []
@@ -1562,14 +1568,24 @@ def command_check(args: argparse.Namespace) -> int:
         if manifest.get("scaffold_status") != "materialized":
             raise PlatformError("El proyecto es blueprint; ejecuta eng bootstrap para materializar código")
         materialization_path = Path(args.project).resolve() / ".engineering/materialization.json"
-        materialization = read_json(materialization_path)
+        materialization = _read_materialization(Path(args.project).resolve(), manifest)
         executed_setup: list[dict[str, Any]] = []
         executed_checks: list[dict[str, Any]] = []
         project = Path(args.project).resolve()
+        setup_updates: dict[tuple[Any, ...], dict[str, Any]] = {}
         for registered in materialization.get("setup", []):
+            if not getattr(args, "force_setup", False) and _execution_record_passed(registered):
+                executed_setup.append(registered)
+                continue
             record = _run_record(registered["command"], project / _safe_relative(registered.get("workdir", "."), "workdir"))
             record.update({"starter": registered.get("starter"), "workdir": registered.get("workdir", ".")})
             executed_setup.append(record)
+            setup_updates[_execution_record_key(record)] = record
+        materialization["setup"] = [
+            setup_updates.get(_execution_record_key(registered), registered)
+            for registered in materialization.get("setup", [])
+        ]
+        check_updates: dict[tuple[Any, ...], dict[str, Any]] = {}
         for registered in materialization.get("checks", []):
             gate = registered.get("gate")
             if files and gate not in gates:
@@ -1581,15 +1597,20 @@ def command_check(args: argparse.Namespace) -> int:
             )
             record.update({"starter": registered.get("starter"), "workdir": registered.get("workdir", ".")})
             executed_checks.append(record)
-        materialization["setup"] = executed_setup
-        materialization["checks"] = executed_checks
+            check_updates[_execution_record_key(record)] = record
+        materialization["checks"] = [
+            check_updates.get(_execution_record_key(registered), registered)
+            for registered in materialization.get("checks", [])
+        ]
         materialization.update(_actual_project_data(project))
         if not files and executed_checks:
             materialization["readiness"] = "verified"
             manifest["readiness"] = "verified"
-        manifest["materialization"] = materialization
+        elif files and executed_checks:
+            # A filtered run provides evidence for selected gates only.
+            materialization["readiness"] = "code-ready"
+            manifest["readiness"] = "code-ready"
         materialization_path.write_text(dump_json(materialization), encoding="utf-8")
-        (project / ".engineering/project.json").write_text(dump_json(manifest), encoding="utf-8")
         definition_path = project / ".engineering/project-definition.json"
         definition = validate_project_definition(read_json(definition_path)) if definition_path.exists() else None
         write_handoff(project, manifest, definition)
@@ -1741,6 +1762,7 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--project", default=".")
     check.add_argument("--changed-files", nargs="*")
     check.add_argument("--run", action="store_true", help="Ejecutar setup y checks registrados por los adapters")
+    check.add_argument("--force-setup", action="store_true", help="Repetir la instalación aunque ya haya pasado")
     check.set_defaults(handler=command_check)
 
     add = sub.add_parser("add", help="Planear o aplicar un feature pack")

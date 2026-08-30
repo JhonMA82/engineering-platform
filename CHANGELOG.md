@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+## [0.6.0] - 2026-08-30
+
+- Reducido el handoff para que `GENTLE.md` y `.engineering/gentle-handoff.json` apunten a fuentes únicas en lugar de copiar materialización, árbol y verificaciones.
+- Conservados los checks no seleccionados en ejecuciones parciales y reutilizado el setup ya aprobado; añadido `--force-setup` para repetirlo.
+- Conservados `.env.example` y `.env.sample` en la instalación global; los proyectos materializados inicializan Git en `main` y usan schemas versionados.
+
 ## [0.5.4] - 2026-08-29
 
 - Corregido el instalador global para retirar fuentes Git anteriores de Engineering Platform y evitar colisiones con la copia local actual en Pi.

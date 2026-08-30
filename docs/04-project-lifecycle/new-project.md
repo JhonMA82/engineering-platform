@@ -30,6 +30,7 @@ eng check --project . --run
 ```
 
 `scaffold_status: materialized` confirma que el código existe. `readiness: verified` confirma además que pasaron los checks; `code-ready` exige ejecutar `eng check --run`.
+El setup ya aprobado se reutiliza en comprobaciones posteriores; usa `eng check --project . --run --force-setup` solo cuando necesites reinstalar dependencias.
 
 ## 4. Materialización
 

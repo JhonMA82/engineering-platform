@@ -10,7 +10,11 @@
     "generated_at": {"type": "string", "format": "date"},
     "scaffold_status": {"enum": ["blueprint", "materialized"]},
     "readiness": {"enum": ["code-ready", "verified"]},
-    "materialization": {"type": "object"},
+    "materialization": {
+      "type": "object",
+      "deprecated": true,
+      "description": "Compatibilidad con manifests v0.5.x; los nuevos proyectos usan .engineering/materialization.json como fuente única."
+    },
     "definition_status": {"enum": ["confirmed"]},
     "project": {
       "type": "object",
