@@ -12,5 +12,6 @@
       {"gate": "typecheck", "command": ["npm", "run", "check"]},
       {"gate": "build", "command": ["npm", "run", "build"]}
     ]
-  }
+  },
+  "overlay": "curation/stardrive/overlay"
 }

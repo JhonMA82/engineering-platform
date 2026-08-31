@@ -2,7 +2,7 @@
   "$schema": "../schemas/boilerplates.schema.json",
   "schema_version": 1,
   "catalog_version": "2.1.0",
-  "reviewed_at": "2026-08-28",
+  "reviewed_at": "2026-08-31",
   "decision_statuses": {
     "default": "Primera opción para su categoría.",
     "alternative": "Opción aprobable cuando una restricción concreta la favorece.",
@@ -38,7 +38,7 @@
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/stardrive.md",
       "use_when": ["landing", "blog", "documentation", "public-content"],
       "avoid_when": ["complex-admin", "private-workflow"],
-      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/stardrive/adapter.json"},
+      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/stardrive/adapter.json", "evidence": "curation/stardrive/evidence.json"},
       "upstream": {"branch": "main", "commit": "5c449810b763140ac72133ff4ae63d8497cce77a", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
@@ -55,7 +55,7 @@
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/tanstack-shadcn-admin-dashboard.md",
       "use_when": ["admin", "crm", "workflow", "external-api"],
       "avoid_when": ["content-first", "simple-python-ui"],
-      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/tanstack-admin/adapter.json"},
+      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/tanstack-admin/adapter.json", "evidence": "curation/tanstack-admin/evidence.json"},
       "upstream": {"branch": "main", "commit": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
@@ -88,7 +88,7 @@
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/ignite.md",
       "use_when": ["native-mobile", "field-app"],
       "avoid_when": ["pwa-enough", "desktop-only"],
-      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff", "adapter": "curation/ignite/adapter.json"},
+      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff", "adapter": "curation/ignite/adapter.json", "evidence": "curation/ignite/evidence.json"},
       "upstream": {"branch": "master", "commit": "e829d2f922c5568a59a77bfb6232aeb500be3f13", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
@@ -105,7 +105,7 @@
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/tauri-ui.md",
       "use_when": ["desktop", "local-files", "native-capabilities"],
       "avoid_when": ["browser-enough", "mobile-only"],
-      "integration": {"mode": "direct", "update_strategy": "regenerate-and-diff", "adapter": "curation/tauri-ui/adapter.json"},
+      "integration": {"mode": "overlay", "update_strategy": "regenerate-and-diff", "adapter": "curation/tauri-ui/adapter.json", "evidence": "curation/tauri-ui/evidence.json"},
       "upstream": {"branch": "main", "commit": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
@@ -122,7 +122,7 @@
       "profile": "catalog/legacy-v1.2.3/docs/boilerplates/speedpy.md",
       "use_when": ["excel", "documents", "reports", "python-data", "django-admin"],
       "avoid_when": ["react-heavy-ui", "tiny-stateless-api"],
-      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/speedpy/adapter.json"},
+      "integration": {"mode": "overlay", "update_strategy": "curated-diff", "adapter": "curation/speedpy/adapter.json", "evidence": "curation/speedpy/evidence.json"},
       "upstream": {"branch": "main", "commit": "3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9", "observed_at": "2026-08-29", "license": "MIT"}
     },
     {
@@ -312,19 +312,19 @@
     {
       "id": "hono-api",
       "legacy_ids": [],
-      "name": "Consulting Hono API Starter",
-      "kind": "internal-starter",
-      "origin": "platform-strategy",
+      "name": "Consulting API Starter",
+      "kind": "external-starter",
+      "origin": "user",
       "decision_status": "default",
       "delivery_status": "released",
       "maintenance_tier": "A",
       "category": "typescript-api",
-      "repository": null,
+      "repository": "https://github.com/JhonMA82/api-starter",
       "profile": "catalog/profiles/hono-api.md",
       "use_when": ["multiple-clients", "integrations", "typescript-domain", "openapi"],
       "avoid_when": ["speedpy-solves-all", "no-server-needed"],
-      "integration": {"mode": "internal", "update_strategy": "internal-release", "adapter": "curation/hono-api/adapter.json"},
-      "upstream": {"commit": "platform-0.5.0", "observed_at": "2026-08-29", "license": "UNLICENSED"}
+      "integration": {"mode": "direct", "update_strategy": "generator-update", "adapter": "curation/hono-api/adapter.json", "evidence": "curation/hono-api/evidence.json"},
+      "upstream": {"branch": "main", "commit": "89045eb89582fa28beda2b243c2b07290fc55452", "observed_at": "2026-08-31", "license": "MIT"}
     }
   ]
 }

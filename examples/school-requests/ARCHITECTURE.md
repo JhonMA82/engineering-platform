@@ -1,26 +1,17 @@
 # Arquitectura: school-requests
 
-Documento generado desde `GP-02@1.0.0`. El proyecto es single-tenant; si varias escuelas comparten instalación se vuelve a resolver el intake y se agrega multitenancy mediante una migración explícita.
+La definición vive en `.engineering/project-definition.json`; stack, features, exclusiones y gates viven únicamente en `.engineering/project.json`.
 
-## Idea
+## Patrones
 
-Sistema interno para registrar, adjuntar y aprobar solicitudes escolares con trazabilidad de responsables y decisiones.
+- Monolito modular por servicio, contratos explícitos y mínimo privilegio.
+- Clientes sin autoridad de seguridad ni reglas de dominio duplicadas.
+- Cambios de datos con migración, recuperación y auditoría proporcional al riesgo.
+- Single-tenant por defecto.
 
-## Stack
+## Límites materiales
 
-- `tanstack-admin` (`curated`, overlay) fijado a `e6e5d3b`.
-- `hono-api` (`released`, internal) fijado a `platform-0.5.0`.
-- Datos: `postgresql-managed`.
-- Features: auth, RBAC, audit, observability, files y notifications.
-- Estado de este fixture documental: `blueprint`; `eng bootstrap` materializa ambos starters.
+- `services/api` pertenece a `hono-api`; respeta sus instrucciones y comandos.
+- `apps/admin` pertenece a `tanstack-admin`; respeta sus instrucciones y comandos.
 
-## Gates
-
-Lint, types, tests, integración, migración, build, seguridad y backup/restore.
-
-## Fuera de alcance
-
-- multitenancy;
-- jobs;
-- webhooks;
-- mobile y desktop.
+Las desviaciones permanentes requieren actualizar la Recipe o registrar una decisión.

@@ -1,11 +1,11 @@
-# Consulting Hono API Starter
+# Consulting API Starter
 
 | Campo | Decisión |
 |---|---|
 | Estado de decisión | Default para API TypeScript separada |
-| Estado de entrega | `released` en `platform-0.5.0` |
+| Estado de entrega | `released` mediante `api-starter v0.12.0` |
 | Mantenimiento | Tier A |
-| Repositorio | Starter interno `starters/hono-api` |
+| Repositorio | `JhonMA82/api-starter` |
 
 ## Tesis
 
@@ -13,7 +13,7 @@ El equipo necesita una API TypeScript pequeña y aburrida cuando varios clientes
 
 ## Entrega
 
-El adapter copia el release interno a `apps/api`, instala el lock npm y ejecuta typecheck y pruebas. Auth, persistencia y OpenAPI continúan como capacidades de proyecto o Feature Packs: no se anuncian como incluidas en el núcleo.
+El adapter clona el commit fijado, ejecuta su generador con las capacidades resueltas y materializa el workspace en `services/api`. Instala con Bun y ejecuta lint, tipos y pruebas. El manifiesto `.api-starter/manifest.json` conserva procedencia y actualización.
 
 ## Estructura objetivo
 
@@ -26,9 +26,9 @@ El adapter copia el release interno a `apps/api`, instala el lock npm y ejecuta 
 
 ## Criterios para liberar
 
-- [x] Starter interno versionado y validado.
+- [x] Starter externo propio versionado y validado.
 - [x] Pin reproducible de runtime y dependencias.
-- [ ] Auth, RBAC y migraciones como packs opcionales, no acoplados al núcleo.
-- [ ] OpenAPI y cliente de ejemplo cuando lo requiera el contrato.
+- [x] Auth, autorización, auditoría y migraciones componibles mediante generador.
+- [x] OpenAPI validado por CI.
 - [x] Gates base de types, build y unidad; los demás se añaden por Recipe.
-- [x] Actualización por release interno y responsable Tier A.
+- [x] Actualización mediante manifest/generator y responsable Tier A.

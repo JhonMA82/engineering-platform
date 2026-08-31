@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "tauri-ui",
+  "reviewed_at": "2026-08-31",
+  "ai_friendly": "medium",
+  "evidence": ["non-interactive generator", "native smoke matrix", "stable Vite template"],
+  "gaps": ["generated project has no AGENTS.md", "transitive upstream CLIs are not commit-pinned"],
+  "decision": "overlay-with-curated-fork-follow-up"
+}

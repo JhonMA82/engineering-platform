@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/golden-paths.schema.json",
   "schema_version": 2,
-  "platform_version": "0.5.4",
+  "platform_version": "0.7.0",
   "paths": [
     {
       "id": "GP-01",
@@ -22,7 +22,7 @@
       "status": "stable",
       "name": "Admin Application",
       "match": {"project_types": ["admin", "institutional-admin"], "signals": ["workflow", "backoffice", "requests", "crm", "records"]},
-      "stack": {"starters": ["tanstack-admin", "hono-api"], "alternatives": ["next-admin", "speedpy"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed", "turso-libsql"]}},
+      "stack": {"starters": ["hono-api", "tanstack-admin"], "alternatives": ["next-admin", "speedpy"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
       "features": {"default": ["auth", "rbac", "audit", "observability"], "optional": ["abac", "api-keys", "files", "jobs", "multitenancy", "notifications", "webhooks"]},
       "solution_packs": {"default": [], "optional": ["institutional-operations-starter"]},
       "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
@@ -49,7 +49,7 @@
       "status": "stable",
       "name": "Mobile Application",
       "match": {"project_types": ["mobile"], "signals": ["camera", "gps", "push", "field-app", "app-store"]},
-      "stack": {"starters": ["ignite", "hono-api"], "alternatives": [], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed", "turso-sync"]}},
+      "stack": {"starters": ["hono-api", "ignite"], "alternatives": [], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
       "features": {"default": ["auth", "observability"], "optional": ["api-keys", "files", "notifications", "sync"]},
       "skills": ["architecture-selector", "project-bootstrap", "database", "gate-runner"],
       "gates": ["lint", "typecheck", "test", "integration", "build", "security"],
@@ -75,7 +75,7 @@
       "status": "stable",
       "name": "Multi-App Platform",
       "match": {"project_types": ["multi-app"], "signals": ["web-and-mobile", "web-and-desktop", "shared-api", "multiple-clients"]},
-      "stack": {"starters": ["tanstack-admin", "hono-api"], "alternatives": ["fastapi"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
+      "stack": {"starters": ["hono-api", "tanstack-admin"], "alternatives": ["fastapi"], "database": {"default": "postgresql-managed", "allowed": ["postgresql-managed"]}},
       "features": {"default": ["auth", "rbac", "audit", "api-keys", "observability"], "optional": ["files", "jobs", "multitenancy", "notifications", "webhooks"]},
       "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
       "gates": ["lint", "typecheck", "test", "contract", "integration", "migration", "build", "security"],

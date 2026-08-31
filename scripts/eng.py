@@ -175,6 +175,51 @@ def evaluate_boilerplate(
     }
 
 
+def boilerplate_references(boilerplate_id: str) -> list[str]:
+    references: list[str] = []
+    for recipe in data()["recipes"]["paths"]:
+        stack = recipe.get("stack", {})
+        if boilerplate_id in stack.get("starters", []):
+            references.append(f"{recipe['id']}:default")
+        if boilerplate_id in stack.get("alternatives", []):
+            references.append(f"{recipe['id']}:alternative")
+        packs = recipe.get("solution_packs", {})
+        if boilerplate_id in packs.get("default", []) + packs.get("optional", []):
+            references.append(f"{recipe['id']}:solution-pack")
+    return references
+
+
+def verify_boilerplate(boilerplate_id: str) -> dict[str, Any]:
+    entries = by_id(data()["boilerplates"]["entries"])
+    entry = entries.get(boilerplate_id)
+    if not entry:
+        raise PlatformError(f"Boilerplate inexistente: {boilerplate_id}")
+    integration = entry.get("integration", {})
+    adapter_path = integration.get("adapter")
+    evidence_path = integration.get("evidence")
+    errors: list[str] = []
+    if not adapter_path or not (ROOT / adapter_path).is_file():
+        errors.append("adapter ausente")
+    if not evidence_path or not (ROOT / evidence_path).is_file():
+        errors.append("evidencia AI-friendly ausente")
+    if not entry.get("upstream", {}).get("commit"):
+        errors.append("pin upstream ausente")
+    return {
+        "id": boilerplate_id,
+        "ok": not errors,
+        "errors": errors,
+        "references": boilerplate_references(boilerplate_id),
+        "adapter": adapter_path,
+        "evidence": evidence_path,
+    }
+
+
+def _write_json_atomic(path: Path, value: dict[str, Any]) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(dump_json(value), encoding="utf-8")
+    temporary.replace(path)
+
+
 def _recipe_for_intake(intake: dict[str, Any], recipes: list[dict[str, Any]]) -> dict[str, Any]:
     project_type = intake.get("project_type")
     signals = set(intake.get("signals", []))
@@ -224,6 +269,51 @@ def _expand_features(
     for feature in selected:
         add(feature)
     return result
+
+
+def _starter_capabilities(
+    adapter: dict[str, Any], selected_features: list[str], database: str | None
+) -> tuple[list[str], list[str]]:
+    """Translate platform capabilities without teaching the engine starter names."""
+    capabilities = adapter.get("capabilities")
+    if not isinstance(capabilities, dict):
+        return [], []
+
+    supported_databases = capabilities.get("supported_databases", [])
+    if database and supported_databases and database not in supported_databases:
+        raise PlatformError(
+            f"{adapter.get('boilerplate_id')} no soporta {database}; "
+            f"soporta: {', '.join(supported_databases)}"
+        )
+
+    generated = list(capabilities.get("database_features", {}).get(database or "", []))
+    unresolved: list[str] = []
+    selected = set(selected_features)
+    mapping = capabilities.get("feature_map", {})
+    unsupported = set(capabilities.get("unsupported_features", []))
+    for feature_id in selected_features:
+        if feature_id in unsupported:
+            unresolved.append(feature_id)
+            continue
+        rule = mapping.get(feature_id)
+        if rule is None:
+            continue
+        if isinstance(rule, str):
+            generated.append(rule)
+            continue
+        if not isinstance(rule, dict):
+            raise PlatformError(
+                f"{adapter.get('boilerplate_id')}: mapping inválido para {feature_id}"
+            )
+        requirements = set(rule.get("requires", []))
+        if not requirements.issubset(selected):
+            unresolved.append(feature_id)
+            continue
+        targets = rule.get("to", [])
+        if isinstance(targets, str):
+            targets = [targets]
+        generated.extend(targets)
+    return unique(generated), unique(unresolved)
 
 
 def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
@@ -279,8 +369,10 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
         adapter_path = item.get("integration", {}).get("adapter")
         adapter = read_json(ROOT / adapter_path) if adapter_path else None
         materializer = (adapter or {}).get("materializer", {})
-        starters.append(
-            {
+        generated_features, unresolved_features = _starter_capabilities(
+            adapter or {}, features, requested_database
+        )
+        starter = {
                 "id": starter_id,
                 "delivery_status": item["delivery_status"],
                 "integration_mode": item["integration"]["mode"],
@@ -290,7 +382,15 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
                 "adapter": adapter_path,
                 "destination": materializer.get("destination"),
             }
-        )
+        if generated_features:
+            starter["generator_features"] = generated_features
+        if unresolved_features:
+            starter["unmaterialized_features"] = unresolved_features
+            warnings.append(
+                f"{starter_id} no materializa directamente: {', '.join(unresolved_features)}; "
+                "Gentle debe implementarlas como capacidades del proyecto."
+            )
+        starters.append(starter)
         if not adapter_path or not pin:
             warnings.append(
                 f"{starter_id} no tiene adapter y pin materializables: el resultado será blueprint."
@@ -325,51 +425,38 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
             "managed": [".engineering/project.json", ".engineering/intake.json"],
             "managed_sections": ["AGENTS.md", "ARCHITECTURE.md"],
             "seeded": ["README.md"],
-            "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"],
+            "user_owned": ["apps/**", "services/**", "packages/**", "src/**", "tests/**"],
         },
         "warnings": warnings,
     }
 
 
 def architecture_markdown(manifest: dict[str, Any]) -> str:
-    starters = "\n".join(
-        f"- `{item['id']}` ({item['delivery_status']}, {item['integration_mode']})"
+    boundaries = "\n".join(
+        f"- `{item['destination']}` pertenece a `{item['id']}`; respeta sus instrucciones y comandos."
         for item in manifest["starters"]
     )
-    features = ", ".join(f"`{item}`" for item in manifest["features"]) or "ninguno"
-    gates = ", ".join(f"`{item}`" for item in manifest["gates"])
-    exclusions = "\n".join(f"- `{item}`" for item in manifest["exclusions"])
-    warnings = "\n".join(f"- {item}" for item in manifest["warnings"]) or "- Ninguna."
-    summary = manifest["project"].get(
-        "summary", "Proyecto definido desde intake; no hay resumen de descubrimiento."
+    tenancy = (
+        "Aislamiento por tenant obligatorio."
+        if "multitenancy" in manifest["features"]
+        else "Single-tenant por defecto."
     )
     return f"""# Arquitectura: {manifest['project']['name']}
 
-Documento generado desde la Recipe `{manifest['recipe']['id']}@{manifest['recipe']['version']}`. Las decisiones de dominio deben registrarse como ADR; no se cambia el stack silenciosamente.
+La definición vive en `.engineering/project-definition.json`; stack, features, exclusiones y gates viven únicamente en `.engineering/project.json`.
 
-## Idea
+## Patrones
 
-{summary}
+- Monolito modular por servicio, contratos explícitos y mínimo privilegio.
+- Clientes sin autoridad de seguridad ni reglas de dominio duplicadas.
+- Cambios de datos con migración, recuperación y auditoría proporcional al riesgo.
+- {tenancy}
 
-## Stack
+## Límites materiales
 
-{starters}
+{boundaries}
 
-- Base de datos: `{manifest['database'] or 'ninguna'}`
-- Features: {features}
-- Estado del scaffold: `{manifest['scaffold_status']}`
-
-## Quality Gates
-
-{gates}
-
-## Exclusiones explícitas
-
-{exclusions}
-
-## Advertencias
-
-{warnings}
+Las desviaciones permanentes requieren actualizar la Recipe o registrar una decisión.
 """
 
 
@@ -539,6 +626,49 @@ def _copy_materialized_tree(source: Path, destination: Path) -> None:
         shutil.copy2(path, target)
 
 
+def _apply_overlay(adapter: dict[str, Any], destination: Path) -> None:
+    overlay = adapter.get("overlay")
+    if not overlay:
+        return
+    overlay_path = ROOT / _safe_relative(overlay, "overlay")
+    _copy_materialized_tree(overlay_path, destination)
+
+
+def _render_adapter_command(
+    command: list[str],
+    *,
+    source: Path,
+    output: Path,
+    project_name: str,
+    generator_features: list[str],
+) -> list[str]:
+    replacements = {
+        "{source}": str(source),
+        "{output}": str(output),
+        "{project_name}": project_name,
+        "{features_csv}": ",".join(generator_features),
+    }
+    rendered: list[str] = []
+    for token in command:
+        value = token
+        for marker, replacement in replacements.items():
+            value = value.replace(marker, replacement)
+        rendered.append(value)
+    return rendered
+
+
+def _checkout_git_source(source: dict[str, Any], destination: Path) -> None:
+    repository = source.get("repository")
+    commit = source.get("commit")
+    if not repository or not commit:
+        raise PlatformError("El generador Git necesita repository y commit exactos")
+    destination.mkdir()
+    _run_record(["git", "init", "--quiet"], destination)
+    _run_record(["git", "remote", "add", "origin", repository], destination)
+    _run_record(["git", "fetch", "--quiet", "--depth", "1", "origin", commit], destination)
+    _run_record(["git", "checkout", "--quiet", "FETCH_HEAD"], destination)
+
+
 def _content_sha256(root: Path) -> str:
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
@@ -568,7 +698,14 @@ def _actual_project_data(project: Path) -> dict[str, Any]:
             package = read_json(path)
             parent = path.parent
             manager = "npm"
-            if (parent / "bun.lock").exists() or (parent / "bun.lockb").exists():
+            declared_manager = package.get("packageManager", "")
+            if declared_manager.startswith("bun@"):
+                manager = "bun"
+            elif declared_manager.startswith("pnpm@"):
+                manager = "pnpm"
+            elif declared_manager.startswith("yarn@"):
+                manager = "yarn"
+            elif (parent / "bun.lock").exists() or (parent / "bun.lockb").exists():
                 manager = "bun"
             elif (parent / "pnpm-lock.yaml").exists():
                 manager = "pnpm"
@@ -624,11 +761,7 @@ def materialize_project(
                 raise PlatformError(f"{starter['id']} necesita repository y commit exacto")
             with tempfile.TemporaryDirectory(prefix=f"eng-{starter['id']}-") as temporary:
                 clone = Path(temporary) / "source"
-                clone.mkdir()
-                _run_record(["git", "init", "--quiet"], clone)
-                _run_record(["git", "remote", "add", "origin", repository], clone)
-                _run_record(["git", "fetch", "--quiet", "--depth", "1", "origin", commit], clone)
-                _run_record(["git", "checkout", "--quiet", "FETCH_HEAD"], clone)
+                _checkout_git_source(source, clone)
                 _copy_materialized_tree(clone, destination)
         elif kind == "local-copy":
             local_path = _safe_relative(source.get("local_path", ""), "source.local_path")
@@ -640,10 +773,31 @@ def materialize_project(
             generator_record["workdir"] = working.relative_to(project).as_posix() or "."
             if not destination.exists() or not any(destination.iterdir()):
                 raise PlatformError(f"El generador de {starter['id']} no creó {destination_relative}")
+        elif kind == "git-generator":
+            with tempfile.TemporaryDirectory(prefix=f"eng-{starter['id']}-generator-") as temporary:
+                temporary_path = Path(temporary)
+                clone = temporary_path / "source"
+                generated = temporary_path / "generated"
+                _checkout_git_source(source, clone)
+                for command in materializer.get("source_setup", []):
+                    _run_record(command, clone)
+                command = _render_adapter_command(
+                    materializer.get("command", []),
+                    source=clone,
+                    output=generated,
+                    project_name=manifest["project"]["name"],
+                    generator_features=starter.get("generator_features", []),
+                )
+                generator_record = _run_record(command, clone)
+                generator_record["workdir"] = "<pinned-source>"
+                if not generated.is_dir() or not any(generated.iterdir()):
+                    raise PlatformError(f"El generador de {starter['id']} no produjo archivos")
+                _copy_materialized_tree(generated, destination)
         else:
             raise PlatformError(f"Materializer desconocido para {starter['id']}: {kind}")
         if destination_relative == Path("."):
             _preserve_upstream_instructions(project, starter["id"])
+        _apply_overlay(adapter, destination)
         for command in materializer.get("setup", []):
             if skip_setup:
                 setup_records.append({"starter": starter["id"], "command": command, "workdir": destination_relative.as_posix(), "status": "skipped"})
@@ -746,7 +900,6 @@ def gentle_markdown(
     definition: dict[str, Any] | None,
     handoff: dict[str, Any],
 ) -> str:
-    idea = (definition or {}).get("idea", {})
     starters = ", ".join(
         f"`{item['id']}` → `{item.get('destination') or 'por definir'}`"
         for item in manifest.get("starters", [])
@@ -764,11 +917,9 @@ def gentle_markdown(
     sources = handoff["source_of_truth"]
     return f"""# Handoff a Gentle AI
 
-## Contexto breve
+## Contexto
 
 - Proyecto: `{manifest['project']['name']}`
-- Idea: {idea.get('summary', manifest['project'].get('summary', 'Consulta la definición del proyecto.'))}
-- Problema: {idea.get('problem', 'Consulta la definición del proyecto.')}
 - Recipe: `{manifest['recipe']['id']}@{manifest['recipe']['version']}`
 - Boilerplates: {starters}
 - Base de datos: `{manifest.get('database') or 'ninguna'}`
@@ -785,7 +936,7 @@ def gentle_markdown(
 
 ## Instrucciones de ejecución
 
-1. Lee, en orden: {read_first}.
+1. Lee, en orden: {read_first}. La idea no se duplica aquí.
 2. Decide entre ejecución directa y SDD según riesgo, ambigüedad, contratos, datos y permisos; registra brevemente el motivo.
 3. Conserva la Recipe, el stack, los patrones y las exclusiones; consulta las fuentes antes de desviarte.
 4. Implementa el incremento vertical mínimo y ejecuta los quality gates indicados en `.engineering/project.json`.
@@ -1133,6 +1284,74 @@ def command_evaluate(args: argparse.Namespace) -> int:
         ),
         end="",
     )
+    return 0
+
+
+def command_boilerplate_verify(args: argparse.Namespace) -> int:
+    print(dump_json(verify_boilerplate(args.id)), end="")
+    return 0
+
+
+def command_boilerplate_add(args: argparse.Namespace) -> int:
+    entry = read_json(Path(args.input).resolve())
+    required = {
+        "id",
+        "legacy_ids",
+        "name",
+        "kind",
+        "decision_status",
+        "delivery_status",
+        "maintenance_tier",
+        "category",
+        "repository",
+        "profile",
+        "use_when",
+        "avoid_when",
+        "integration",
+    }
+    missing = sorted(required.difference(entry))
+    if missing:
+        raise PlatformError(f"Entrada incompleta: {', '.join(missing)}")
+    registry_path = ROOT / "platform/boilerplates.json"
+    registry = read_json(registry_path)
+    entries = registry["entries"]
+    if entry["id"] in by_id(entries):
+        raise PlatformError(f"Ya existe el boilerplate {entry['id']}")
+    if entry.get("repository"):
+        normalized = normalize_repository(entry["repository"])
+        if any(
+            item.get("repository")
+            and normalize_repository(item["repository"]) == normalized
+            for item in entries
+        ):
+            raise PlatformError("El repositorio ya está registrado")
+    result = {"action": "add", "id": entry["id"], "apply": bool(args.apply)}
+    if args.apply:
+        entries.append(entry)
+        registry["reviewed_at"] = date.today().isoformat()
+        _write_json_atomic(registry_path, registry)
+    print(dump_json(result), end="")
+    return 0
+
+
+def command_boilerplate_remove(args: argparse.Namespace) -> int:
+    registry_path = ROOT / "platform/boilerplates.json"
+    registry = read_json(registry_path)
+    entries = by_id(registry["entries"])
+    if args.id not in entries:
+        raise PlatformError(f"Boilerplate inexistente: {args.id}")
+    references = boilerplate_references(args.id)
+    if references:
+        raise PlatformError(
+            f"{args.id} sigue referenciado por {', '.join(references)}; "
+            "actualiza primero las Recipes"
+        )
+    result = {"action": "remove", "id": args.id, "apply": bool(args.apply)}
+    if args.apply:
+        registry["entries"] = [item for item in registry["entries"] if item["id"] != args.id]
+        registry["reviewed_at"] = date.today().isoformat()
+        _write_json_atomic(registry_path, registry)
+    print(dump_json(result), end="")
     return 0
 
 
@@ -1699,6 +1918,20 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--observed-date")
     evaluate.add_argument("--category")
     evaluate.set_defaults(handler=command_evaluate)
+
+    verify = boilerplate_sub.add_parser("verify", help="Verificar contrato, evidencia y referencias")
+    verify.add_argument("id")
+    verify.set_defaults(handler=command_boilerplate_verify)
+
+    add_boilerplate = boilerplate_sub.add_parser("add", help="Registrar una entrada declarativa")
+    add_boilerplate.add_argument("--from", dest="input", required=True)
+    add_boilerplate.add_argument("--apply", action="store_true")
+    add_boilerplate.set_defaults(handler=command_boilerplate_add)
+
+    remove_boilerplate = boilerplate_sub.add_parser("remove", help="Retirar una entrada no referenciada")
+    remove_boilerplate.add_argument("id")
+    remove_boilerplate.add_argument("--apply", action="store_true")
+    remove_boilerplate.set_defaults(handler=command_boilerplate_remove)
 
     recommend = sub.add_parser("recommend", help="Resolver una Recipe desde un intake")
     recommend.add_argument("--input", required=True)

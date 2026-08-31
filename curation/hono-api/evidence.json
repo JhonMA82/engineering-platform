@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "hono-api",
+  "reviewed_at": "2026-08-31",
+  "ai_friendly": "high",
+  "evidence": ["AGENTS.md", "architecture docs", "profile generator", "manifest", "16-job CI"],
+  "decision": "direct"
+}

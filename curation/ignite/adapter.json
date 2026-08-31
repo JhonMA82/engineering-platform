@@ -14,5 +14,6 @@
       {"gate": "typecheck", "command": ["npm", "run", "compile"]},
       {"gate": "test", "command": ["npm", "test", "--", "--runInBand"]}
     ]
-  }
+  },
+  "overlay": "curation/ignite/overlay"
 }

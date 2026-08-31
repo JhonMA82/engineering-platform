@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-31
+
+- Integrado `api-starter v0.12.0` como implementación real de `hono-api`, conservando el id estable y materializando perfiles exactos en `services/api` mediante el nuevo adapter genérico `git-generator`.
+- Añadido mapping declarativo de PostgreSQL y features; las capacidades no equivalentes quedan explícitas para Gentle en vez de activar módulos inesperados.
+- Auditados los seis boilerplates principales y añadida evidencia AI-friendly, overlays para Stardrive, Ignite y Tauri UI, y preservación de instrucciones upstream sin duplicarlas en el handoff.
+- Corregido Tauri UI para ejecutar el generador fijado en lugar del shell interno provisional.
+- Generalizados validator y adapters: overlays, evidencia y estrategias se validan sin condiciones especiales por boilerplate.
+- Añadidos `eng boilerplate verify`, `add` y `remove`, con dry-run predeterminado y bloqueo de bajas todavía referenciadas por Recipes.
+- Reducidos `ARCHITECTURE.md` y `GENTLE.md` para que la idea, decisiones y materialización permanezcan en fuentes únicas.
+- Actualizados Recipes y ownership para composiciones `services/api` + `apps/*`, además de pruebas de mapping, overlays y gestión segura del catálogo.
+
 ## [0.6.0] - 2026-08-30
 
 - Reducido el handoff para que `GENTLE.md` y `.engineering/gentle-handoff.json` apunten a fuentes únicas en lugar de copiar materialización, árbol y verificaciones.

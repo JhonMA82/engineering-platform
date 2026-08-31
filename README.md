@@ -2,7 +2,7 @@
 
 Una base de ingeniería minimalista, práctica y opinionada para que una consultoría de **1 a 20 personas** inicie y mantenga proyectos sin volver a discutir el stack desde cero.
 
-> Versión: **0.5.4** · Revisión: **2026-08-29**
+> Versión: **0.7.0** · Revisión: **2026-08-31**
 
 La idea es “Omarchy para proyectos”: pocos defaults buenos, comandos directos y automatización visible. No es un portal, un framework universal ni una colección de repositorios de moda.
 
@@ -62,12 +62,12 @@ Necesidad: “Una escuela necesita solicitudes internas, adjuntos y aprobación�
 | Dimensión | Resultado |
 |---|---|
 | Recipe | `GP-02@1.0.0` |
-| Starters | `tanstack-admin` + `hono-api` |
+| Starters | `hono-api` + `tanstack-admin` |
 | Datos | `postgresql-managed` |
 | Features | `auth`, `rbac`, `audit`, `observability`, `files` |
 | Skills | selector, bootstrap, autorización, datos y gates |
 | Exclusiones | multitenancy, jobs y mobile hasta que exista una necesidad |
-| Entrega actual | `materialized`: `apps/admin` + `apps/api` |
+| Entrega actual | `materialized`: `services/api` + `apps/admin` |
 
 ## Catálogo sin duplicados
 
@@ -127,6 +127,8 @@ Así Turso se evalúa por capacidad y riesgo, no como reemplazo global de Postgr
 |---|---|
 | `eng catalog` | Consulta estados, categoría y cobertura |
 | `eng boilerplate evaluate` | Detecta duplicado, refresh o candidata |
+| `eng boilerplate verify` | Verifica pin, adapter, evidencia y referencias |
+| `eng boilerplate add/remove` | Planea altas o bajas; `--apply` modifica el registro |
 | `eng recommend` | Resuelve intake a Recipe sin escribir |
 | `eng new` | Crea manifest y documentos del proyecto |
 | `eng bootstrap` | Convierte una definición confirmada en proyecto y handoff |

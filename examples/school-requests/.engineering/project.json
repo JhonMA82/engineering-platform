@@ -1,27 +1,27 @@
 {
   "$schema": "../../../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.6.0",
-  "generated_at": "2026-08-29",
+  "platform_version": "0.7.0",
+  "generated_at": "2026-08-31",
   "scaffold_status": "blueprint",
   "readiness": "code-ready",
   "project": {"name": "school-requests", "type": "institutional-admin", "summary": "Sistema interno para registrar, adjuntar y aprobar solicitudes escolares."},
   "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
   "starters": [
-    {"id": "tanstack-admin", "delivery_status": "curated", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard", "adapter": "curation/tanstack-admin/adapter.json", "destination": "apps/admin"},
-    {"id": "hono-api", "delivery_status": "released", "integration_mode": "internal", "update_strategy": "internal-release", "pin": "platform-0.5.0", "repository": null, "adapter": "curation/hono-api/adapter.json", "destination": "apps/api"}
+    {"id": "hono-api", "delivery_status": "released", "integration_mode": "direct", "update_strategy": "generator-update", "pin": "89045eb89582fa28beda2b243c2b07290fc55452", "repository": "https://github.com/JhonMA82/api-starter", "adapter": "curation/hono-api/adapter.json", "destination": "services/api", "generator_features": ["persistence", "auth", "authorization", "audit", "observability"], "unmaterialized_features": ["files", "notifications"]},
+    {"id": "tanstack-admin", "delivery_status": "curated", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard", "adapter": "curation/tanstack-admin/adapter.json", "destination": "apps/admin"}
   ],
   "database": "postgresql-managed",
   "features": ["auth", "rbac", "audit", "observability", "files", "notifications"],
   "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
   "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "backup-restore"],
-  "exclusions": ["jobs-unless-background-work", "mobile-unless-native-value", "multitenancy-unless-shared-installation"],
+  "exclusions": ["jobs", "jobs-unless-background-work", "mobile-unless-native-value", "multitenancy", "multitenancy-unless-shared-installation", "webhooks"],
   "ownership": {
     "managed": [".engineering/project.json", ".engineering/intake.json", ".engineering/project-definition.json", ".engineering/gentle-handoff.json", "GENTLE.md"],
     "managed_sections": ["AGENTS.md", "ARCHITECTURE.md"],
     "seeded": ["README.md"],
-    "user_owned": ["apps/**", "packages/**", "src/**", "tests/**"]
+    "user_owned": ["apps/**", "services/**", "packages/**", "src/**", "tests/**"]
   },
-  "warnings": [],
+  "warnings": ["hono-api no materializa directamente: files, notifications; Gentle debe implementarlas como capacidades del proyecto."],
   "definition_status": "confirmed"
 }

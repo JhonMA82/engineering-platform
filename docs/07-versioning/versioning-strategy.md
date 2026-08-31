@@ -1,7 +1,7 @@
 # Versionado
 
 ```text
-engineering-platform 0.5.4
+engineering-platform 0.7.0
 Project Recipe GP-02 1.0.0
 starter release       versión o commit exacto
 feature pack          versión propia al liberarse

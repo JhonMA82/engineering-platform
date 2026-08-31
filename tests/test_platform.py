@@ -12,7 +12,11 @@ from unittest.mock import patch
 from scripts.eng import (
     PLATFORM_VERSION,
     PlatformError,
+    _apply_overlay,
+    _render_adapter_command,
+    _starter_capabilities,
     add_feature_to_project,
+    boilerplate_references,
     change_plan,
     command_install,
     command_check,
@@ -20,9 +24,11 @@ from scripts.eng import (
     command_uninstall,
     evaluate_boilerplate,
     inspect_project,
+    materialize_project,
     normalize_repository,
     resolve_recipe,
     validate_project_definition,
+    verify_boilerplate,
     write_project,
 )
 from scripts.validate_platform import repository_markdown_files
@@ -53,6 +59,24 @@ class BoilerplateCuratorTests(unittest.TestCase):
         self.assertEqual(result["decision"], "ADD_AS_CANDIDATE")
         self.assertIn("tanstack-admin", result["compare_with"])
 
+    def test_primary_boilerplates_have_pin_adapter_and_ai_evidence(self) -> None:
+        for boilerplate_id in (
+            "stardrive",
+            "tanstack-admin",
+            "hono-api",
+            "ignite",
+            "tauri-ui",
+            "speedpy",
+        ):
+            with self.subTest(boilerplate_id=boilerplate_id):
+                self.assertTrue(verify_boilerplate(boilerplate_id)["ok"])
+
+    def test_referenced_boilerplate_cannot_be_removed_silently(self) -> None:
+        references = boilerplate_references("hono-api")
+        self.assertIn("GP-02:default", references)
+        self.assertIn("GP-04:default", references)
+        self.assertIn("GP-06:default", references)
+
 
 class RecipeResolverTests(unittest.TestCase):
     def school_intake(self) -> dict:
@@ -68,17 +92,45 @@ class RecipeResolverTests(unittest.TestCase):
     def test_resolves_school_recipe_and_dependencies(self) -> None:
         result = resolve_recipe(self.school_intake())
         self.assertEqual(result["recipe"]["id"], "GP-02")
-        self.assertEqual([item["id"] for item in result["starters"]], ["tanstack-admin", "hono-api"])
+        self.assertEqual([item["id"] for item in result["starters"]], ["hono-api", "tanstack-admin"])
         self.assertEqual(result["database"], "postgresql-managed")
         self.assertIn("auth", result["features"])
         self.assertIn("files", result["features"])
         self.assertEqual(result["scaffold_status"], "blueprint")
 
-    def test_turso_is_explicit_and_warned(self) -> None:
+    def test_rejects_turso_when_default_api_only_supports_postgresql(self) -> None:
         intake = self.school_intake()
         intake["database"] = "turso-libsql"
-        result = resolve_recipe(intake)
-        self.assertTrue(any("trial" in item for item in result["warnings"]))
+        with self.assertRaises(PlatformError):
+            resolve_recipe(intake)
+
+    def test_api_starter_receives_only_semantically_compatible_features(self) -> None:
+        result = resolve_recipe(self.school_intake())
+        api = result["starters"][0]
+        self.assertEqual(api["destination"], "services/api")
+        self.assertEqual(
+            api["generator_features"],
+            ["persistence", "auth", "authorization", "audit", "observability"],
+        )
+        self.assertEqual(api["unmaterialized_features"], ["files"])
+        self.assertTrue(any("files" in warning for warning in result["warnings"]))
+
+    def test_api_starter_maps_tenant_scoped_features_when_tenancy_is_selected(self) -> None:
+        adapter = loads(
+            (Path(__file__).parents[1] / "curation/hono-api/adapter.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        generated, unresolved = _starter_capabilities(
+            adapter,
+            ["auth", "rbac", "multitenancy", "api-keys", "files", "webhooks"],
+            "postgresql-managed",
+        )
+        self.assertEqual(
+            generated,
+            ["persistence", "auth", "authorization", "tenancy", "apiKeys", "files", "webhooks"],
+        )
+        self.assertEqual(unresolved, [])
 
     def test_rejects_database_outside_recipe(self) -> None:
         intake = self.school_intake()
@@ -200,7 +252,9 @@ class PiWorkflowTests(unittest.TestCase):
                 allowed_existing={definition_path},
             )
             self.assertEqual(result["definition_status"], "confirmed")
-            self.assertIn("Sistema interno", (output / "GENTLE.md").read_text(encoding="utf-8"))
+            gentle = (output / "GENTLE.md").read_text(encoding="utf-8")
+            self.assertIn(".engineering/project-definition.json", gentle)
+            self.assertNotIn("Sistema interno", gentle)
             handoff = loads(
                 (output / ".engineering/gentle-handoff.json").read_text(encoding="utf-8")
             )
@@ -229,7 +283,9 @@ class PiWorkflowTests(unittest.TestCase):
             )
             self.assertEqual(manifest["definition_status"], "confirmed")
             self.assertIn("api-keys", updated_definition["intake"]["features"])
-            self.assertIn("Sistema interno", (output / "GENTLE.md").read_text(encoding="utf-8"))
+            gentle = (output / "GENTLE.md").read_text(encoding="utf-8")
+            self.assertIn(".engineering/project-definition.json", gentle)
+            self.assertNotIn("Sistema interno", gentle)
 
     def test_start_dry_run_accepts_gentle_metadata_in_target(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -315,6 +371,70 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertTrue((output / "src/app.ts").exists())
             self.assertTrue((output / ".engineering/materialization.json").exists())
             self.assertTrue((output / ".git").is_dir())
+
+    def test_adapter_command_rendering_is_data_driven(self) -> None:
+        command = _render_adapter_command(
+            ["tool", "--out={output}", "--features={features_csv}", "{project_name}"],
+            source=Path("/tmp/source"),
+            output=Path("/tmp/output"),
+            project_name="sample-project",
+            generator_features=["auth", "audit"],
+        )
+        self.assertEqual(
+            command,
+            ["tool", "--out=/tmp/output", "--features=auth,audit", "sample-project"],
+        )
+
+    def test_git_generator_materializes_from_temporary_output(self) -> None:
+        manifest = {
+            "project": {"name": "sample-api"},
+            "starters": [
+                {
+                    "id": "hono-api",
+                    "pin": "89045eb89582fa28beda2b243c2b07290fc55452",
+                    "adapter": "curation/hono-api/adapter.json",
+                    "generator_features": ["persistence", "auth"],
+                }
+            ],
+        }
+
+        def fake_checkout(_source: dict, destination: Path) -> None:
+            destination.mkdir()
+
+        def fake_run(command: list[str], _cwd: Path, *, gate: str | None = None) -> dict:
+            for token in command:
+                if token.startswith("--out="):
+                    generated = Path(token.removeprefix("--out="))
+                    (generated / "apps/api/src").mkdir(parents=True)
+                    (generated / "apps/api/src/server.ts").write_text("export {};\n", encoding="utf-8")
+                    (generated / "package.json").write_text(
+                        dumps({"name": "generated-api", "packageManager": "bun@1.3.14"}),
+                        encoding="utf-8",
+                    )
+            record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
+            if gate:
+                record["gate"] = gate
+            return record
+
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            with patch("scripts.eng._checkout_git_source", side_effect=fake_checkout), patch(
+                "scripts.eng._run_record", side_effect=fake_run
+            ):
+                result = materialize_project(
+                    manifest, project, skip_setup=True, skip_checks=True
+                )
+            self.assertTrue((project / "services/api/apps/api/src/server.ts").exists())
+            self.assertEqual(result["starters"][0]["type"], "git-generator")
+            self.assertEqual(result["packages"][0]["package_manager"], "bun")
+
+    def test_overlay_adds_agent_context_without_engine_special_cases(self) -> None:
+        root = Path(__file__).parents[1]
+        adapter = loads((root / "curation/ignite/adapter.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as temporary:
+            destination = Path(temporary)
+            _apply_overlay(adapter, destination)
+            self.assertIn("Ignite mobile app", (destination / "AGENTS.md").read_text(encoding="utf-8"))
 
     def test_materialization_is_single_source_and_keeps_safe_templates(self) -> None:
         intake = {

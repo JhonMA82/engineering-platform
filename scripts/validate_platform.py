@@ -142,19 +142,33 @@ def validate_registry() -> None:
                 error(f"{item['id']}: repository distinto entre registro y adapter")
             materializer = adapter_doc.get("materializer", {})
             kind = materializer.get("type")
-            if kind not in {"git-copy", "local-copy", "command-generator"}:
+            if kind not in {"git-copy", "local-copy", "command-generator", "git-generator"}:
                 error(f"{item['id']}: materializer inválido {kind}")
             destination = materializer.get("destination")
             if not isinstance(destination, str) or destination.startswith("/") or ".." in destination.split("/"):
                 error(f"{item['id']}: destination inseguro")
-            if kind == "git-copy" and (not source.get("repository") or not source.get("commit")):
-                error(f"{item['id']}: git-copy necesita repository y commit")
+            if kind in {"git-copy", "git-generator"} and (
+                not source.get("repository") or not source.get("commit")
+            ):
+                error(f"{item['id']}: {kind} necesita repository y commit")
             if kind == "local-copy":
                 local_path = source.get("local_path")
                 if not isinstance(local_path, str) or not (ROOT / local_path).is_dir():
                     error(f"{item['id']}: local_path inexistente {local_path}")
-            if kind == "command-generator" and not materializer.get("command"):
-                error(f"{item['id']}: command-generator sin comando")
+            if kind in {"command-generator", "git-generator"} and not materializer.get("command"):
+                error(f"{item['id']}: {kind} sin comando")
+            if adapter_doc.get("integration", {}).get("mode") != item.get("integration", {}).get("mode"):
+                error(f"{item['id']}: mode distinto entre registro y adapter")
+            if adapter_doc.get("integration", {}).get("update_strategy") != item.get("integration", {}).get("update_strategy"):
+                error(f"{item['id']}: estrategia distinta entre registro y adapter")
+            overlay = adapter_doc.get("overlay")
+            if overlay and not (ROOT / overlay).is_dir():
+                error(f"{item['id']}: overlay inexistente {overlay}")
+            evidence = item.get("integration", {}).get("evidence")
+            if evidence:
+                evidence_doc = load(evidence)
+                if evidence_doc.get("boilerplate_id") != item["id"]:
+                    error(f"{item['id']}: evidence declara otro boilerplate_id")
             for command in materializer.get("setup", []):
                 if not isinstance(command, list) or not command:
                     error(f"{item['id']}: comando setup inválido")
@@ -210,16 +224,6 @@ def validate_registry() -> None:
     for label, relative in catalog.get("source_of_truth", {}).items():
         if not (ROOT / relative).exists():
             error(f"catalog.source_of_truth.{label} no existe: {relative}")
-
-    react = boilerplates.get("react-starter-kit", {})
-    adapter_path = react.get("integration", {}).get("adapter")
-    if adapter_path and (ROOT / adapter_path).exists():
-        adapter = load(adapter_path)
-        if adapter.get("source", {}).get("commit") != react.get("upstream", {}).get("commit"):
-            error("react-starter-kit: pin distinto entre registro y adapter")
-        if adapter.get("integration", {}).get("update_strategy") != react.get("integration", {}).get("update_strategy"):
-            error("react-starter-kit: estrategia distinta entre registro y adapter")
-
 
 def repository_markdown_files(root: Path = ROOT) -> list[Path]:
     files = []

@@ -1,16 +1,41 @@
 {
   "schema_version": 1,
   "boilerplate_id": "hono-api",
-  "reviewed_at": "2026-08-29",
-  "source": {"repository": null, "commit": "platform-0.5.0", "license": "UNLICENSED", "local_path": "starters/hono-api"},
-  "integration": {"mode": "internal", "remote": null, "update_strategy": "internal-release"},
+  "reviewed_at": "2026-08-31",
+  "source": {
+    "repository": "https://github.com/JhonMA82/api-starter",
+    "branch": "main",
+    "commit": "89045eb89582fa28beda2b243c2b07290fc55452",
+    "license": "MIT"
+  },
+  "integration": {"mode": "direct", "remote": "seed-hono-api", "update_strategy": "generator-update"},
+  "capabilities": {
+    "supported_databases": ["postgresql-managed"],
+    "database_features": {"postgresql-managed": ["persistence"]},
+    "feature_map": {
+      "auth": "auth",
+      "rbac": "authorization",
+      "audit": "audit",
+      "multitenancy": "tenancy",
+      "jobs": "jobs",
+      "notifications": {"to": ["notifications"], "requires": ["jobs"]},
+      "observability": "observability",
+      "api-keys": {"to": ["apiKeys"], "requires": ["multitenancy"]},
+      "files": {"to": ["files"], "requires": ["multitenancy"]},
+      "webhooks": {"to": ["webhooks"], "requires": ["multitenancy"]}
+    },
+    "unsupported_features": ["abac"]
+  },
   "materializer": {
-    "type": "local-copy",
-    "destination": "apps/api",
-    "setup": [["npm", "ci"]],
+    "type": "git-generator",
+    "destination": "services/api",
+    "source_setup": [["bun", "install", "--frozen-lockfile"]],
+    "command": ["bun", "run", "create:project", "--", "--features={features_csv}", "--out={output}"],
+    "setup": [["bun", "install"]],
     "checks": [
-      {"gate": "typecheck", "command": ["npm", "run", "typecheck"]},
-      {"gate": "test", "command": ["npm", "test"]}
+      {"gate": "lint", "command": ["bun", "run", "lint"]},
+      {"gate": "typecheck", "command": ["bun", "run", "typecheck"]},
+      {"gate": "test", "command": ["bun", "test", "--parallel=1"]}
     ]
   }
 }

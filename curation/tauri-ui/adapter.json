@@ -1,16 +1,25 @@
 {
   "schema_version": 1,
   "boilerplate_id": "tauri-ui",
-  "reviewed_at": "2026-08-29",
-  "source": {"repository": "https://github.com/agmmnn/tauri-ui", "branch": "main", "commit": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea", "license": "MIT", "local_path": "starters/tauri-ui"},
-  "integration": {"mode": "direct", "remote": "seed-tauri-ui", "update_strategy": "regenerate-and-diff"},
+  "reviewed_at": "2026-08-31",
+  "source": {
+    "repository": "https://github.com/agmmnn/tauri-ui",
+    "branch": "main",
+    "commit": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea",
+    "license": "MIT",
+    "package": "create-tauri-ui@1.2.0"
+  },
+  "integration": {"mode": "overlay", "remote": "seed-tauri-ui", "update_strategy": "regenerate-and-diff"},
   "materializer": {
-    "type": "local-copy",
+    "type": "git-generator",
     "destination": ".",
-    "setup": [["npm", "ci"]],
-    "checks": [
-      {"gate": "typecheck", "command": ["npm", "run", "typecheck"]},
-      {"gate": "build", "command": ["npm", "run", "build"]}
-    ]
-  }
+    "source_setup": [
+      ["bun", "install", "--frozen-lockfile"],
+      ["bun", "run", "--cwd", "packages/create-tauri-ui", "build"]
+    ],
+    "command": ["node", "packages/create-tauri-ui/index.js", "{output}", "--template", "vite", "--yes", "--no-workflow"],
+    "setup": [["bun", "install", "--frozen-lockfile"]],
+    "checks": [{"gate": "build", "command": ["bun", "run", "build"]}]
+  },
+  "overlay": "curation/tauri-ui/overlay"
 }
