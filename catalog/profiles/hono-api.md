@@ -3,7 +3,7 @@
 | Campo | Decisión |
 |---|---|
 | Estado de decisión | Default para API TypeScript separada |
-| Estado de entrega | `released` mediante `api-starter v0.12.0` |
+| Estado de entrega | `released` mediante `api-starter v0.12.2` |
 | Mantenimiento | Tier A |
 | Repositorio | `JhonMA82/api-starter` |
 

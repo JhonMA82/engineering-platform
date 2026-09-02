@@ -4,9 +4,15 @@
   "reviewed_at": "2026-08-29",
   "source": {"repository": "https://github.com/peltmonger/stardrive", "branch": "main", "commit": "5c449810b763140ac72133ff4ae63d8497cce77a", "license": "MIT"},
   "integration": {"mode": "overlay", "remote": "seed-stardrive", "update_strategy": "curated-diff"},
+  "requirements": [
+    {"executable": "node", "version_prefix": "24.", "ci_version": "24"},
+    {"executable": "npm"}
+  ],
+  "extension_destination": "apps/web",
   "materializer": {
     "type": "git-copy",
     "destination": ".",
+    "environment": {"SHARP_IGNORE_GLOBAL_LIBVIPS": "1"},
     "setup": [["npm", "ci"]],
     "checks": [
       {"gate": "typecheck", "command": ["npm", "run", "check"]},

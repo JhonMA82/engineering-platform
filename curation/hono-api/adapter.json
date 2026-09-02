@@ -5,9 +5,13 @@
   "source": {
     "repository": "https://github.com/JhonMA82/api-starter",
     "branch": "main",
-    "commit": "89045eb89582fa28beda2b243c2b07290fc55452",
-    "license": "MIT"
+    "commit": "360eb274cc5936fee5aab88eb8bd94977e95dfc9",
+    "license": "MIT",
+    "package": "api-starter@0.12.2"
   },
+  "requirements": [
+    {"executable": "bun", "version_prefix": "1.4.", "ci_version": "1.4.0"}
+  ],
   "integration": {"mode": "direct", "remote": "seed-hono-api", "update_strategy": "generator-update"},
   "capabilities": {
     "supported_databases": ["postgresql-managed"],
@@ -31,11 +35,12 @@
     "destination": "services/api",
     "source_setup": [["bun", "install", "--frozen-lockfile"]],
     "command": ["bun", "run", "create:project", "--", "--features={features_csv}", "--out={output}"],
-    "setup": [["bun", "install"]],
+    "setup": [["bun", "install", "--frozen-lockfile"]],
     "checks": [
       {"gate": "lint", "command": ["bun", "run", "lint"]},
       {"gate": "typecheck", "command": ["bun", "run", "typecheck"]},
       {"gate": "test", "command": ["bun", "test", "--parallel=1"]}
     ]
-  }
+  },
+  "prune": [".github", "OPENCODE_*.md"]
 }

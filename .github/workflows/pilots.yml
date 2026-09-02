@@ -1,0 +1,36 @@
+name: release-pilots
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  stable-recipes:
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe: [GP-01, GP-02, GP-03, GP-04, GP-05, GP-06]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - name: Materialize and verify ${{ matrix.recipe }}
+        run: python3 scripts/release_pilot.py "${{ matrix.recipe }}" --output "$RUNNER_TEMP/${{ matrix.recipe }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pilot-${{ matrix.recipe }}
+          path: ${{ runner.temp }}/${{ matrix.recipe }}/.engineering

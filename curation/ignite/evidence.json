@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "boilerplate_id": "ignite",
-  "reviewed_at": "2026-08-31",
+  "reviewed_at": "2026-09-01",
   "ai_friendly": "medium",
-  "evidence": ["architecture documentation", "generated tests", "dependency boundaries", "CLI CI"],
-  "gaps": ["generated project has no AGENTS.md"],
+  "evidence": ["architecture documentation", "generated tests", "dependency boundaries", "CLI CI", "curated root-state guard", "Expo 55 test dependencies pinned"],
+  "gaps": ["generated project needs the Engineering AGENTS.md overlay"],
   "decision": "overlay"
 }

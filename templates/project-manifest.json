@@ -1,18 +1,24 @@
 {
   "$schema": "../schemas/project.schema.json",
   "schema_version": 2,
-  "platform_version": "0.7.0",
-  "generated_at": "2026-08-29",
+  "platform_version": "0.8.0",
+  "generated_at": "2026-09-01",
   "scaffold_status": "blueprint",
   "readiness": "code-ready",
   "project": {"name": "school-requests", "type": "institutional-admin", "summary": "Sistema interno de solicitudes escolares."},
   "recipe": {"id": "GP-02", "version": "1.0.0", "status": "stable"},
   "starters": [
-    {"id": "hono-api", "delivery_status": "released", "integration_mode": "direct", "update_strategy": "generator-update", "pin": "89045eb89582fa28beda2b243c2b07290fc55452", "repository": "https://github.com/JhonMA82/api-starter", "adapter": "curation/hono-api/adapter.json", "destination": "services/api", "generator_features": ["persistence", "auth", "authorization", "audit", "observability"]},
+    {"id": "hono-api", "delivery_status": "released", "integration_mode": "direct", "update_strategy": "generator-update", "pin": "360eb274cc5936fee5aab88eb8bd94977e95dfc9", "repository": "https://github.com/JhonMA82/api-starter", "adapter": "curation/hono-api/adapter.json", "destination": "services/api", "generator_features": ["persistence", "auth", "authorization", "audit", "observability"], "provided_features": ["auth", "rbac", "audit", "observability"]},
     {"id": "tanstack-admin", "delivery_status": "curated", "integration_mode": "overlay", "update_strategy": "curated-diff", "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard", "adapter": "curation/tanstack-admin/adapter.json", "destination": "apps/admin"}
   ],
   "database": "postgresql-managed",
   "features": ["auth", "rbac", "audit", "observability"],
+  "capability_status": {
+    "auth": {"state": "materialized", "provided_by": ["hono-api"], "owner": "boilerplate"},
+    "rbac": {"state": "materialized", "provided_by": ["hono-api"], "owner": "boilerplate"},
+    "audit": {"state": "materialized", "provided_by": ["hono-api"], "owner": "boilerplate"},
+    "observability": {"state": "materialized", "provided_by": ["hono-api"], "owner": "boilerplate"}
+  },
   "skills": ["architecture-selector", "project-bootstrap", "contracts", "authorization", "database", "security-review", "gate-runner"],
   "gates": ["lint", "typecheck", "test", "integration", "migration", "build", "security", "backup-restore"],
   "exclusions": ["multitenancy-unless-shared-installation", "mobile-unless-native-value", "jobs-unless-background-work"],

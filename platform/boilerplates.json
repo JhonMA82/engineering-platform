@@ -2,7 +2,7 @@
   "$schema": "../schemas/boilerplates.schema.json",
   "schema_version": 1,
   "catalog_version": "2.1.0",
-  "reviewed_at": "2026-08-31",
+  "reviewed_at": "2026-09-01",
   "decision_statuses": {
     "default": "Primera opción para su categoría.",
     "alternative": "Opción aprobable cuando una restricción concreta la favorece.",
@@ -171,7 +171,7 @@
       "profile": "catalog/profiles/react-starter-kit.md",
       "use_when": ["commercial-saas", "cloudflare-first", "billing", "organizations"],
       "avoid_when": ["institutional-single-tenant", "provider-neutral-required", "public-api-primary", "billing-not-needed"],
-      "integration": {"mode": "seed-fork", "update_strategy": "merge-seed", "adapter": "curation/react-starter-kit/adapter.json"},
+      "integration": {"mode": "seed-fork", "update_strategy": "merge-seed", "adapter": "curation/react-starter-kit/adapter.json", "evidence": "curation/react-starter-kit/evidence.json"},
       "upstream": {
         "branch": "main",
         "commit": "0aa7603435f16159ad0b8fef68fb7f6280be7ca1",
@@ -290,7 +290,7 @@
       "profile": "catalog/legacy-v1.2.3/docs/internal-starters/ai-assistant-starter.md",
       "use_when": ["governed-assistant", "sources-and-citations", "tool-permissions"],
       "avoid_when": ["plain-form-or-search-is-enough", "autonomous-sensitive-actions"],
-      "integration": {"mode": "internal", "update_strategy": "internal-release", "adapter": "curation/ai-assistant-starter/adapter.json"},
+      "integration": {"mode": "internal", "update_strategy": "internal-release", "adapter": "curation/ai-assistant-starter/adapter.json", "evidence": "curation/ai-assistant-starter/evidence.json"},
       "upstream": {"commit": "platform-0.5.0", "observed_at": "2026-08-29", "license": "UNLICENSED"}
     },
     {
@@ -324,7 +324,7 @@
       "use_when": ["multiple-clients", "integrations", "typescript-domain", "openapi"],
       "avoid_when": ["speedpy-solves-all", "no-server-needed"],
       "integration": {"mode": "direct", "update_strategy": "generator-update", "adapter": "curation/hono-api/adapter.json", "evidence": "curation/hono-api/evidence.json"},
-      "upstream": {"branch": "main", "commit": "89045eb89582fa28beda2b243c2b07290fc55452", "observed_at": "2026-08-31", "license": "MIT"}
+      "upstream": {"branch": "main", "commit": "360eb274cc5936fee5aab88eb8bd94977e95dfc9", "observed_at": "2026-09-01", "license": "MIT"}
     }
   ]
 }

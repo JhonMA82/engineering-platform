@@ -4,6 +4,11 @@
   "reviewed_at": "2026-08-29",
   "source": {"repository": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard", "branch": "main", "commit": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0", "license": "MIT"},
   "integration": {"mode": "overlay", "remote": "seed-tanstack-admin", "update_strategy": "curated-diff"},
+  "requirements": [
+    {"executable": "node", "version_prefix": "24.", "ci_version": "24"},
+    {"executable": "npm"}
+  ],
+  "project_dependencies": {"one_of": ["hono-api", "fastapi"]},
   "materializer": {
     "type": "git-copy",
     "destination": "apps/admin",

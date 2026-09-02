@@ -4,6 +4,10 @@
   "reviewed_at": "2026-08-29",
   "source": {"repository": null, "commit": "platform-0.5.0", "license": "UNLICENSED", "local_path": "starters/ai-assistant"},
   "integration": {"mode": "internal", "remote": null, "update_strategy": "internal-release"},
+  "requirements": [
+    {"executable": "node", "version_prefix": "24.", "ci_version": "24"},
+    {"executable": "npm"}
+  ],
   "materializer": {
     "type": "local-copy",
     "destination": ".",

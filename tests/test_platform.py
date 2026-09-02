@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from contextlib import redirect_stdout
+from io import StringIO
+import os
 import shutil
 import subprocess
 import tempfile
@@ -13,25 +16,32 @@ from scripts.eng import (
     PLATFORM_VERSION,
     PlatformError,
     _apply_overlay,
+    _adapter_environment,
     _render_adapter_command,
+    _run_record,
     _starter_capabilities,
     add_feature_to_project,
+    adapter_preflight,
     boilerplate_references,
     change_plan,
     command_install,
     command_check,
+    command_boilerplate_verify,
     command_start,
     command_uninstall,
     evaluate_boilerplate,
+    extend_project,
     inspect_project,
     materialize_project,
     normalize_repository,
+    project_ci_yaml,
+    read_json,
     resolve_recipe,
     validate_project_definition,
     verify_boilerplate,
     write_project,
 )
-from scripts.validate_platform import repository_markdown_files
+from scripts.validate_platform import adapter_environment_errors, repository_markdown_files
 
 
 class BoilerplateCuratorTests(unittest.TestCase):
@@ -67,9 +77,155 @@ class BoilerplateCuratorTests(unittest.TestCase):
             "ignite",
             "tauri-ui",
             "speedpy",
+            "react-starter-kit",
+            "ai-assistant-starter",
         ):
             with self.subTest(boilerplate_id=boilerplate_id):
                 self.assertTrue(verify_boilerplate(boilerplate_id)["ok"])
+
+    def test_boilerplate_verify_exit_status_matches_result_and_keeps_json(self) -> None:
+        for result, expected_status in (
+            ({"id": "fixture", "ok": False, "errors": ["missing"]}, 1),
+            ({"id": "fixture", "ok": True, "errors": []}, 0),
+        ):
+            with self.subTest(expected_status=expected_status):
+                output = StringIO()
+                with patch("scripts.eng.verify_boilerplate", return_value=result), redirect_stdout(output):
+                    status = command_boilerplate_verify(Namespace(id="fixture"))
+                self.assertEqual(status, expected_status)
+                self.assertEqual(loads(output.getvalue()), result)
+
+    def test_tauri_generator_uses_pinned_source_cli_for_vite(self) -> None:
+        root = Path(__file__).parents[1]
+        adapter = loads(
+            (root / "curation/tauri-ui/adapter.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            adapter["materializer"]["command"],
+            [
+                "node",
+                "packages/create-tauri-ui/index.js",
+                "{output}",
+                "--template",
+                "vite",
+                "--yes",
+                "--no-workflow",
+            ],
+        )
+        self.assertEqual(
+            adapter["materializer"]["source_patches"],
+            ["curation/tauri-ui/patches/create-tauri-app-version.patch"],
+        )
+
+    def test_tauri_source_patch_pins_nested_generator_before_build(self) -> None:
+        root = Path(__file__).parents[1]
+        patch_relative = "curation/tauri-ui/patches/create-tauri-app-version.patch"
+        patch_text = (root / patch_relative).read_text(encoding="utf-8")
+        self.assertIn('-        "create-tauri-app",', patch_text)
+        self.assertIn('+        "create-tauri-app@4.6.2",', patch_text)
+        self.assertIn('        "vanilla-ts",', patch_text)
+
+        manifest = {
+            "project": {"name": "sample-tauri"},
+            "starters": [
+                {
+                    "id": "tauri-ui",
+                    "pin": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea",
+                    "adapter": "curation/tauri-ui/adapter.json",
+                }
+            ],
+        }
+        commands: list[list[str]] = []
+        patched_source: list[str] = []
+
+        def fake_checkout(_source: dict, destination: Path) -> None:
+            destination.mkdir()
+            source_file = destination / "packages/create-tauri-ui/src/scaffold.ts"
+            source_file.parent.mkdir(parents=True)
+            source_file.write_text(
+                "\n" * 243
+                + """export async function scaffoldTauri(options: ProjectOptions): Promise<TauriScaffoldResult> {
+    await execSafe(
+      "bunx",
+      [
+        "create-tauri-app",
+        tempProjectName,
+        "--template",
+        "vanilla-ts",
+        "--manager",
+        "bun",
+        "--identifier",
+        options.identifier,
+        "--yes",
+      ],
+    );
+}
+""",
+                encoding="utf-8",
+            )
+            subprocess.run(
+                ["git", "init", "--quiet"],
+                cwd=destination,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            subprocess.run(
+                ["git", "add", str(source_file.relative_to(destination))],
+                cwd=destination,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+
+        def fake_run(
+            command: list[str],
+            cwd: Path,
+            *,
+            gate: str | None = None,
+            environment: dict[str, str] | None = None,
+        ) -> dict:
+            commands.append(command)
+            if command[:2] == ["git", "apply"]:
+                return _run_record(command, cwd, gate=gate, environment=environment)
+            if command[0] == "node":
+                patched_source.append(
+                    (cwd / "packages/create-tauri-ui/src/scaffold.ts").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                generated = Path(command[2])
+                generated.mkdir(parents=True)
+                (generated / "package.json").write_text(
+                    dumps({"name": "sample-tauri"}), encoding="utf-8"
+                )
+            record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
+            if gate:
+                record["gate"] = gate
+            return record
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch("scripts.eng._checkout_git_source", side_effect=fake_checkout), patch(
+                "scripts.eng._run_record", side_effect=fake_run
+            ), patch("scripts.eng._assert_adapter_requirements", return_value=[]):
+                result = materialize_project(
+                    manifest,
+                    Path(temporary),
+                    skip_setup=True,
+                    skip_checks=True,
+                )
+
+        self.assertEqual(commands[0][:3], ["git", "apply", "--check"])
+        self.assertEqual(commands[1][:2], ["git", "apply"])
+        self.assertEqual(commands[2][:2], ["bun", "install"])
+        self.assertEqual(commands[3][:2], ["bun", "run"])
+        self.assertEqual(commands[4][:2], ["node", "packages/create-tauri-ui/index.js"])
+        self.assertEqual(result["starters"][0]["source_patches"], [patch_relative])
+        self.assertEqual(result["starters"][0]["patches"], [])
+        self.assertEqual(len(patched_source), 1)
+        self.assertIn('"create-tauri-app@4.6.2"', patched_source[0])
+        self.assertIn('"--template"', patched_source[0])
+        self.assertIn('"vanilla-ts"', patched_source[0])
 
     def test_referenced_boilerplate_cannot_be_removed_silently(self) -> None:
         references = boilerplate_references("hono-api")
@@ -97,6 +253,23 @@ class RecipeResolverTests(unittest.TestCase):
         self.assertIn("auth", result["features"])
         self.assertIn("files", result["features"])
         self.assertEqual(result["scaffold_status"], "blueprint")
+        self.assertEqual(result["capability_status"]["auth"]["state"], "materialized")
+        self.assertEqual(
+            result["capability_status"]["files"]["state"],
+            "pending-implementation",
+        )
+
+    def test_blueprint_template_does_not_claim_verified_capabilities(self) -> None:
+        template = loads(
+            (Path(__file__).parents[1] / "templates/project-manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        states = [status["state"] for status in template["capability_status"].values()]
+        self.assertEqual(template["scaffold_status"], "blueprint")
+        self.assertEqual(template["readiness"], "code-ready")
+        self.assertNotIn("verified", states)
+        self.assertTrue(all(state == "materialized" for state in states))
 
     def test_rejects_turso_when_default_api_only_supports_postgresql(self) -> None:
         intake = self.school_intake()
@@ -121,7 +294,7 @@ class RecipeResolverTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        generated, unresolved = _starter_capabilities(
+        generated, provided, unresolved = _starter_capabilities(
             adapter,
             ["auth", "rbac", "multitenancy", "api-keys", "files", "webhooks"],
             "postgresql-managed",
@@ -129,6 +302,10 @@ class RecipeResolverTests(unittest.TestCase):
         self.assertEqual(
             generated,
             ["persistence", "auth", "authorization", "tenancy", "apiKeys", "files", "webhooks"],
+        )
+        self.assertEqual(
+            provided,
+            ["auth", "rbac", "multitenancy", "api-keys", "files", "webhooks"],
         )
         self.assertEqual(unresolved, [])
 
@@ -181,7 +358,8 @@ class RecipeResolverTests(unittest.TestCase):
             result = add_feature_to_project(output, "webhooks")
             after = (output / ".engineering/project.json").read_text(encoding="utf-8")
             self.assertTrue(result["changed"])
-            self.assertIn("webhooks", result["added_with_dependencies"])
+            self.assertIn("webhooks", result["requested_with_dependencies"])
+            self.assertIn("webhooks", result["implementation_required"])
             self.assertEqual(before, after)
 
     def test_add_feature_respects_explicit_exclusion(self) -> None:
@@ -227,6 +405,67 @@ class PiWorkflowTests(unittest.TestCase):
         self.assertEqual(package["pi"]["extensions"], ["./extensions/engineering-platform.ts"])
         self.assertIn("./.opencode/skills", package["pi"]["skills"])
         self.assertTrue((root / "pi-skills/project-discovery/SKILL.md").exists())
+        self.assertTrue((root / "pi-skills/project-evolution/SKILL.md").exists())
+
+    def test_runtime_preflight_rejects_incompatible_version(self) -> None:
+        adapter = {
+            "boilerplate_id": "sample",
+            "requirements": [{"executable": "bun", "version_prefix": "1.4."}],
+        }
+        completed = Namespace(returncode=0, stdout="1.3.14\n", stderr="")
+        with patch("scripts.eng.shutil.which", return_value="/fake/bun"), patch(
+            "scripts.eng.subprocess.run", return_value=completed
+        ):
+            status = adapter_preflight(adapter)
+        self.assertFalse(status[0]["ok"])
+        self.assertEqual(status[0]["expected"], "1.4.")
+
+    def test_run_record_merges_declared_environment_without_recording_ambient_values(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.dict(
+                os.environ,
+                {"PATH": "/ambient", "PRIVATE_TOKEN": "secret"},
+                clear=True,
+            ), patch("scripts.eng.shutil.which", return_value="/fake/tool"), patch(
+                "scripts.eng.subprocess.run",
+                return_value=Namespace(returncode=0, stdout="", stderr=""),
+            ) as run:
+                record = _run_record(
+                    ["tool"],
+                    Path(temporary),
+                    environment={"SHARP_IGNORE_GLOBAL_LIBVIPS": "1"},
+                )
+                command_environment = run.call_args.kwargs["env"]
+                self.assertEqual(command_environment["PATH"], "/ambient")
+                self.assertEqual(command_environment["PRIVATE_TOKEN"], "secret")
+                self.assertEqual(command_environment["SHARP_IGNORE_GLOBAL_LIBVIPS"], "1")
+                self.assertEqual(
+                    record["environment"], {"SHARP_IGNORE_GLOBAL_LIBVIPS": "1"}
+                )
+                self.assertNotIn("PRIVATE_TOKEN", record["environment"])
+
+                run.reset_mock()
+                record = _run_record(["tool"], Path(temporary))
+                self.assertNotIn("env", run.call_args.kwargs)
+                self.assertNotIn("environment", record)
+
+    def test_runtime_rejects_malformed_adapter_environment(self) -> None:
+        invalid_environments = (
+            {"INVALID-NAME": "1"},
+            {"VALID_NAME": "line\nbreak"},
+            {"VALID_NAME": "nul\x00value"},
+            {1: "1"},
+            [],
+        )
+        for environment in invalid_environments:
+            with self.subTest(environment=environment):
+                with self.assertRaises(PlatformError):
+                    _adapter_environment(
+                        {
+                            "boilerplate_id": "sample",
+                            "materializer": {"environment": environment},
+                        }
+                    )
 
     def test_bootstrap_accepts_gentle_metadata_in_target(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -370,7 +609,70 @@ class PiWorkflowTests(unittest.TestCase):
             self.assertEqual(manifest["readiness"], "code-ready")
             self.assertTrue((output / "src/app.ts").exists())
             self.assertTrue((output / ".engineering/materialization.json").exists())
+            self.assertTrue((output / ".github/workflows/engineering.yml").exists())
             self.assertTrue((output / ".git").is_dir())
+
+    def test_doctor_keeps_previous_materialized_manifest_upgradeable(self) -> None:
+        intake = {
+            "name": "assistant-app",
+            "project_type": "ai-assistant",
+            "signals": ["chat", "tools"],
+            "features": [],
+            "excluded_features": [],
+            "database": "postgresql-managed",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "assistant-app"
+            write_project(
+                intake, output, materialize=True, skip_setup=True, skip_checks=True
+            )
+            manifest_path = output / ".engineering/project.json"
+            manifest = loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["platform_version"] = "0.7.0"
+            manifest.pop("capability_status")
+            manifest_path.write_text(dumps(manifest), encoding="utf-8")
+            handoff_path = output / ".engineering/gentle-handoff.json"
+            handoff = loads(handoff_path.read_text(encoding="utf-8"))
+            handoff["platform_version"] = "0.7.0"
+            handoff_path.write_text(dumps(handoff), encoding="utf-8")
+            (output / ".github/workflows/engineering.yml").unlink()
+
+            _, errors, warnings = inspect_project(output)
+
+            self.assertEqual(errors, [])
+            self.assertTrue(any("capability_status" in item for item in warnings))
+            self.assertTrue(any("CI raíz" in item for item in warnings))
+
+    def test_project_schema_keeps_capability_status_optional(self) -> None:
+        schema = loads(
+            (Path(__file__).parents[1] / "schemas/project.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertNotIn("capability_status", schema["required"])
+        self.assertIn("capability_status", schema["properties"])
+
+    def test_extend_plans_new_starter_without_mutating_project(self) -> None:
+        intake = {
+            "name": "assistant-app",
+            "project_type": "ai-assistant",
+            "signals": ["chat", "tools"],
+            "features": [],
+            "excluded_features": [],
+            "database": "postgresql-managed",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "assistant-app"
+            write_project(
+                intake, output, materialize=True, skip_setup=True, skip_checks=True
+            )
+            before = (output / ".engineering/project.json").read_bytes()
+            with patch("scripts.eng.adapter_preflight", return_value=[]):
+                result = extend_project(output, "tauri-ui")
+            self.assertEqual(result["destination"], "apps/desktop")
+            self.assertFalse(result["applied"])
+            self.assertEqual(before, (output / ".engineering/project.json").read_bytes())
+            self.assertFalse((output / "apps/desktop").exists())
 
     def test_adapter_command_rendering_is_data_driven(self) -> None:
         command = _render_adapter_command(
@@ -391,7 +693,7 @@ class PiWorkflowTests(unittest.TestCase):
             "starters": [
                 {
                     "id": "hono-api",
-                    "pin": "89045eb89582fa28beda2b243c2b07290fc55452",
+                    "pin": "360eb274cc5936fee5aab88eb8bd94977e95dfc9",
                     "adapter": "curation/hono-api/adapter.json",
                     "generator_features": ["persistence", "auth"],
                 }
@@ -408,7 +710,7 @@ class PiWorkflowTests(unittest.TestCase):
                     (generated / "apps/api/src").mkdir(parents=True)
                     (generated / "apps/api/src/server.ts").write_text("export {};\n", encoding="utf-8")
                     (generated / "package.json").write_text(
-                        dumps({"name": "generated-api", "packageManager": "bun@1.3.14"}),
+                        dumps({"name": "generated-api", "packageManager": "bun@1.4.0"}),
                         encoding="utf-8",
                     )
             record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
@@ -420,13 +722,235 @@ class PiWorkflowTests(unittest.TestCase):
             project = Path(temporary)
             with patch("scripts.eng._checkout_git_source", side_effect=fake_checkout), patch(
                 "scripts.eng._run_record", side_effect=fake_run
-            ):
+            ), patch("scripts.eng._assert_adapter_requirements", return_value=[]):
                 result = materialize_project(
                     manifest, project, skip_setup=True, skip_checks=True
                 )
             self.assertTrue((project / "services/api/apps/api/src/server.ts").exists())
             self.assertEqual(result["starters"][0]["type"], "git-generator")
             self.assertEqual(result["packages"][0]["package_manager"], "bun")
+
+    def test_materializer_environment_reaches_source_generator_setup_and_checks(self) -> None:
+        adapter = {
+            "boilerplate_id": "sample-generator",
+            "source": {"repository": "https://example.com/sample", "commit": "sample-pin"},
+            "materializer": {
+                "type": "git-generator",
+                "destination": "generated",
+                "source_setup": [["tool", "prepare"]],
+                "command": ["tool", "--out={output}"],
+                "setup": [["tool", "setup"]],
+                "checks": [{"gate": "test", "command": ["tool", "check"]}],
+                "environment": {"STATIC_FLAG": "enabled"},
+            },
+        }
+        calls: list[tuple[list[str], dict[str, str] | None]] = []
+
+        def fake_checkout(_source: dict, destination: Path) -> None:
+            destination.mkdir()
+
+        def fake_run(
+            command: list[str],
+            _cwd: Path,
+            *,
+            gate: str | None = None,
+            environment: dict[str, str] | None = None,
+        ) -> dict:
+            calls.append((command, environment))
+            for token in command:
+                if token.startswith("--out="):
+                    generated = Path(token.removeprefix("--out="))
+                    generated.mkdir(parents=True)
+                    (generated / "package.json").write_text(
+                        dumps({"name": "generated"}), encoding="utf-8"
+                    )
+            record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
+            if gate:
+                record["gate"] = gate
+            return record
+
+        def fake_read_json(path: Path) -> dict:
+            if path.as_posix().endswith("custom/sample-generator.json"):
+                return adapter
+            return read_json(path)
+
+        manifest = {
+            "project": {"name": "sample-project"},
+            "starters": [
+                {
+                    "id": "sample-generator",
+                    "pin": "sample-pin",
+                    "adapter": "custom/sample-generator.json",
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            with patch("scripts.eng.read_json", side_effect=fake_read_json), patch(
+                "scripts.eng._checkout_git_source", side_effect=fake_checkout
+            ), patch("scripts.eng._run_record", side_effect=fake_run), patch(
+                "scripts.eng._assert_adapter_requirements", return_value=[]
+            ):
+                result = materialize_project(project=project, manifest=manifest)
+
+        self.assertEqual(len(calls), 4)
+        self.assertTrue(all(environment == {"STATIC_FLAG": "enabled"} for _, environment in calls))
+        self.assertEqual(result["starters"][0]["generator"]["environment"], {"STATIC_FLAG": "enabled"})
+        self.assertEqual(result["setup"][0]["environment"], {"STATIC_FLAG": "enabled"})
+        self.assertEqual(result["checks"][0]["environment"], {"STATIC_FLAG": "enabled"})
+
+    def test_skipped_materializer_records_retain_declared_environment(self) -> None:
+        manifest = {
+            "project": {"name": "sample-web"},
+            "starters": [
+                {
+                    "id": "stardrive",
+                    "pin": "5c449810b763140ac72133ff4ae63d8497cce77a",
+                    "adapter": "curation/stardrive/adapter.json",
+                }
+            ],
+        }
+
+        def fake_checkout(_source: dict, destination: Path) -> None:
+            destination.mkdir()
+            (destination / "package.json").write_text(
+                dumps({"name": "stardrive"}), encoding="utf-8"
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch("scripts.eng._checkout_git_source", side_effect=fake_checkout), patch(
+                "scripts.eng._assert_adapter_requirements", return_value=[]
+            ):
+                result = materialize_project(
+                    manifest,
+                    Path(temporary),
+                    skip_setup=True,
+                    skip_checks=True,
+                )
+
+        expected = {"SHARP_IGNORE_GLOBAL_LIBVIPS": "1"}
+        self.assertEqual(result["setup"][0]["status"], "skipped")
+        self.assertEqual(result["checks"][0]["status"], "skipped")
+        self.assertEqual(result["setup"][0]["environment"], expected)
+        self.assertTrue(all(record["environment"] == expected for record in result["checks"]))
+
+    def test_check_reuses_environment_from_materialization_records(self) -> None:
+        intake = {
+            "name": "assistant-app",
+            "project_type": "ai-assistant",
+            "signals": ["chat", "tools"],
+            "features": [],
+            "excluded_features": [],
+            "database": "postgresql-managed",
+        }
+        expected = {"STATIC_FLAG": "enabled"}
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "assistant-app"
+            write_project(
+                intake,
+                output,
+                materialize=True,
+                skip_setup=True,
+                skip_checks=True,
+            )
+            materialization_path = output / ".engineering/materialization.json"
+            materialization = loads(materialization_path.read_text(encoding="utf-8"))
+            for record in materialization["setup"] + materialization["checks"]:
+                record["environment"] = expected
+            materialization_path.write_text(dumps(materialization), encoding="utf-8")
+            calls: list[dict[str, str] | None] = []
+
+            def fake_run(
+                command: list[str],
+                _cwd: Path,
+                *,
+                gate: str | None = None,
+                environment: dict[str, str] | None = None,
+            ) -> dict:
+                calls.append(environment)
+                record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
+                if gate:
+                    record["gate"] = gate
+                return record
+
+            args = Namespace(project=str(output), changed_files=[], run=True)
+            with patch("scripts.eng.adapter_preflight", return_value=[]), patch(
+                "scripts.eng._run_record", side_effect=fake_run
+            ), patch("builtins.print"):
+                self.assertEqual(command_check(args), 0)
+
+            after = loads(materialization_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(calls, [expected, *([expected] * 2)])
+        self.assertTrue(all(record["environment"] == expected for record in after["setup"]))
+        self.assertTrue(all(record["environment"] == expected for record in after["checks"]))
+
+    def test_generated_ci_emits_only_declared_adapter_environment(self) -> None:
+        manifest = {
+            "starters": [
+                {
+                    "id": "stardrive",
+                    "adapter": "curation/stardrive/adapter.json",
+                    "destination": ".",
+                }
+            ]
+        }
+        materialization = {
+            "setup": [
+                {"starter": "stardrive", "command": ["npm", "ci"], "workdir": "."}
+            ],
+            "checks": [
+                {
+                    "starter": "stardrive",
+                    "gate": "typecheck",
+                    "command": ["npm", "run", "check"],
+                    "workdir": ".",
+                }
+            ],
+        }
+        with patch.dict(os.environ, {"AMBIENT_SECRET": "do-not-export"}):
+            workflow = project_ci_yaml(manifest, materialization)
+
+        self.assertIn(
+            '    env:\n      SHARP_IGNORE_GLOBAL_LIBVIPS: "1"\n    steps:',
+            workflow,
+        )
+        self.assertNotIn("AMBIENT_SECRET", workflow)
+        self.assertNotIn("do-not-export", workflow)
+
+    def test_command_generator_owns_creation_of_its_destination(self) -> None:
+        manifest = {
+            "project": {"name": "sample-mobile"},
+            "starters": [
+                {
+                    "id": "ignite",
+                    "pin": "e829d2f922c5568a59a77bfb6232aeb500be3f13",
+                    "adapter": "curation/ignite/adapter.json",
+                }
+            ],
+        }
+
+        def fake_run(command: list[str], cwd: Path, *, gate: str | None = None) -> dict:
+            destination = cwd / "mobile"
+            self.assertFalse(destination.exists())
+            destination.mkdir()
+            (destination / "package.json").write_text(
+                dumps({"name": "mobile", "scripts": {}}), encoding="utf-8"
+            )
+            return {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
+
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            with patch("scripts.eng._run_record", side_effect=fake_run), patch(
+                "scripts.eng._assert_adapter_requirements", return_value=[]
+            ), patch(
+                "scripts.eng._apply_adapter_patches", return_value=[]
+            ):
+                result = materialize_project(
+                    manifest, project, skip_setup=True, skip_checks=True
+                )
+            self.assertTrue((project / "apps/mobile/package.json").exists())
+            self.assertEqual(result["starters"][0]["destination"], "apps/mobile")
 
     def test_overlay_adds_agent_context_without_engine_special_cases(self) -> None:
         root = Path(__file__).parents[1]
@@ -1005,6 +1529,26 @@ class LauncherTests(unittest.TestCase):
 
 
 class PlatformValidatorTests(unittest.TestCase):
+    def test_rejects_unsafe_adapter_environment_values(self) -> None:
+        self.assertTrue(
+            adapter_environment_errors(
+                {"INVALID-NAME": "1"}, "stardrive: materializer.environment"
+            )
+        )
+        self.assertTrue(
+            adapter_environment_errors(
+                {"VALID_NAME": "line\nbreak"}, "stardrive: materializer.environment"
+            )
+        )
+        self.assertTrue(
+            adapter_environment_errors(
+                {"VALID_NAME": "nul\x00value"}, "stardrive: materializer.environment"
+            )
+        )
+        self.assertTrue(
+            adapter_environment_errors([], "stardrive: materializer.environment")
+        )
+
     def test_includes_repository_markdown_and_skips_nested_dependency_markdown(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

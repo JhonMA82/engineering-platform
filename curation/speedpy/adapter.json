@@ -4,6 +4,12 @@
   "reviewed_at": "2026-08-29",
   "source": {"repository": "https://github.com/speedpy/speedpy", "branch": "main", "commit": "3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9", "license": "MIT"},
   "integration": {"mode": "overlay", "remote": "seed-speedpy", "update_strategy": "curated-diff"},
+  "requirements": [
+    {"executable": "python3", "version_prefix": "3.", "ci_version": "3.13"},
+    {"executable": "uv"}
+  ],
+  "extension_destination": "services/python",
+  "prune": [".claude"],
   "materializer": {
     "type": "git-copy",
     "destination": ".",
@@ -11,5 +17,6 @@
     "checks": [
       {"gate": "test", "command": ["uv", "run", "python", "manage.py", "check"]}
     ]
-  }
+  },
+  "overlay": "curation/speedpy/overlay"
 }

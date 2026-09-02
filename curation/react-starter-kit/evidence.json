@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "react-starter-kit",
+  "reviewed_at": "2026-09-01",
+  "ai_friendly": "high",
+  "evidence": [
+    "AGENTS.md and agent skills, including merge-seed, are present in the reviewed source",
+    "The source documents the React, TanStack, tRPC, Hono, Drizzle, Better Auth, Cloudflare Workers and Bun stack",
+    "The adapter declares seed-fork ownership boundaries between upstream mechanism and project identity",
+    "The adapter declares frozen install, typecheck, lint, test and build verification commands"
+  ],
+  "gaps": [
+    "No pilot or deployment was executed for this review",
+    "Installation, typecheck, lint, test and build commands were not run from the pinned snapshot",
+    "Tenant isolation, billing sandbox, migrations, rollback, deployment and observability remain unverified",
+    "Cloudflare Workers, Neon, Bun and provider-specific integrations require project-level acceptance"
+  ],
+  "decision": "seed-fork"
+}

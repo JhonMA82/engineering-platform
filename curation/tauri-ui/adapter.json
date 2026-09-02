@@ -10,6 +10,11 @@
     "package": "create-tauri-ui@1.2.0"
   },
   "integration": {"mode": "overlay", "remote": "seed-tauri-ui", "update_strategy": "regenerate-and-diff"},
+  "requirements": [
+    {"executable": "bun", "version_prefix": "1.4.", "ci_version": "1.4.0"},
+    {"executable": "node", "version_prefix": "24.", "ci_version": "24"}
+  ],
+  "extension_destination": "apps/desktop",
   "materializer": {
     "type": "git-generator",
     "destination": ".",
@@ -17,6 +22,7 @@
       ["bun", "install", "--frozen-lockfile"],
       ["bun", "run", "--cwd", "packages/create-tauri-ui", "build"]
     ],
+    "source_patches": ["curation/tauri-ui/patches/create-tauri-app-version.patch"],
     "command": ["node", "packages/create-tauri-ui/index.js", "{output}", "--template", "vite", "--yes", "--no-workflow"],
     "setup": [["bun", "install", "--frozen-lockfile"]],
     "checks": [{"gate": "build", "command": ["bun", "run", "build"]}]

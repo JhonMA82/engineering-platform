@@ -4,12 +4,24 @@
   "reviewed_at": "2026-08-29",
   "source": {"repository": "https://github.com/infinitered/ignite", "branch": "master", "commit": "e829d2f922c5568a59a77bfb6232aeb500be3f13", "license": "MIT", "package": "ignite-cli@11.5.0"},
   "integration": {"mode": "direct", "remote": "seed-ignite", "update_strategy": "regenerate-and-diff"},
+  "requirements": [
+    {"executable": "git"},
+    {"executable": "node", "version_prefix": "24.", "ci_version": "24"},
+    {"executable": "npx"},
+    {"executable": "npm"}
+  ],
+  "project_dependencies": {"one_of": ["hono-api", "fastapi"]},
+  "patches": ["curation/ignite/patches/navigation-root-state.patch"],
   "materializer": {
     "type": "command-generator",
     "destination": "apps/mobile",
     "working_directory": "apps",
-    "command": ["npx", "--yes", "ignite-cli@11.5.0", "new", "mobile", "--yes"],
-    "setup": [],
+    "command": ["npx", "--yes", "ignite-cli@11.5.0", "new", "mobile", "--yes", "--packager", "npm", "--install-deps=false", "--git=false"],
+    "setup": [
+      ["npm", "install", "--save-exact", "expo-asset@55.0.8"],
+      ["npm", "install", "--save-dev", "--save-exact", "babel-preset-expo@55.0.25"]
+    ],
+    "ci_setup": [["npm", "ci"]],
     "checks": [
       {"gate": "typecheck", "command": ["npm", "run", "compile"]},
       {"gate": "test", "command": ["npm", "test", "--", "--runInBand"]}

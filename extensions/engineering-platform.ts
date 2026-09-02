@@ -76,4 +76,26 @@ export default function engineeringPlatform(pi: ExtensionAPI) {
       );
     },
   });
+
+  pi.registerCommand("evolve-project", {
+    description: "Agregar una aplicación o capacidad sin regenerar el proyecto",
+    handler: async (_args, ctx) => {
+      const project = join(ctx.cwd, ".engineering", "project.json");
+      if (!existsSync(project)) {
+        ctx.ui.notify("No hay un proyecto Engineering en esta carpeta.", "error");
+        return;
+      }
+      pi.setSessionName(`evolve:${basename(ctx.cwd)}`);
+      pi.appendEntry("engineering-platform:evolution", {
+        version: PACKAGE_VERSION,
+        cwd: ctx.cwd,
+        status: "started",
+      });
+      pi.sendUserMessage(
+        `/skill:project-evolution El proyecto está en ${JSON.stringify(ctx.cwd)}. ` +
+          `Usa ${JSON.stringify(ENG)} como ejecutable de Engineering Platform.`,
+        { expandPromptTemplates: true },
+      );
+    },
+  });
 }

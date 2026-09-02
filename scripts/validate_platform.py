@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -14,10 +15,25 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 ERRORS: list[str] = []
 SKIPPED_MARKDOWN_DIRECTORIES = frozenset({".git", "node_modules"})
+_ENVIRONMENT_NAME_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def error(message: str) -> None:
     ERRORS.append(message)
+
+
+def adapter_environment_errors(value: Any, label: str) -> list[str]:
+    if not isinstance(value, Mapping):
+        return [f"{label} debe ser un objeto de variables de entorno"]
+    errors: list[str] = []
+    for name, environment_value in value.items():
+        if not isinstance(name, str) or _ENVIRONMENT_NAME_PATTERN.fullmatch(name) is None:
+            errors.append(f"{label} contiene un nombre de variable inválido")
+        if not isinstance(environment_value, str) or any(
+            character in environment_value for character in "\x00\r\n"
+        ):
+            errors.append(f"{label} contiene un valor inválido")
+    return errors
 
 
 def load(relative: str) -> dict[str, Any]:
@@ -144,6 +160,12 @@ def validate_registry() -> None:
             kind = materializer.get("type")
             if kind not in {"git-copy", "local-copy", "command-generator", "git-generator"}:
                 error(f"{item['id']}: materializer inválido {kind}")
+            if "environment" in materializer:
+                for message in adapter_environment_errors(
+                    materializer["environment"],
+                    f"{item['id']}: materializer.environment",
+                ):
+                    error(message)
             destination = materializer.get("destination")
             if not isinstance(destination, str) or destination.startswith("/") or ".." in destination.split("/"):
                 error(f"{item['id']}: destination inseguro")
@@ -164,12 +186,44 @@ def validate_registry() -> None:
             overlay = adapter_doc.get("overlay")
             if overlay and not (ROOT / overlay).is_dir():
                 error(f"{item['id']}: overlay inexistente {overlay}")
+            extension_destination = adapter_doc.get("extension_destination")
+            if extension_destination and (
+                not isinstance(extension_destination, str)
+                or extension_destination.startswith("/")
+                or ".." in extension_destination.split("/")
+                or extension_destination == "."
+            ):
+                error(f"{item['id']}: extension_destination inseguro")
+            requirements = adapter_doc.get("requirements", [])
+            if not isinstance(requirements, list):
+                error(f"{item['id']}: requirements debe ser lista")
+            else:
+                for requirement in requirements:
+                    if not isinstance(requirement, dict) or not requirement.get("executable"):
+                        error(f"{item['id']}: requirement inválido")
+            for pattern in adapter_doc.get("prune", []):
+                if not isinstance(pattern, str) or pattern.startswith("/") or ".." in pattern.split("/"):
+                    error(f"{item['id']}: prune inseguro {pattern}")
+            for patch_path in adapter_doc.get("patches", []):
+                if not isinstance(patch_path, str) or patch_path.startswith("/") or ".." in patch_path.split("/"):
+                    error(f"{item['id']}: patch inseguro {patch_path}")
+                elif not (ROOT / patch_path).is_file():
+                    error(f"{item['id']}: patch inexistente {patch_path}")
+            for patch_path in materializer.get("source_patches", []):
+                if not isinstance(patch_path, str) or patch_path.startswith("/") or ".." in patch_path.split("/"):
+                    error(f"{item['id']}: source_patch inseguro {patch_path}")
+                elif not (ROOT / patch_path).is_file():
+                    error(f"{item['id']}: source_patch inexistente {patch_path}")
             evidence = item.get("integration", {}).get("evidence")
             if evidence:
                 evidence_doc = load(evidence)
                 if evidence_doc.get("boilerplate_id") != item["id"]:
                     error(f"{item['id']}: evidence declara otro boilerplate_id")
-            for command in materializer.get("setup", []):
+            for command in (
+                materializer.get("source_setup", [])
+                + materializer.get("setup", [])
+                + materializer.get("ci_setup", [])
+            ):
                 if not isinstance(command, list) or not command:
                     error(f"{item['id']}: comando setup inválido")
             for check in materializer.get("checks", []):
@@ -297,7 +351,11 @@ def validate_pi_package() -> None:
     extension_path = ROOT / "extensions/engineering-platform.ts"
     if extension_path.exists():
         extension = extension_path.read_text(encoding="utf-8")
-        for command in ('registerCommand("new-project"', 'registerCommand("engineering-status"'):
+        for command in (
+            'registerCommand("new-project"',
+            'registerCommand("engineering-status"',
+            'registerCommand("evolve-project"',
+        ):
             if command not in extension:
                 error(f"Extensión Pi sin comando requerido: {command}")
     skill_path = ROOT / "pi-skills/project-discovery/SKILL.md"
@@ -305,6 +363,11 @@ def validate_pi_package() -> None:
         skill = skill_path.read_text(encoding="utf-8")
         if not skill.startswith("---\nname: project-discovery\n") or "description:" not in skill:
             error("Skill Pi project-discovery sin frontmatter válido")
+    evolution_path = ROOT / "pi-skills/project-evolution/SKILL.md"
+    if evolution_path.exists():
+        skill = evolution_path.read_text(encoding="utf-8")
+        if not skill.startswith("---\nname: project-evolution\n") or "description:" not in skill:
+            error("Skill Pi project-evolution sin frontmatter válido")
 
 
 def main() -> int:

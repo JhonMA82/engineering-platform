@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "ai-assistant-starter",
+  "reviewed_at": "2026-09-01",
+  "ai_friendly": "medium",
+  "evidence": [
+    "README documents an interchangeable provider, citations, audit and default-deny tools",
+    "src/provider.ts isolates the provider contract",
+    "src/app.ts validates chat requests and records source IDs in the audit response",
+    "src/policy.ts and test/policy.test.ts define role-based tool denial",
+    "package.json declares build, typecheck and test scripts"
+  ],
+  "gaps": [
+    "No pilot or deployment was executed for this review",
+    "The minimal source does not include authentication, organizations, persistence, document ingestion, feedback, evaluations, retention or a configured provider",
+    "No AGENTS.md or agent-specific operating instructions are present",
+    "Sensitive-action confirmation, usage limits and production governance remain to be implemented"
+  ],
+  "decision": "internal"
+}

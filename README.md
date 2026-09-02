@@ -2,7 +2,7 @@
 
 Una base de ingeniería minimalista, práctica y opinionada para que una consultoría de **1 a 20 personas** inicie y mantenga proyectos sin volver a discutir el stack desde cero.
 
-> Versión: **0.7.0** · Revisión: **2026-08-31**
+> Versión: **0.8.0** · Candidata a v1.0 · Revisión: **2026-09-01**
 
 La idea es “Omarchy para proyectos”: pocos defaults buenos, comandos directos y automatización visible. No es un portal, un framework universal ni una colección de repositorios de moda.
 
@@ -32,7 +32,7 @@ La misma automatización sirve a una persona y a veinte. Lo que cambia con el ta
 
 ## Inicio rápido con Pi
 
-Requiere Pi y Python 3.11 o superior. Desde el ZIP o un checkout estable:
+Requiere Pi, Python 3.11+ y los runtimes del Recipe elegido. Engineering ejecuta un preflight antes de descargar código; por ejemplo, API Starter exige Bun 1.4 y los starters web/móvil Node 24. Desde el ZIP o un checkout estable:
 
 ```bash
 make check
@@ -49,11 +49,12 @@ El agente pregunta hasta confirmar problema, usuarios, alcance y restricciones; 
 
 - `.engineering/project-definition.json`: idea confirmada;
 - `.engineering/project.json`: Recipe, stack, features, skills y gates;
-- `.engineering/materialization.json`: fuentes exactas, pins, destinos y checks ejecutados;
+- `.engineering/materialization.json`: fuentes exactas, pins, destinos, runtimes y checks ejecutados;
+- `.github/workflows/engineering.yml`: CI raíz de los starters realmente instalados;
 - `ARCHITECTURE.md` y `AGENTS.md`: estructura y reglas;
 - `GENTLE.md`: handoff breve para Gentle; `.engineering/gentle-handoff.json` solo indexa las fuentes de verdad para agentes.
 
-`eng new` conserva la ruta de **blueprint** para automatización sin código. El flujo Pi usa `eng bootstrap`: clona cada commit exacto o copia el starter interno, instala dependencias, ejecuta sus checks, inicia Git en `main` y genera el handoff desde la estructura real. `--skip-setup --skip-checks` deja el proyecto en `code-ready`; `eng check --run` lo verifica después. Si ya pasó el setup, `eng check --run` lo reutiliza; usa `--force-setup` para repetirlo.
+`eng new` conserva la ruta de **blueprint** para automatización sin código. El flujo Pi usa `eng bootstrap`: clona cada commit exacto o copia el starter interno, instala dependencias, ejecuta sus checks, inicia Git en `main` y genera el handoff desde la estructura real. `--skip-setup --skip-checks` deja el proyecto en `code-ready`; `eng check --run` lo verifica después. Si ya pasó el setup, `eng check --run` lo reutiliza; usa `--force-setup` para repetirlo. Una feature declarada queda marcada como `pending-implementation` hasta que el boilerplate o los checks aporten evidencia real.
 
 ## Ejemplo de decisión
 
@@ -139,8 +140,9 @@ Así Turso se evalúa por capacidad y riesgo, no como reemplazo global de Postgr
 | `eng handoff` | Regenera las instrucciones para Gentle AI |
 | `eng plan` | Selecciona skills y gates por tipo de cambio |
 | `eng check` | Selecciona gates según manifest y archivos |
-| `eng add` | Planea un feature; `--apply` actualiza los archivos gestionados |
-| `eng update` | Aplica la estrategia upstream de cada starter |
+| `eng add` | Registra una capacidad y su trabajo pendiente; no inventa implementación |
+| `eng extend` | Incorpora otro starter en una ruta libre, con dry-run predeterminado |
+| `eng update` | Inspecciona pins y declara la estrategia; la actualización exige revisión |
 
 ## Modelo de equipo
 
@@ -188,4 +190,4 @@ docs/           guías humanas y decisiones
 make check
 ```
 
-El validator comprueba el paquete Pi, JSON, aliases, URLs duplicadas, referencias entre Recipes/boilerplates/datos/features/skills, pins, adapters, schemas y enlaces Markdown. Las pruebas ejercitan instalación aislada, rutas seguras, definición confirmada, resolución, handoff, Turso, duplicados, generación y doctor.
+El validator comprueba el paquete Pi, JSON, aliases, URLs duplicadas, referencias entre Recipes/boilerplates/datos/features/skills, pins, adapters, schemas y enlaces Markdown. Las pruebas ejercitan instalación aislada, rutas seguras, definición confirmada, resolución, handoff, extensión, compatibilidad y doctor. El workflow `release-pilots` materializa y verifica semanalmente los seis Recipes estables, conservando sus `.engineering` como evidencia descargable.

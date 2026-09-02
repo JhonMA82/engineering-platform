@@ -1,0 +1,9 @@
+diff --git a/packages/create-tauri-ui/src/scaffold.ts b/packages/create-tauri-ui/src/scaffold.ts
+--- a/packages/create-tauri-ui/src/scaffold.ts
++++ b/packages/create-tauri-ui/src/scaffold.ts
+@@ -248,4 +248,4 @@
+-        "create-tauri-app",
++        "create-tauri-app@4.6.2",
+         tempProjectName,
+         "--template",
+         "vanilla-ts",

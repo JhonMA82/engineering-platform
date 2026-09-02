@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-02
+
+- Completada la evidencia de AI Assistant y React Starter Kit; `eng boilerplate verify` ahora refleja en su código de salida cuando la verificación falla y conserva el JSON.
+- Separada la verdad de capacidades: cada feature queda `materialized`, `verified` o `pending-implementation`; Engineering ya no presenta como implementado lo que corresponde desarrollar a Gentle.
+- Añadido preflight declarativo de runtimes y versiones antes de clonar o instalar, con Bun 1.4 para API Starter 0.12.2.
+- Añadido `eng extend` transaccional para incorporar un starter compatible a un proyecto existente sin regenerarlo, además del flujo Pi `/evolve-project`.
+- Generado un workflow CI raíz por proyecto compuesto, manteniendo los checks propios de cada boilerplate y sus directorios de trabajo.
+- Añadidos el workflow `release-pilots` y `scripts/release_pilot.py` para materializar y verificar los seis Recipes estables con evidencia descargable.
+- Añadido un entorno nativo determinista y declarado para comandos de materialización de starters curados, incluido Stardrive.
+- Fijado el generador anidado de la fuente Tauri UI (`create-tauri-app@4.6.2`) para reproducir el scaffold de escritorio.
+- Conservada compatibilidad de lectura con proyectos 0.7; el siguiente `add` o `extend` completa los metadatos nuevos sin regenerar el proyecto.
+- Reducido el ruido AI de fuentes upstream mediante poda declarativa y overlays compactos, preservando una fuente de verdad por decisión.
+- Corregida la salida curada de Ignite 11.5.0 con dependencias Expo fijadas y un guard mínimo de navegación, manteniendo typecheck y tests activos.
+- Endurecidos schemas, doctor, validadores y ownership para extensiones y manifiestos evolutivos.
+
 ## [0.7.0] - 2026-08-31
 
 - Integrado `api-starter v0.12.0` como implementación real de `hono-api`, conservando el id estable y materializando perfiles exactos en `services/api` mediante el nuevo adapter genérico `git-generator`.

@@ -39,12 +39,34 @@
         "type": "object",
         "required": ["id", "delivery_status", "integration_mode", "pin"],
         "properties": {
-          "pin": {"type": ["string", "null"]}
+          "pin": {"type": ["string", "null"]},
+          "destination": {"type": ["string", "null"]},
+          "provided_features": {"type": "array", "items": {"type": "string"}},
+          "unmaterialized_features": {"type": "array", "items": {"type": "string"}}
         }
       }
     },
     "database": {"type": ["string", "null"]},
     "features": {"type": "array", "items": {"type": "string"}},
+    "capability_status": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["state", "provided_by", "owner"],
+        "properties": {
+          "state": {"enum": ["planned", "pending-implementation", "materialized", "verified"]},
+          "provided_by": {"type": "array", "items": {"type": "string"}},
+          "owner": {"enum": ["boilerplate", "gentle-ai"]}
+        }
+      }
+    },
+    "extensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["starter", "destination", "applied_at"]
+      }
+    },
     "skills": {"type": "array", "items": {"type": "string"}},
     "gates": {"type": "array", "items": {"type": "string"}},
     "exclusions": {"type": "array", "items": {"type": "string"}},
