@@ -34,6 +34,28 @@ DEFINITION_SCHEMA_URL = (
 )
 PI_ENGINEERING_PLATFORM_GIT_SOURCE_PREFIX = "git:github.com/JhonMA82/engineering-platform@"
 _ENVIRONMENT_NAME_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+SURFACE_CAPABILITIES = {
+    "public-web": {
+        "landing",
+        "pricing",
+        "blog",
+        "documentation",
+        "changelog",
+        "seo",
+        "public-content",
+    },
+    "mobile": {
+        "authenticated-app",
+        "push-notifications",
+        "camera",
+        "offline",
+        "location",
+        "deep-links",
+        "media",
+        "background-tasks",
+    },
+}
+_SURFACE_ORDER = {"public-web": 0, "mobile": 1}
 
 
 def _install_ignores(_directory: str, names: list[str]) -> set[str]:
@@ -119,6 +141,225 @@ def by_id(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
 def unique(items: list[str]) -> list[str]:
     return list(dict.fromkeys(items))
+
+
+def _requested_surfaces(intake: dict[str, Any]) -> list[dict[str, Any]]:
+    value = intake.get("surfaces", [])
+    if not isinstance(value, list):
+        raise PlatformError("surfaces debe ser una lista")
+    requested: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {"id", "capabilities"}:
+            raise PlatformError("Cada Surface necesita únicamente id y capabilities")
+        surface_id = item.get("id")
+        capabilities = item.get("capabilities")
+        if surface_id not in SURFACE_CAPABILITIES:
+            raise PlatformError(f"Surface desconocida: {surface_id}")
+        if surface_id in seen:
+            raise PlatformError(f"Surface duplicada: {surface_id}")
+        if not isinstance(capabilities, list) or any(
+            not isinstance(capability, str) or not capability for capability in capabilities
+        ):
+            raise PlatformError(f"Capabilities inválidas para {surface_id}")
+        if len(capabilities) != len(set(capabilities)):
+            raise PlatformError(f"Capabilities duplicadas para {surface_id}")
+        invalid = sorted(set(capabilities) - SURFACE_CAPABILITIES[surface_id])
+        if invalid:
+            raise PlatformError(
+                f"Capabilities no reconocidas para {surface_id}: {', '.join(invalid)}"
+            )
+        seen.add(surface_id)
+        requested.append({"id": surface_id, "capabilities": capabilities})
+    return sorted(requested, key=lambda item: (_SURFACE_ORDER[item["id"]], item["id"]))
+
+
+def _boilerplate_surface(
+    entry: dict[str, Any], surface_id: str
+) -> dict[str, Any] | None:
+    for surface in entry.get("provides_surfaces", []):
+        if surface.get("id") == surface_id:
+            return surface
+    return None
+
+
+def _surface_provider_candidates(
+    surface_id: str, boilerplate_index: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    candidates = [
+        entry
+        for entry in boilerplate_index.values()
+        if entry.get("decision_status") not in {"deprecated", "rejected"}
+        and entry.get("delivery_status") in {"curated", "released"}
+        and entry.get("integration", {}).get("adapter")
+        and entry.get("upstream", {}).get("commit")
+        and _boilerplate_surface(entry, surface_id)
+    ]
+    decision_rank = {"default": 0}
+    delivery_rank = {"released": 0, "curated": 1}
+    tier_rank = {"A": 0, "B": 1, "C": 2}
+    return sorted(
+        candidates,
+        key=lambda entry: (
+            decision_rank.get(entry.get("decision_status"), 1),
+            delivery_rank.get(entry.get("delivery_status"), 2),
+            tier_rank.get(entry.get("maintenance_tier"), 3),
+            entry["id"],
+        ),
+    )
+
+
+def _selected_surface_provider(
+    starters: list[dict[str, Any]],
+    surface_id: str,
+    boilerplate_index: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    for starter in starters:
+        entry = boilerplate_index.get(starter.get("id"), {})
+        if _boilerplate_surface(entry, surface_id):
+            return starter
+    return None
+
+
+def _recipe_allows_surface(recipe: dict[str, Any], surface_id: str) -> bool:
+    return surface_id in recipe.get("composable_surfaces", [])
+
+
+def _surface_destination(
+    starter: dict[str, Any], adapter: dict[str, Any], *, as_additional_surface: bool
+) -> str:
+    if as_additional_surface:
+        destination = adapter.get("extension_destination")
+        if not destination:
+            materializer_destination = adapter.get("materializer", {}).get("destination")
+            if materializer_destination not in {None, "."}:
+                destination = materializer_destination
+        if destination in {None, "."}:
+            raise PlatformError(
+                f"{starter['id']} no declara un destino seguro para usarse como Surface"
+            )
+    else:
+        destination = starter.get("destination") or adapter.get("materializer", {}).get(
+            "destination", "."
+        )
+    return _safe_relative(destination, "surface destination").as_posix()
+
+
+def _validate_starter_dependencies(
+    starter: dict[str, Any], adapter: dict[str, Any], selected_ids: set[str]
+) -> None:
+    dependencies = adapter.get("project_dependencies", {})
+    required_all = set(dependencies.get("all_of", []))
+    if not required_all.issubset(selected_ids):
+        raise PlatformError(
+            f"{starter['id']} requiere starters: {', '.join(sorted(required_all - selected_ids))}"
+        )
+    required_one = set(dependencies.get("one_of", []))
+    if required_one and not selected_ids.intersection(required_one):
+        raise PlatformError(
+            f"{starter['id']} requiere uno de: {', '.join(sorted(required_one))}"
+        )
+
+
+def _validate_composition_destinations(starters: list[dict[str, Any]]) -> None:
+    claimed: list[tuple[str, str]] = []
+    for starter in starters:
+        destination = _safe_relative(starter.get("destination") or ".", "destination").as_posix()
+        for other_id, other_destination in claimed:
+            if destination == other_destination:
+                raise PlatformError(
+                    f"Colisión de destino {destination}: {other_id} y {starter['id']}"
+                )
+            if destination != "." and other_destination != "." and (
+                destination.startswith(other_destination + "/")
+                or other_destination.startswith(destination + "/")
+            ):
+                raise PlatformError(
+                    f"Destinos anidados incompatibles: {other_destination} y {destination}"
+                )
+        claimed.append((starter["id"], destination))
+
+
+def _resolve_surfaces(
+    intake: dict[str, Any],
+    recipe: dict[str, Any],
+    starters: list[dict[str, Any]],
+    boilerplate_index: dict[str, dict[str, Any]],
+    *,
+    selected_features: list[str],
+    database: str | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    resolved = list(starters)
+    surfaces: list[dict[str, Any]] = []
+    selected_ids = {starter["id"] for starter in resolved}
+    for request in _requested_surfaces(intake):
+        surface_id = request["id"]
+        existing = _selected_surface_provider(resolved, surface_id, boilerplate_index)
+        if existing:
+            adapter = read_json(ROOT / existing["adapter"])
+            destination = _surface_destination(
+                existing, adapter, as_additional_surface=False
+            )
+            surfaces.append(
+                {
+                    "id": surface_id,
+                    "provider": existing["id"],
+                    "destination": destination,
+                    "capabilities": request["capabilities"],
+                }
+            )
+            continue
+        if not _recipe_allows_surface(recipe, surface_id):
+            raise PlatformError(f"{recipe['id']} no permite componer la Surface {surface_id}")
+        candidates = _surface_provider_candidates(surface_id, boilerplate_index)
+        if not candidates:
+            raise PlatformError(f"No existe provider materializable para la Surface {surface_id}")
+        provider = candidates[0]
+        declared = _boilerplate_surface(provider, surface_id) or {}
+        if surface_id == "public-web":
+            missing = sorted(set(request["capabilities"]) - set(declared.get("capabilities", [])))
+            if missing:
+                raise PlatformError(
+                    f"{provider['id']} no cubre capabilities de {surface_id}: {', '.join(missing)}"
+                )
+        starter, _, _ = _starter_manifest_entry(
+            provider["id"],
+            selected_features=selected_features,
+            database=database,
+            boilerplate_index=boilerplate_index,
+        )
+        adapter = read_json(ROOT / starter["adapter"])
+        _validate_starter_dependencies(starter, adapter, selected_ids)
+        destination = _surface_destination(starter, adapter, as_additional_surface=True)
+        for selected in resolved:
+            selected_adapter = read_json(ROOT / selected["adapter"])
+            replacements = selected_adapter.get("surface_replacements", {}).get(
+                surface_id, []
+            )
+            if replacements:
+                selected["composition_prune"] = unique(
+                    selected.get("composition_prune", []) + replacements
+                )
+        starter.update(
+            {
+                "role": "surface",
+                "surface": surface_id,
+                "destination": destination,
+                "destination_override": destination,
+            }
+        )
+        resolved.append(starter)
+        selected_ids.add(starter["id"])
+        surfaces.append(
+            {
+                "id": surface_id,
+                "provider": starter["id"],
+                "destination": destination,
+                "capabilities": request["capabilities"],
+            }
+        )
+    _validate_composition_destinations(resolved)
+    return resolved, surfaces
 
 
 def normalize_repository(value: str) -> str:
@@ -461,7 +702,16 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
                 f"{starter_id} no materializa directamente: {', '.join(unresolved_features)}; "
                 "Gentle debe implementarlas como capacidades del proyecto."
             )
+        starter["role"] = "primary"
         starters.append(starter)
+    starters, surfaces = _resolve_surfaces(
+        intake,
+        recipe,
+        starters,
+        boilerplate_index,
+        selected_features=features,
+        database=requested_database,
+    )
     capability_status = {
         feature_id: {
             "state": "materialized" if providers else "pending-implementation",
@@ -498,6 +748,7 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
         "project": {"name": project_name, "type": intake["project_type"]},
         "recipe": {"id": recipe["id"], "version": recipe["version"], "status": recipe["status"]},
         "starters": starters,
+        "surfaces": surfaces,
         "database": requested_database,
         "features": features,
         "capability_status": capability_status,
@@ -524,6 +775,19 @@ def architecture_markdown(manifest: dict[str, Any]) -> str:
         if "multitenancy" in manifest["features"]
         else "Single-tenant por defecto."
     )
+    surfaces = _infer_surfaces(manifest)
+    surface_lines = []
+    for surface in surfaces:
+        capabilities = ", ".join(f"`{item}`" for item in surface.get("capabilities", []))
+        surface_lines.extend(
+            [
+                f"- `{surface['id']}`",
+                f"  - provider: `{surface['provider']}`",
+                f"  - path: `{surface['destination']}`",
+                f"  - capabilities: {capabilities or 'ninguna declarada'}",
+            ]
+        )
+    surfaces_text = "\n".join(surface_lines) or "No se solicitaron Surfaces adicionales."
     return f"""# Arquitectura: {manifest['project']['name']}
 
 La definición vive en `.engineering/project-definition.json`; stack, features, exclusiones y gates viven únicamente en `.engineering/project.json`.
@@ -534,6 +798,10 @@ La definición vive en `.engineering/project-definition.json`; stack, features, 
 - Clientes sin autoridad de seguridad ni reglas de dominio duplicadas.
 - Cambios de datos con migración, recuperación y auditoría proporcional al riesgo.
 - {tenancy}
+
+## Surfaces
+
+{surfaces_text}
 
 ## Límites materiales
 
@@ -1002,7 +1270,16 @@ def materialize_project(
     setup_records: list[dict[str, Any]] = []
     check_records: list[dict[str, Any]] = []
     requirement_records: list[dict[str, Any]] = []
-    for starter in manifest["starters"]:
+    _validate_composition_destinations(manifest["starters"])
+    ordered_starters = sorted(
+        manifest["starters"],
+        key=lambda item: (
+            0 if item.get("role", "primary") == "primary" else 1,
+            _SURFACE_ORDER.get(item.get("surface", ""), 99),
+            item["id"],
+        ),
+    )
+    for starter in ordered_starters:
         adapter_path = starter.get("adapter")
         if not adapter_path or not starter.get("pin"):
             raise PlatformError(f"{starter['id']} no tiene adapter y pin materializables")
@@ -1016,6 +1293,14 @@ def materialize_project(
             "destination",
         )
         destination = project / destination_relative
+        if (
+            destination_relative != Path(".")
+            and destination.exists()
+            and (not destination.is_dir() or any(destination.iterdir()))
+        ):
+            raise PlatformError(
+                f"El destino de {starter['id']} ya contiene archivos: {destination_relative}"
+            )
         source = adapter.get("source", {})
         generator_record: dict[str, Any] | None = None
         source_pruned: list[str] = []
@@ -1030,6 +1315,12 @@ def materialize_project(
                 clone = Path(temporary) / "source"
                 _checkout_git_source(source, clone)
                 source_pruned = _prune_materialized_output(adapter, clone)
+                if starter.get("composition_prune"):
+                    source_pruned.extend(
+                        _prune_materialized_output(
+                            {"prune": starter["composition_prune"]}, clone
+                        )
+                    )
                 _copy_materialized_tree(clone, destination)
         elif kind == "local-copy":
             destination.mkdir(parents=True, exist_ok=True)
@@ -1304,6 +1595,15 @@ def gentle_handoff_data(
         "scaffold_status": manifest["scaffold_status"],
         "readiness": manifest.get("readiness", "code-ready"),
         "project": {"name": manifest["project"]["name"]},
+        "composition": {
+            "primary_recipe": manifest["recipe"]["id"],
+            "primary_starters": [
+                item["id"]
+                for item in manifest.get("starters", [])
+                if item.get("role", "primary") == "primary"
+            ],
+            "surfaces": _infer_surfaces(manifest),
+        },
         "source_of_truth": source_of_truth,
         "strategy": {
             "owner": "gentle-ai",
@@ -1345,6 +1645,17 @@ def gentle_markdown(
         if status.get("state") == "pending-implementation"
     ]
     pending_text = ", ".join(f"`{item}`" for item in pending) or "ninguna"
+    primary = ", ".join(
+        f"`{item['id']}` → `{item.get('destination') or 'por definir'}`"
+        for item in manifest.get("starters", [])
+        if item.get("role", "primary") == "primary"
+    ) or "ninguno"
+    surface_lines = [
+        f"- `{item['id']}` → `{item['provider']}` → `{item['destination']}`; capabilities: "
+        + (", ".join(f"`{capability}`" for capability in item.get("capabilities", [])) or "ninguna declarada")
+        for item in _infer_surfaces(manifest)
+    ]
+    surface_text = "\n".join(surface_lines) or "- Ninguna Surface adicional solicitada."
     return f"""# Handoff a Gentle AI
 
 ## Contexto
@@ -1356,6 +1667,15 @@ def gentle_markdown(
 - Patrones: {', '.join(f'`{item}`' for item in patterns)}
 - Estado: `{handoff['scaffold_status']}` · readiness `{handoff['readiness']}`
 - Capacidades pendientes de implementación: {pending_text}
+
+## Composición del proyecto
+
+- Primary: `{manifest['recipe']['id']}` con {primary}
+- Las capabilities de Surface son requisitos, no evidencia de implementación.
+
+Surfaces:
+
+{surface_text}
 
 ## Fuentes de verdad
 
@@ -1370,9 +1690,10 @@ def gentle_markdown(
 1. Lee, en orden: {read_first}. La idea no se duplica aquí.
 2. Decide entre ejecución directa y SDD según riesgo, ambigüedad, contratos, datos y permisos; registra brevemente el motivo.
 3. Conserva la Recipe, el stack, los patrones y las exclusiones; consulta las fuentes antes de desviarte.
-4. Implementa únicamente las capacidades con estado `pending-implementation` que pertenezcan al incremento solicitado; no asumas que una feature declarada ya existe.
+4. Implementa únicamente las capacidades pendientes que pertenezcan al incremento solicitado; una capability de Surface solicitada no está terminada hasta que código y checks lo demuestren.
 5. Implementa el incremento vertical mínimo y ejecuta los quality gates indicados en `.engineering/project.json`.
 6. Si readiness es `code-ready`, ejecuta `eng check --run` antes de tratar el proyecto como verificado.
+7. No muevas ni sustituyas providers o rutas de Surface, no unifiques runtimes, no dupliques auth/backend y no compartas secretos con `public-web` sin un cambio arquitectónico explícito.
 """
 
 
@@ -1468,6 +1789,33 @@ def write_project(
     return manifest
 
 
+def _infer_surfaces(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    declared = manifest.get("surfaces")
+    if isinstance(declared, list):
+        return deepcopy(declared)
+    boilerplates = by_id(data()["boilerplates"]["entries"])
+    inferred: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for starter in manifest.get("starters", []):
+        entry = boilerplates.get(starter.get("id"), {})
+        for provided in entry.get("provides_surfaces", []):
+            surface_id = provided.get("id")
+            if surface_id not in SURFACE_CAPABILITIES or surface_id in seen:
+                continue
+            inferred.append(
+                {
+                    "id": surface_id,
+                    "provider": starter["id"],
+                    "destination": starter.get("destination") or ".",
+                    "capabilities": [],
+                }
+            )
+            seen.add(surface_id)
+    return sorted(
+        inferred, key=lambda item: (_SURFACE_ORDER.get(item["id"], 99), item["id"])
+    )
+
+
 def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]]:
     manifest_path = project / ".engineering/project.json"
     manifest = read_json(manifest_path)
@@ -1507,6 +1855,12 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
         warnings.append(
             f"El proyecto usa platform {manifest.get('platform_version')}; actual es {PLATFORM_VERSION}"
         )
+    if "surfaces" not in manifest:
+        inferred = _infer_surfaces(manifest)
+        warnings.append(
+            "Manifest anterior sin surfaces; se infirieron providers sin inventar capabilities"
+            + (": " + ", ".join(item["id"] for item in inferred) if inferred else "")
+        )
     recipe = recipes.get(manifest.get("recipe", {}).get("id"))
     if not recipe:
         errors.append("Recipe inexistente")
@@ -1540,6 +1894,32 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
                         f"Runtime de {starter.get('id')}: {requirement['executable']} "
                         f"{detail}" + (f"; esperado {expected}" if expected else "")
                     )
+    surfaces = _infer_surfaces(manifest)
+    seen_surfaces: set[str] = set()
+    starter_ids = {item.get("id") for item in manifest.get("starters", [])}
+    for surface in surfaces:
+        surface_id = surface.get("id")
+        if surface_id not in SURFACE_CAPABILITIES:
+            errors.append(f"Surface inexistente: {surface_id}")
+            continue
+        if surface_id in seen_surfaces:
+            errors.append(f"Surface duplicada: {surface_id}")
+        seen_surfaces.add(surface_id)
+        if surface.get("provider") not in starter_ids:
+            errors.append(
+                f"Provider de Surface no instalado: {surface_id} -> {surface.get('provider')}"
+            )
+        invalid = sorted(
+            set(surface.get("capabilities", [])) - SURFACE_CAPABILITIES[surface_id]
+        )
+        if invalid:
+            errors.append(
+                f"Capabilities inválidas para {surface_id}: {', '.join(invalid)}"
+            )
+    try:
+        _validate_composition_destinations(manifest.get("starters", []))
+    except PlatformError as exc:
+        errors.append(str(exc))
     if manifest.get("scaffold_status") == "materialized":
         materialization_path = project / ".engineering/materialization.json"
         if not materialization_path.exists():
@@ -1800,19 +2180,10 @@ def extend_project(
         selected_features=manifest.get("features", []),
         database=manifest.get("database"),
     )
+    starter["role"] = "primary"
     adapter = read_json(ROOT / starter["adapter"])
-    dependencies = adapter.get("project_dependencies", {})
     current_starters = {item["id"] for item in manifest.get("starters", [])}
-    required_all = set(dependencies.get("all_of", []))
-    if not required_all.issubset(current_starters):
-        raise PlatformError(
-            f"{starter_id} requiere starters: {', '.join(sorted(required_all - current_starters))}"
-        )
-    required_one = set(dependencies.get("one_of", []))
-    if required_one and not current_starters.intersection(required_one):
-        raise PlatformError(
-            f"{starter_id} requiere uno de: {', '.join(sorted(required_one))}"
-        )
+    _validate_starter_dependencies(starter, adapter, current_starters)
 
     extension_destination = adapter.get("extension_destination")
     destination_value = extension_destination or starter.get("destination")
@@ -1829,6 +2200,7 @@ def extend_project(
         raise PlatformError(f"El destino de extensión no está vacío: {destination}")
     starter["destination"] = destination.as_posix()
     starter["destination_override"] = destination.as_posix()
+    _validate_composition_destinations(manifest.get("starters", []) + [starter])
     requirement_status = adapter_preflight(adapter)
     requirement_errors = [item for item in requirement_status if not item["ok"]]
 
@@ -1978,6 +2350,266 @@ def extend_project(
                     path.write_bytes(content)
             raise
     result["readiness"] = updated_manifest["readiness"]
+    result["checks"] = added_materialization.get("checks", [])
+    return result
+
+
+def add_surface_to_project(
+    project: Path,
+    surface_id: str,
+    capabilities: list[str],
+    *,
+    apply: bool = False,
+    skip_setup: bool = False,
+    skip_checks: bool = False,
+) -> dict[str, Any]:
+    request = _requested_surfaces(
+        {"surfaces": [{"id": surface_id, "capabilities": capabilities}]}
+    )[0]
+    manifest, errors, warnings = inspect_project(project)
+    if errors:
+        raise PlatformError("El proyecto no pasa doctor: " + "; ".join(errors))
+    if manifest.get("scaffold_status") != "materialized":
+        raise PlatformError("eng surface add requiere un proyecto materializado")
+
+    current_surfaces = _infer_surfaces(manifest)
+    existing_surface = next(
+        (item for item in current_surfaces if item["id"] == surface_id), None
+    )
+    merged_capabilities = unique(
+        (existing_surface or {}).get("capabilities", []) + request["capabilities"]
+    )
+    if existing_surface and merged_capabilities == existing_surface.get("capabilities", []):
+        return {
+            "changed": False,
+            "applied": apply,
+            "surface": surface_id,
+            "provider": existing_surface["provider"],
+            "destination": existing_surface["destination"],
+            "capabilities": merged_capabilities,
+            "reason": "La Surface y sus capabilities ya forman parte del proyecto.",
+        }
+
+    platform = data()
+    recipes = by_id(platform["recipes"]["paths"])
+    boilerplates = by_id(platform["boilerplates"]["entries"])
+    recipe = recipes.get(manifest.get("recipe", {}).get("id"))
+    if not recipe:
+        raise PlatformError("Recipe inexistente")
+
+    provider_starter = _selected_surface_provider(
+        manifest.get("starters", []), surface_id, boilerplates
+    )
+    new_starter: dict[str, Any] | None = None
+    requirement_status: list[dict[str, Any]] = []
+    adapter: dict[str, Any] | None = None
+    if provider_starter:
+        destination = provider_starter.get("destination") or "."
+        provider_id = provider_starter["id"]
+    else:
+        resolved_starters, resolved_surfaces = _resolve_surfaces(
+            {"surfaces": [{"id": surface_id, "capabilities": merged_capabilities}]},
+            recipe,
+            deepcopy(manifest.get("starters", [])),
+            boilerplates,
+            selected_features=manifest.get("features", []),
+            database=manifest.get("database"),
+        )
+        new_starter = next(
+            item
+            for item in resolved_starters
+            if item.get("role") == "surface" and item.get("surface") == surface_id
+        )
+        surface = resolved_surfaces[0]
+        destination = surface["destination"]
+        provider_id = surface["provider"]
+        adapter = read_json(ROOT / new_starter["adapter"])
+        requirement_status = adapter_preflight(adapter)
+
+    result: dict[str, Any] = {
+        "changed": True,
+        "applied": apply,
+        "surface": surface_id,
+        "provider": provider_id,
+        "destination": destination,
+        "capabilities": merged_capabilities,
+        "materialization_required": new_starter is not None,
+        "requirements": requirement_status,
+        "updated": [
+            ".engineering/intake.json",
+            ".engineering/project-definition.json (si existe)",
+            ".engineering/project.json",
+            "ARCHITECTURE.md",
+            "AGENTS.md",
+            "GENTLE.md",
+            ".engineering/gentle-handoff.json",
+            ".engineering/materialization.json",
+            ".github/workflows/engineering.yml",
+        ],
+        "warnings": warnings,
+    }
+    requirement_errors = [item for item in requirement_status if not item["ok"]]
+    if requirement_errors:
+        result["blocked"] = True
+        if apply and adapter:
+            _assert_adapter_requirements(adapter)
+        return result
+    if not apply:
+        return result
+
+    intake_path = project / ".engineering/intake.json"
+    updated_intake = read_json(intake_path)
+    intake_surfaces = [
+        deepcopy(item)
+        for item in updated_intake.get("surfaces", [])
+        if item.get("id") != surface_id
+    ]
+    intake_surfaces.append(
+        {"id": surface_id, "capabilities": merged_capabilities}
+    )
+    updated_intake["surfaces"] = sorted(
+        intake_surfaces,
+        key=lambda item: (_SURFACE_ORDER.get(item["id"], 99), item["id"]),
+    )
+
+    definition_path = project / ".engineering/project-definition.json"
+    updated_definition: dict[str, Any] | None = None
+    if definition_path.exists():
+        updated_definition = read_json(definition_path)
+        updated_definition["intake"] = deepcopy(updated_intake)
+        validate_project_definition(updated_definition)
+
+    updated_manifest = deepcopy(manifest)
+    updated_manifest["$schema"] = PROJECT_SCHEMA_URL
+    updated_manifest["platform_version"] = PLATFORM_VERSION
+    updated_manifest["surfaces"] = [
+        deepcopy(item) for item in current_surfaces if item["id"] != surface_id
+    ] + [
+        {
+            "id": surface_id,
+            "provider": provider_id,
+            "destination": destination,
+            "capabilities": merged_capabilities,
+        }
+    ]
+    updated_manifest["surfaces"] = sorted(
+        updated_manifest["surfaces"],
+        key=lambda item: (_SURFACE_ORDER.get(item["id"], 99), item["id"]),
+    )
+    for starter in updated_manifest.get("starters", []):
+        starter.setdefault("role", "primary")
+
+    added_materialization: dict[str, Any] = {}
+    target = project / _safe_relative(destination, "surface destination")
+    old_materialization = _read_materialization(project, manifest)
+    if new_starter and adapter:
+        _assert_adapter_requirements(adapter)
+        updated_manifest["starters"].append(new_starter)
+        updated_manifest.setdefault("extensions", []).append(
+            {
+                "starter": provider_id,
+                "destination": destination,
+                "surface": surface_id,
+                "applied_at": date.today().isoformat(),
+            }
+        )
+        updated_manifest["gates"] = unique(
+            updated_manifest.get("gates", [])
+            + [
+                check["gate"]
+                for check in adapter.get("materializer", {}).get("checks", [])
+                if check.get("gate")
+            ]
+        )
+
+    updated_manifest.setdefault("ownership", {}).setdefault("managed", [])
+    updated_manifest["ownership"]["managed"] = unique(
+        updated_manifest["ownership"]["managed"]
+        + [".engineering/materialization.json", ".github/workflows/engineering.yml"]
+    )
+
+    managed_paths = [
+        intake_path,
+        project / ".engineering/project.json",
+        project / ".engineering/materialization.json",
+        project / "ARCHITECTURE.md",
+        project / "AGENTS.md",
+        project / "GENTLE.md",
+        project / ".engineering/gentle-handoff.json",
+        project / ".github/workflows/engineering.yml",
+    ]
+    if definition_path.exists():
+        managed_paths.append(definition_path)
+    previous = {path: path.read_bytes() if path.exists() else None for path in managed_paths}
+
+    try:
+        if new_starter:
+            with tempfile.TemporaryDirectory(
+                prefix=f".{project.name}-{surface_id}-surface-", dir=project.parent
+            ) as temporary:
+                staged_root = Path(temporary) / "staged"
+                staged_root.mkdir()
+                added_materialization = materialize_project(
+                    {"project": manifest["project"], "starters": [new_starter]},
+                    staged_root,
+                    skip_setup=skip_setup,
+                    skip_checks=skip_checks,
+                )
+                staged_destination = staged_root / _safe_relative(
+                    destination, "surface destination"
+                )
+                if not staged_destination.is_dir():
+                    raise PlatformError(f"La Surface no produjo {destination}")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.exists():
+                    if target.is_symlink() or not target.is_dir() or any(target.iterdir()):
+                        raise PlatformError(f"El destino de Surface no está vacío: {destination}")
+                    target.rmdir()
+                staged_destination.rename(target)
+
+        updated_materialization = deepcopy(old_materialization)
+        if new_starter:
+            for key in ("starters", "setup", "checks", "requirements"):
+                updated_materialization[key] = updated_materialization.get(
+                    key, []
+                ) + added_materialization.get(key, [])
+            extension_readiness = added_materialization.get("readiness", "code-ready")
+            updated_manifest["readiness"] = (
+                "verified"
+                if manifest.get("readiness") == "verified"
+                and extension_readiness == "verified"
+                else "code-ready"
+            )
+        updated_materialization["platform_version"] = PLATFORM_VERSION
+        updated_materialization["readiness"] = updated_manifest.get(
+            "readiness", "code-ready"
+        )
+        updated_materialization.update(_actual_project_data(project))
+
+        _write_json_atomic(intake_path, updated_intake)
+        if updated_definition:
+            _write_json_atomic(definition_path, updated_definition)
+        _write_json_atomic(project / ".engineering/project.json", updated_manifest)
+        _write_json_atomic(
+            project / ".engineering/materialization.json", updated_materialization
+        )
+        _write_text_atomic(project / "ARCHITECTURE.md", architecture_markdown(updated_manifest))
+        _write_text_atomic(project / "AGENTS.md", agents_markdown(updated_manifest))
+        write_handoff(project, updated_manifest, updated_definition)
+        write_project_ci(project, updated_manifest, updated_materialization)
+    except Exception:
+        if new_starter and target.exists():
+            shutil.rmtree(target)
+        for path, content in previous.items():
+            if content is None:
+                if path.exists():
+                    path.unlink()
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(content)
+        raise
+
+    result["readiness"] = updated_manifest.get("readiness", "code-ready")
     result["checks"] = added_materialization.get("checks", [])
     return result
 
@@ -2652,6 +3284,19 @@ def command_extend(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_surface_add(args: argparse.Namespace) -> int:
+    result = add_surface_to_project(
+        Path(args.project).resolve(),
+        args.surface,
+        args.capability,
+        apply=args.apply,
+        skip_setup=args.skip_setup,
+        skip_checks=args.skip_checks,
+    )
+    print(dump_json(result), end="")
+    return 0
+
+
 def command_update(args: argparse.Namespace) -> int:
     manifest, errors, warnings = inspect_project(Path(args.project).resolve())
     if errors:
@@ -2802,6 +3447,19 @@ def build_parser() -> argparse.ArgumentParser:
     extend.add_argument("--skip-setup", action="store_true")
     extend.add_argument("--skip-checks", action="store_true")
     extend.set_defaults(handler=command_extend)
+
+    surface = sub.add_parser("surface", help="Gestionar Surfaces componibles")
+    surface_sub = surface.add_subparsers(dest="surface_command", required=True)
+    surface_add = surface_sub.add_parser(
+        "add", help="Resolver y agregar una Surface por intención de producto"
+    )
+    surface_add.add_argument("surface", choices=sorted(SURFACE_CAPABILITIES))
+    surface_add.add_argument("--capability", action="append", default=[])
+    surface_add.add_argument("--project", default=".")
+    surface_add.add_argument("--apply", action="store_true")
+    surface_add.add_argument("--skip-setup", action="store_true")
+    surface_add.add_argument("--skip-checks", action="store_true")
+    surface_add.set_defaults(handler=command_surface_add)
 
     update = sub.add_parser("update", help="Planear actualización según cada upstream")
     update.add_argument("--project", default=".")

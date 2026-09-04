@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        recipe: [GP-01, GP-02, GP-03, GP-04, GP-05, GP-06]
+        recipe: [GP-01, GP-02, GP-03, GP-04, GP-05, GP-06, saas-public-web, saas-mobile, saas-complete, admin-complete, mobile-public-web]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
