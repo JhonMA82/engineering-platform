@@ -2,7 +2,7 @@
 
 Una base de ingeniería minimalista, práctica y opinionada para que una consultoría de **1 a 20 personas** inicie y mantenga proyectos sin volver a discutir el stack desde cero.
 
-> Versión: **0.8.0** · Candidata a v1.0 · Revisión: **2026-09-01**
+> Versión: **0.9.0** · Composable Project Surfaces · Revisión: **2026-09-04**
 
 La idea es “Omarchy para proyectos”: pocos defaults buenos, comandos directos y automatización visible. No es un portal, un framework universal ni una colección de repositorios de moda.
 
@@ -13,12 +13,13 @@ Un agente descubre la idea y la convierte en una **Project Recipe** reproducible
 ```mermaid
 flowchart TD
     A["Preguntas progresivas"] --> B["Definición confirmada"]
-    B --> C["Project Recipe"]
-    C --> D["Código materializado y verificado"]
-    D --> E["Handoff a Gentle"]
+    B --> C["Primary Recipe"]
+    C --> D["Surface Composition"]
+    D --> E["Código materializado y verificado"]
+    E --> F["Handoff a Gentle"]
 ```
 
-La Recipe fija:
+La Recipe principal fija:
 
 - Golden Path y versión;
 - boilerplates y estrategia de actualización;
@@ -27,6 +28,16 @@ La Recipe fija:
 - skills que el asistente debe cargar;
 - quality gates que deben aportar evidencia;
 - ownership de archivos para evitar sobrescrituras.
+
+Las Surfaces componibles agregan clientes del producto sin multiplicar Golden Paths. En v0.9.0:
+
+```text
+Commercial SaaS → GP-07 / React Starter Kit
++ public-web    → Stardrive / apps/web
++ mobile        → Ignite / apps/mobile
+```
+
+`landing`, `blog` o `camera` son capabilities de una Surface, no Project Types ni evidencia de que ya estén implementadas.
 
 La misma automatización sirve a una persona y a veinte. Lo que cambia con el tamaño es la revisión humana, no la arquitectura de la plataforma.
 
@@ -142,6 +153,7 @@ Así Turso se evalúa por capacidad y riesgo, no como reemplazo global de Postgr
 | `eng check` | Selecciona gates según manifest y archivos |
 | `eng add` | Registra una capacidad y su trabajo pendiente; no inventa implementación |
 | `eng extend` | Incorpora otro starter en una ruta libre, con dry-run predeterminado |
+| `eng surface add` | Resuelve y agrega `public-web` o `mobile` por intención, con dry-run predeterminado |
 | `eng update` | Inspecciona pins y declara la estrategia; la actualización exige revisión |
 
 ## Modelo de equipo
@@ -190,4 +202,4 @@ docs/           guías humanas y decisiones
 make check
 ```
 
-El validator comprueba el paquete Pi, JSON, aliases, URLs duplicadas, referencias entre Recipes/boilerplates/datos/features/skills, pins, adapters, schemas y enlaces Markdown. Las pruebas ejercitan instalación aislada, rutas seguras, definición confirmada, resolución, handoff, extensión, compatibilidad y doctor. El workflow `release-pilots` materializa y verifica semanalmente los seis Recipes estables, conservando sus `.engineering` como evidencia descargable.
+El validator comprueba el paquete Pi, JSON, aliases, URLs duplicadas, referencias entre Recipes/boilerplates/datos/features/skills, pins, adapters, schemas y enlaces Markdown. Las pruebas ejercitan instalación aislada, rutas seguras, definición confirmada, resolución, handoff, extensión, compatibilidad y doctor. El workflow `release-pilots` materializa semanalmente los seis Recipes estables y cinco composiciones de Surface, conservando sus `.engineering` como evidencia descargable.

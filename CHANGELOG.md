@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-04
+
+- Añadidas Composable Project Surfaces sin multiplicar Golden Paths.
+- Añadidas `public-web` y `mobile` como primeras Surfaces; Stardrive e Ignite son sus providers curados.
+- Permitida la composición adicional en SaaS, Admin y Mobile según una matriz explícita de cada Recipe.
+- Añadidos capabilities por Surface, roles de starter y composición semántica en el manifest.
+- Añadido `eng surface add` con dry-run, aplicación transaccional e idempotencia.
+- Actualizados Architecture, Gentle, CI, discovery y evolución para respetar providers, destinos y requisitos pendientes.
+- Conservada la inspección de proyectos 0.8 mediante inferencia de provider sin inventar capabilities.
+- Añadidos evals, regresiones y escenarios multi-Surface para SaaS, Admin y Mobile.
+
 ## [0.8.0] - 2026-09-02
 
 - Completada la evidencia de AI Assistant y React Starter Kit; `eng boilerplate verify` ahora refleja en su código de salida cuando la verificación falla y conserva el JSON.
