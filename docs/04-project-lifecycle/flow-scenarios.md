@@ -1,6 +1,6 @@
 # Escenarios y combinaciones del flujo
 
-Qué resultado produce cada petición al inicio del flujo y qué caminos tiene la iteración principal. Todos los estados y errores de este documento fueron verificados contra `eng` 0.9.0; las combinaciones rechazadas muestran el mensaje real.
+Qué resultado produce cada petición al inicio del flujo y qué caminos tiene la iteración principal. Todos los estados y errores de este documento fueron verificados contra `eng` 0.10.0; las combinaciones rechazadas muestran el mensaje real.
 
 ## Puertas de entrada
 

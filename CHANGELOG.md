@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-05
+
 - README con tabla de boilerplates (cuándo se usa, dónde y URL, generada desde el registro) y retirada la fila GP-08.
 
 - `next-admin` curado y seleccionable: piloto en verde (npm ci, biome check, next build) en el pin `15e0a081`, adapter `overlay` → `apps/admin`, evidencia AI-friendly y `delivery_status: curated`; `recommend` ahora auto-selecciona una alternativa curada de la misma categoría cuando sus señales pesan más que las del default (`next-ecosystem` → `next-admin` con aviso; empates y alternativas no materializables conservan el default).

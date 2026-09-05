@@ -2,7 +2,7 @@
 
 Una base de ingeniería minimalista, práctica y opinionada para que una consultoría de **1 a 20 personas** inicie y mantenga proyectos sin volver a discutir el stack desde cero.
 
-> Versión: **0.9.0** · Composable Project Surfaces · Revisión: **2026-09-04**
+> Versión: **0.10.0** · Ruteo por intención + catálogo curado · Revisión: **2026-09-05**
 
 La idea es “Omarchy para proyectos”: pocos defaults buenos, comandos directos y automatización visible. No es un portal, un framework universal ni una colección de repositorios de moda.
 
