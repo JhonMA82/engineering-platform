@@ -18,17 +18,23 @@ from scripts.eng import (
     _apply_overlay,
     _adapter_environment,
     _render_adapter_command,
+    _resolve_surfaces,
     _run_record,
     _starter_capabilities,
     add_feature_to_project,
     adapter_preflight,
     boilerplate_references,
+    by_id,
     change_plan,
     command_install,
     command_check,
+    command_recommend,
     command_boilerplate_verify,
     command_start,
     command_uninstall,
+    data,
+    starter_ai_docs,
+    evolution_hints,
     evaluate_boilerplate,
     extend_project,
     inspect_project,
@@ -78,7 +84,7 @@ class BoilerplateCuratorTests(unittest.TestCase):
             "tauri-ui",
             "speedpy",
             "react-starter-kit",
-            "ai-assistant-starter",
+            "next-admin",
         ):
             with self.subTest(boilerplate_id=boilerplate_id):
                 self.assertTrue(verify_boilerplate(boilerplate_id)["ok"])
@@ -245,6 +251,37 @@ class RecipeResolverTests(unittest.TestCase):
             "database": "postgresql-managed",
         }
 
+    def test_next_ecosystem_signals_select_next_admin(self) -> None:
+        result = resolve_recipe(
+            {
+                "name": "next-shop",
+                "project_type": "institutional-admin",
+                "signals": ["workflow", "next-ecosystem", "public-private-hybrid"],
+                "database": "postgresql-managed",
+            }
+        )
+        self.assertEqual(result["recipe"]["id"], "GP-02")
+        self.assertEqual(
+            [(item["id"], item.get("destination")) for item in result["starters"]],
+            [("hono-api", "services/api"), ("next-admin", "apps/admin")],
+        )
+        self.assertTrue(
+            any("Se seleccionó next-admin sobre tanstack-admin" in w for w in result["warnings"])
+        )
+
+    def test_admin_signals_without_next_keep_default(self) -> None:
+        result = resolve_recipe(
+            {
+                "name": "classic-admin",
+                "project_type": "institutional-admin",
+                "signals": ["workflow", "requests"],
+                "database": "postgresql-managed",
+            }
+        )
+        self.assertEqual(
+            [item["id"] for item in result["starters"]], ["hono-api", "tanstack-admin"]
+        )
+
     def test_resolves_school_recipe_and_dependencies(self) -> None:
         result = resolve_recipe(self.school_intake())
         self.assertEqual(result["recipe"]["id"], "GP-02")
@@ -368,6 +405,282 @@ class RecipeResolverTests(unittest.TestCase):
             write_project(self.school_intake(), output)
             with self.assertRaises(PlatformError):
                 add_feature_to_project(output, "jobs", apply=True)
+
+
+class SurfaceCompositionTests(unittest.TestCase):
+    def multiapp_intake(self) -> dict:
+        return {
+            "name": "city-intake",
+            "project_type": "multi-app",
+            "signals": ["web-and-mobile", "shared-api"],
+            "database": "postgresql-managed",
+            "surfaces": [
+                {
+                    "id": "public-intake",
+                    "capabilities": ["form-capture", "offline-outbox", "tracking-token", "kiosk-mode"],
+                },
+                {"id": "mobile", "capabilities": ["authenticated-app"]},
+            ],
+        }
+
+    def saas_intake(self) -> dict:
+        return {
+            "name": "saas-desktop-demo",
+            "project_type": "commercial-saas",
+            "signals": ["billing", "organizations"],
+            "database": "postgresql-managed",
+            "surfaces": [{"id": "desktop", "capabilities": ["desktop-shell", "offline"]}],
+        }
+
+    def test_multi_app_intake_composes_intake_and_mobile_surfaces(self) -> None:
+        result = resolve_recipe(self.multiapp_intake())
+        self.assertEqual(
+            [item["id"] for item in result["starters"]],
+            ["hono-api", "tanstack-admin", "tanstack-transactional-pwa", "ignite"],
+        )
+        self.assertEqual(
+            {item["destination"] for item in result["starters"]},
+            {"services/api", "apps/admin", "apps/intake", "apps/mobile"},
+        )
+        self.assertEqual(
+            [(item["id"], item["provider"], item["destination"]) for item in result["surfaces"]],
+            [
+                ("public-intake", "tanstack-transactional-pwa", "apps/intake"),
+                ("mobile", "ignite", "apps/mobile"),
+            ],
+        )
+        self.assertEqual(
+            [item["role"] for item in result["starters"]],
+            ["primary", "primary", "surface", "surface"],
+        )
+
+    def test_commercial_saas_composes_desktop_surface(self) -> None:
+        result = resolve_recipe(self.saas_intake())
+        self.assertEqual(
+            [(item["id"], item["role"], item["destination"]) for item in result["starters"]],
+            [("react-starter-kit", "primary", "."), ("tauri-ui", "surface", "apps/desktop")],
+        )
+        self.assertEqual(
+            [(item["id"], item["provider"], item["destination"]) for item in result["surfaces"]],
+            [("desktop", "tauri-ui", "apps/desktop")],
+        )
+
+    def test_multi_app_composes_desktop_surface(self) -> None:
+        intake = self.multiapp_intake()
+        intake["surfaces"] = [{"id": "desktop", "capabilities": ["desktop-shell", "native-integration"]}]
+        result = resolve_recipe(intake)
+        self.assertEqual(
+            [(item["id"], item["destination"]) for item in result["starters"]],
+            [
+                ("hono-api", "services/api"),
+                ("tanstack-admin", "apps/admin"),
+                ("tauri-ui", "apps/desktop"),
+            ],
+        )
+        self.assertEqual(
+            [(item["id"], item["provider"], item["destination"]) for item in result["surfaces"]],
+            [("desktop", "tauri-ui", "apps/desktop")],
+        )
+
+    def test_desktop_provider_capability_coverage_error(self) -> None:
+        intake = self.saas_intake()
+        intake["surfaces"] = [{"id": "desktop", "capabilities": ["desktop-shell", "auto-update"]}]
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(intake)
+        self.assertIn("tauri-ui no cubre capabilities de desktop: auto-update", str(context.exception))
+
+    def test_rejects_capability_outside_desktop_vocabulary(self) -> None:
+        intake = self.saas_intake()
+        intake["surfaces"] = [{"id": "desktop", "capabilities": ["holograms"]}]
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(intake)
+        self.assertIn("Capabilities no reconocidas para desktop: holograms", str(context.exception))
+
+    def test_surface_provider_capability_coverage_error(self) -> None:
+        intake = self.multiapp_intake()
+        intake["surfaces"] = [{"id": "mobile", "capabilities": ["authenticated-app", "offline"]}]
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(intake)
+        self.assertIn("ignite no cubre capabilities de mobile: offline", str(context.exception))
+
+    def test_signals_imply_public_intake_surface(self) -> None:
+        result = resolve_recipe(
+            {
+                "name": "signal-portal",
+                "project_type": "multi-app",
+                "signals": ["shared-api", "kiosk-mode", "tracking-token"],
+                "database": "postgresql-managed",
+            }
+        )
+        self.assertEqual(result["recipe"]["id"], "GP-06")
+        self.assertEqual(
+            [item["id"] for item in result["starters"]],
+            ["hono-api", "tanstack-admin", "tanstack-transactional-pwa"],
+        )
+        self.assertTrue(
+            any("inferidas desde señales" in warning for warning in result["warnings"])
+        )
+
+    def test_admin_with_portal_signals_suggests_multi_app(self) -> None:
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(
+                {
+                    "name": "admin-signals",
+                    "project_type": "institutional-admin",
+                    "signals": ["workflow", "kiosk-mode"],
+                    "database": "postgresql-managed",
+                }
+            )
+        self.assertIn("multi-app", str(context.exception))
+
+    def test_ambiguous_signal_implies_no_surface(self) -> None:
+        result = resolve_recipe(
+            {
+                "name": "ambiguous",
+                "project_type": "multi-app",
+                "signals": ["shared-api", "offline"],
+                "database": "postgresql-managed",
+            }
+        )
+        self.assertEqual([item["id"] for item in result["starters"]], ["hono-api", "tanstack-admin"])
+
+    def test_evolution_hints_list_uninstalled_composable_surfaces(self) -> None:
+        manifest = resolve_recipe(
+            {
+                "name": "future-ready",
+                "project_type": "multi-app",
+                "signals": ["shared-api"],
+                "database": "postgresql-managed",
+            }
+        )
+        hints = evolution_hints(manifest)
+        self.assertEqual(len(hints), 3)
+        self.assertTrue(all("eng surface add" in hint for hint in hints))
+        admin = resolve_recipe(
+            {
+                "name": "admin-solo",
+                "project_type": "institutional-admin",
+                "signals": ["workflow"],
+                "database": "postgresql-managed",
+            }
+        )
+        self.assertEqual(evolution_hints(admin), [])
+
+    def test_recommend_suggest_returns_corrected_multi_app_intake(self) -> None:
+        intake = {
+            "name": "admin-portal-mix",
+            "project_type": "institutional-admin",
+            "signals": ["workflow"],
+            "database": "postgresql-managed",
+            "surfaces": [
+                {"id": "public-intake", "capabilities": ["form-capture", "kiosk-mode"]},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "intake.json"
+            path.write_text(dumps(intake), encoding="utf-8")
+            output = StringIO()
+            with redirect_stdout(output):
+                status = command_recommend(Namespace(input=str(path), suggest=True))
+        self.assertEqual(status, 0)
+        result = loads(output.getvalue())
+        self.assertTrue(result["corrected"])
+        self.assertEqual(result["corrected_intake"]["project_type"], "multi-app")
+        self.assertEqual(result["manifest"]["recipe"]["id"], "GP-06")
+
+    def test_recommend_suggest_passes_through_clean_intake(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "intake.json"
+            path.write_text(dumps(self.multiapp_intake()), encoding="utf-8")
+            output = StringIO()
+            with redirect_stdout(output):
+                status = command_recommend(Namespace(input=str(path), suggest=True))
+        self.assertEqual(status, 0)
+        result = loads(output.getvalue())
+        self.assertEqual(result["recipe"]["id"], "GP-06")
+
+    def test_starter_ai_docs_come_from_evidence(self) -> None:
+        boilerplates = by_id(data()["boilerplates"]["entries"])
+        docs = starter_ai_docs(boilerplates["tanstack-transactional-pwa"], "apps/intake")
+        self.assertIn("apps/intake/AGENTS.md", docs)
+        self.assertIn("apps/intake/docs/API-CONTRACT.md", docs)
+        self.assertEqual(starter_ai_docs({"id": "unknown"}, "apps/x"), [])
+        self.assertEqual(starter_ai_docs({}, None), [])
+
+    def test_admin_with_surface_suggests_multi_app(self) -> None:
+        intake = {
+            "name": "admin-portal-mix",
+            "project_type": "institutional-admin",
+            "signals": ["workflow", "public-intake", "kiosk-mode"],
+            "database": "postgresql-managed",
+            "surfaces": [
+                {"id": "public-intake", "capabilities": ["form-capture", "kiosk-mode"]},
+            ],
+        }
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(intake)
+        self.assertIn("no permite componer", str(context.exception))
+        self.assertIn("multi-app", str(context.exception))
+
+    def test_unknown_capability_suggests_canonical_synonym(self) -> None:
+        intake = self.multiapp_intake()
+        intake["surfaces"] = [{"id": "public-intake", "capabilities": ["qr-capture"]}]
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(intake)
+        message = str(context.exception)
+        self.assertIn("Capabilities no reconocidas para public-intake: qr-capture", message)
+        self.assertIn("qr-capture -> form-capture, tracking-token", message)
+
+    def test_rejects_unknown_surface_and_unverified_capability(self) -> None:
+        unknown_surface = self.multiapp_intake()
+        unknown_surface["surfaces"] = [{"id": "kiosk", "capabilities": []}]
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(unknown_surface)
+        self.assertIn("Surface desconocida: kiosk", str(context.exception))
+        unverified_capability = self.multiapp_intake()
+        unverified_capability["surfaces"] = [{"id": "public-intake", "capabilities": ["qr-capture"]}]
+        with self.assertRaises(PlatformError) as context:
+            resolve_recipe(unverified_capability)
+        self.assertIn(
+            "Capabilities no reconocidas para public-intake: qr-capture",
+            str(context.exception),
+        )
+
+    def test_recipe_without_surfaces_keeps_primary_starters_only(self) -> None:
+        intake = self.multiapp_intake()
+        intake.pop("surfaces")
+        result = resolve_recipe(intake)
+        self.assertEqual(
+            [item["id"] for item in result["starters"]],
+            ["hono-api", "tanstack-admin"],
+        )
+        self.assertEqual(result["surfaces"], [])
+
+    def test_saas_without_surfaces_keeps_primary_starters_only(self) -> None:
+        intake = self.saas_intake()
+        intake.pop("surfaces")
+        result = resolve_recipe(intake)
+        self.assertEqual(
+            [item["id"] for item in result["starters"]],
+            ["react-starter-kit"],
+        )
+        self.assertEqual(result["surfaces"], [])
+
+    def test_additional_surface_uses_extension_destination(self) -> None:
+        boilerplate_index = by_id(data()["boilerplates"]["entries"])
+        starters, surfaces = _resolve_surfaces(
+            {"surfaces": [{"id": "public-intake", "capabilities": ["kiosk-mode"]}]},
+            {"id": "GP-06", "composable_surfaces": ["public-intake"]},
+            [],
+            boilerplate_index,
+            selected_features=[],
+            database=None,
+        )
+        self.assertEqual([item["id"] for item in starters], ["tanstack-transactional-pwa"])
+        self.assertEqual(starters[0]["destination"], "apps/intake")
+        self.assertEqual(starters[0]["destination_override"], "apps/intake")
+        self.assertNotEqual(starters[0]["destination"], ".")
+        self.assertEqual(surfaces[0]["destination"], "apps/intake")
 
 
 class PiWorkflowTests(unittest.TestCase):
@@ -591,58 +904,6 @@ class PiWorkflowTests(unittest.TestCase):
         self.assertTrue((project / "GENTLE.md").exists())
         self.assertEqual(warnings, [])
 
-    def test_internal_starter_materializes_real_code(self) -> None:
-        intake = {
-            "name": "assistant-app",
-            "project_type": "ai-assistant",
-            "signals": ["chat", "tools"],
-            "features": [],
-            "excluded_features": [],
-            "database": "postgresql-managed",
-        }
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "assistant-app"
-            manifest = write_project(
-                intake, output, materialize=True, skip_setup=True, skip_checks=True
-            )
-            self.assertEqual(manifest["scaffold_status"], "materialized")
-            self.assertEqual(manifest["readiness"], "code-ready")
-            self.assertTrue((output / "src/app.ts").exists())
-            self.assertTrue((output / ".engineering/materialization.json").exists())
-            self.assertTrue((output / ".github/workflows/engineering.yml").exists())
-            self.assertTrue((output / ".git").is_dir())
-
-    def test_doctor_keeps_previous_materialized_manifest_upgradeable(self) -> None:
-        intake = {
-            "name": "assistant-app",
-            "project_type": "ai-assistant",
-            "signals": ["chat", "tools"],
-            "features": [],
-            "excluded_features": [],
-            "database": "postgresql-managed",
-        }
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "assistant-app"
-            write_project(
-                intake, output, materialize=True, skip_setup=True, skip_checks=True
-            )
-            manifest_path = output / ".engineering/project.json"
-            manifest = loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["platform_version"] = "0.7.0"
-            manifest.pop("capability_status")
-            manifest_path.write_text(dumps(manifest), encoding="utf-8")
-            handoff_path = output / ".engineering/gentle-handoff.json"
-            handoff = loads(handoff_path.read_text(encoding="utf-8"))
-            handoff["platform_version"] = "0.7.0"
-            handoff_path.write_text(dumps(handoff), encoding="utf-8")
-            (output / ".github/workflows/engineering.yml").unlink()
-
-            _, errors, warnings = inspect_project(output)
-
-            self.assertEqual(errors, [])
-            self.assertTrue(any("capability_status" in item for item in warnings))
-            self.assertTrue(any("CI raíz" in item for item in warnings))
-
     def test_project_schema_keeps_capability_status_optional(self) -> None:
         schema = loads(
             (Path(__file__).parents[1] / "schemas/project.schema.json").read_text(
@@ -651,28 +912,6 @@ class PiWorkflowTests(unittest.TestCase):
         )
         self.assertNotIn("capability_status", schema["required"])
         self.assertIn("capability_status", schema["properties"])
-
-    def test_extend_plans_new_starter_without_mutating_project(self) -> None:
-        intake = {
-            "name": "assistant-app",
-            "project_type": "ai-assistant",
-            "signals": ["chat", "tools"],
-            "features": [],
-            "excluded_features": [],
-            "database": "postgresql-managed",
-        }
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "assistant-app"
-            write_project(
-                intake, output, materialize=True, skip_setup=True, skip_checks=True
-            )
-            before = (output / ".engineering/project.json").read_bytes()
-            with patch("scripts.eng.adapter_preflight", return_value=[]):
-                result = extend_project(output, "tauri-ui")
-            self.assertEqual(result["destination"], "apps/desktop")
-            self.assertFalse(result["applied"])
-            self.assertEqual(before, (output / ".engineering/project.json").read_bytes())
-            self.assertFalse((output / "apps/desktop").exists())
 
     def test_adapter_command_rendering_is_data_driven(self) -> None:
         command = _render_adapter_command(
@@ -834,57 +1073,6 @@ class PiWorkflowTests(unittest.TestCase):
         self.assertEqual(result["setup"][0]["environment"], expected)
         self.assertTrue(all(record["environment"] == expected for record in result["checks"]))
 
-    def test_check_reuses_environment_from_materialization_records(self) -> None:
-        intake = {
-            "name": "assistant-app",
-            "project_type": "ai-assistant",
-            "signals": ["chat", "tools"],
-            "features": [],
-            "excluded_features": [],
-            "database": "postgresql-managed",
-        }
-        expected = {"STATIC_FLAG": "enabled"}
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "assistant-app"
-            write_project(
-                intake,
-                output,
-                materialize=True,
-                skip_setup=True,
-                skip_checks=True,
-            )
-            materialization_path = output / ".engineering/materialization.json"
-            materialization = loads(materialization_path.read_text(encoding="utf-8"))
-            for record in materialization["setup"] + materialization["checks"]:
-                record["environment"] = expected
-            materialization_path.write_text(dumps(materialization), encoding="utf-8")
-            calls: list[dict[str, str] | None] = []
-
-            def fake_run(
-                command: list[str],
-                _cwd: Path,
-                *,
-                gate: str | None = None,
-                environment: dict[str, str] | None = None,
-            ) -> dict:
-                calls.append(environment)
-                record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
-                if gate:
-                    record["gate"] = gate
-                return record
-
-            args = Namespace(project=str(output), changed_files=[], run=True)
-            with patch("scripts.eng.adapter_preflight", return_value=[]), patch(
-                "scripts.eng._run_record", side_effect=fake_run
-            ), patch("builtins.print"):
-                self.assertEqual(command_check(args), 0)
-
-            after = loads(materialization_path.read_text(encoding="utf-8"))
-
-        self.assertEqual(calls, [expected, *([expected] * 2)])
-        self.assertTrue(all(record["environment"] == expected for record in after["setup"]))
-        self.assertTrue(all(record["environment"] == expected for record in after["checks"]))
-
     def test_generated_ci_emits_only_declared_adapter_environment(self) -> None:
         manifest = {
             "starters": [
@@ -960,99 +1148,6 @@ class PiWorkflowTests(unittest.TestCase):
             _apply_overlay(adapter, destination)
             self.assertIn("Ignite mobile app", (destination / "AGENTS.md").read_text(encoding="utf-8"))
 
-    def test_materialization_is_single_source_and_keeps_safe_templates(self) -> None:
-        intake = {
-            "name": "assistant-app",
-            "project_type": "ai-assistant",
-            "signals": ["chat", "tools"],
-            "features": [],
-            "excluded_features": [],
-            "database": "postgresql-managed",
-        }
-        definition = self.definition()
-        definition["intake"] = intake
-        definition["idea"]["summary"] = "Asistente interno con controles y auditoría."
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "assistant-app"
-            write_project(
-                intake,
-                output,
-                definition=definition,
-                materialize=True,
-                skip_setup=True,
-                skip_checks=True,
-            )
-            manifest = loads((output / ".engineering/project.json").read_text(encoding="utf-8"))
-            handoff = loads(
-                (output / ".engineering/gentle-handoff.json").read_text(encoding="utf-8")
-            )
-            self.assertNotIn("materialization", manifest)
-            self.assertEqual(
-                manifest["$schema"],
-                f"https://raw.githubusercontent.com/JhonMA82/engineering-platform/v{PLATFORM_VERSION}/schemas/project.schema.json",
-            )
-            self.assertEqual(handoff["schema_version"], 2)
-            self.assertNotIn("stack", handoff)
-            self.assertTrue((output / ".env.example").exists())
-            self.assertEqual((output / ".git/HEAD").read_text(encoding="utf-8"), "ref: refs/heads/main\n")
-            self.assertEqual(
-                loads((output / ".engineering/project-definition.json").read_text(encoding="utf-8"))["$schema"],
-                f"https://raw.githubusercontent.com/JhonMA82/engineering-platform/v{PLATFORM_VERSION}/schemas/project-definition.schema.json",
-            )
-
-    def test_partial_check_preserves_unselected_checks_and_reuses_setup(self) -> None:
-        intake = {
-            "name": "assistant-app",
-            "project_type": "ai-assistant",
-            "signals": ["chat", "tools"],
-            "features": [],
-            "excluded_features": [],
-            "database": "postgresql-managed",
-        }
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "assistant-app"
-            write_project(
-                intake, output, materialize=True, skip_setup=True, skip_checks=True
-            )
-            materialization_path = output / ".engineering/materialization.json"
-            materialization = loads(materialization_path.read_text(encoding="utf-8"))
-            materialization["checks"].append(
-                {
-                    "starter": "assistant-app",
-                    "gate": "build",
-                    "command": ["npm", "run", "build"],
-                    "workdir": ".",
-                    "status": "skipped",
-                }
-            )
-            materialization["readiness"] = "verified"
-            materialization_path.write_text(dumps(materialization), encoding="utf-8")
-            manifest = loads((output / ".engineering/project.json").read_text(encoding="utf-8"))
-            manifest["readiness"] = "verified"
-            (output / ".engineering/project.json").write_text(dumps(manifest), encoding="utf-8")
-            calls: list[tuple[list[str], str | None]] = []
-
-            def fake_run(command: list[str], _cwd: Path, *, gate: str | None = None) -> dict:
-                calls.append((command, gate))
-                record = {"command": command, "workdir": ".", "returncode": 0, "status": "passed"}
-                if gate:
-                    record["gate"] = gate
-                return record
-
-            args = Namespace(project=str(output), changed_files=["src/app.ts"], run=True)
-            with patch("scripts.eng._run_record", side_effect=fake_run), patch("builtins.print"):
-                self.assertEqual(command_check(args), 0)
-            self.assertEqual([gate for _, gate in calls], [None, "typecheck", "test"])
-            after = loads(materialization_path.read_text(encoding="utf-8"))
-            self.assertEqual(len(after["checks"]), 3)
-            self.assertEqual(after["checks"][-1]["gate"], "build")
-            self.assertEqual(after["readiness"], "code-ready")
-
-            calls.clear()
-            with patch("scripts.eng._run_record", side_effect=fake_run), patch("builtins.print"):
-                self.assertEqual(command_check(args), 0)
-            self.assertEqual([gate for _, gate in calls], ["typecheck", "test"])
-
     def test_materialization_failure_leaves_target_unchanged(self) -> None:
         intake = self.definition()["intake"]
         with tempfile.TemporaryDirectory() as temporary:
@@ -1099,7 +1194,7 @@ class PiWorkflowTests(unittest.TestCase):
                     home
                     / ".local/share/engineering-platform"
                     / PLATFORM_VERSION
-                    / "starters/ai-assistant/.env.example"
+                    / "platform/boilerplates.json"
                 ).exists()
             )
             with patch("scripts.eng.shutil.which", return_value="/fake/pi"):

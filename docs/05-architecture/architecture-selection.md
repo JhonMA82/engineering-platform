@@ -9,7 +9,6 @@
 | Procesador local de PDF | GP-05 / Tauri | filesystem y offline |
 | Web + móvil | GP-06 | varios clientes, dominio compartido |
 | SaaS con billing | GP-07 / React Starter Kit | cobro y organizaciones reales |
-| Asistente con citas y tools | GP-08 | IA es el producto y necesita gobierno |
 
 Si dos caminos sirven, elige el de menor complejidad operacional. Una señal no basta para activar todos los packs: `billing` justifica GP-07, pero no jobs o webhooks ajenos al flujo de cobro.
 

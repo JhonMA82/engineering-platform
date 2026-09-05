@@ -44,6 +44,16 @@ SURFACE_CAPABILITIES = {
         "seo",
         "public-content",
     },
+    "public-intake": {
+        "form-capture",
+        "offline-drafts",
+        "offline-outbox",
+        "attachments-offline",
+        "tracking-token",
+        "kiosk-mode",
+        "pwa-installable",
+        "connectivity-status",
+    },
     "mobile": {
         "authenticated-app",
         "push-notifications",
@@ -54,8 +64,33 @@ SURFACE_CAPABILITIES = {
         "media",
         "background-tasks",
     },
+    "desktop": {
+        "desktop-shell",
+        "installer",
+        "local-files",
+        "native-integration",
+        "offline",
+        "auto-update",
+        "system-tray",
+        "deep-links",
+    },
 }
-_SURFACE_ORDER = {"public-web": 0, "mobile": 1}
+SURFACE_SYNONYMS = {
+    # User words to (surface, canonical capabilities). Used only for did-you-mean
+    # hints; the vocabulary in SURFACE_CAPABILITIES stays closed.
+    "qr": ("public-intake", ["form-capture", "tracking-token"]),
+    "qr-capture": ("public-intake", ["form-capture", "tracking-token"]),
+    "folio": ("public-intake", ["tracking-token"]),
+    "tracking-code": ("public-intake", ["tracking-token"]),
+    "kiosk": ("public-intake", ["kiosk-mode"]),
+    "kiosco": ("public-intake", ["kiosk-mode"]),
+    "offline-queue": ("public-intake", ["offline-outbox"]),
+    "offline-form": ("public-intake", ["form-capture", "offline-drafts"]),
+    "anonymous-form": ("public-intake", ["form-capture"]),
+}
+
+
+_SURFACE_ORDER = {"public-web": 0, "public-intake": 1, "mobile": 2, "desktop": 3}
 
 
 def _install_ignores(_directory: str, names: list[str]) -> set[str]:
@@ -166,9 +201,25 @@ def _requested_surfaces(intake: dict[str, Any]) -> list[dict[str, Any]]:
             raise PlatformError(f"Capabilities duplicadas para {surface_id}")
         invalid = sorted(set(capabilities) - SURFACE_CAPABILITIES[surface_id])
         if invalid:
-            raise PlatformError(
-                f"Capabilities no reconocidas para {surface_id}: {', '.join(invalid)}"
+            hints = []
+            for capability in invalid:
+                synonym = SURFACE_SYNONYMS.get(capability.lower().replace("_", "-"))
+                if synonym is not None:
+                    target, replacement = synonym
+                    if target == surface_id:
+                        hints.append(f"{capability} -> {', '.join(replacement)}")
+                    else:
+                        hints.append(
+                            f"{capability} pertenece a {target} "
+                            f"({', '.join(replacement)})"
+                        )
+            detail = (
+                f"Capabilities no reconocidas para {surface_id}: "
+                f"{', '.join(invalid)}"
             )
+            if hints:
+                detail += "; sugerencias: " + "; ".join(hints)
+            raise PlatformError(detail)
         seen.add(surface_id)
         requested.append({"id": surface_id, "capabilities": capabilities})
     return sorted(requested, key=lambda item: (_SURFACE_ORDER[item["id"]], item["id"]))
@@ -310,18 +361,21 @@ def _resolve_surfaces(
             )
             continue
         if not _recipe_allows_surface(recipe, surface_id):
-            raise PlatformError(f"{recipe['id']} no permite componer la Surface {surface_id}")
+            raise PlatformError(
+                f"{recipe['id']} no permite componer la Surface {surface_id}; "
+                "si el proyecto combina dashboard con portal o app movil, "
+                "usa project_type='multi-app' (GP-06 la permite)."
+            )
         candidates = _surface_provider_candidates(surface_id, boilerplate_index)
         if not candidates:
             raise PlatformError(f"No existe provider materializable para la Surface {surface_id}")
         provider = candidates[0]
         declared = _boilerplate_surface(provider, surface_id) or {}
-        if surface_id == "public-web":
-            missing = sorted(set(request["capabilities"]) - set(declared.get("capabilities", [])))
-            if missing:
-                raise PlatformError(
-                    f"{provider['id']} no cubre capabilities de {surface_id}: {', '.join(missing)}"
-                )
+        missing = sorted(set(request["capabilities"]) - set(declared.get("capabilities", [])))
+        if missing:
+            raise PlatformError(
+                f"{provider['id']} no cubre capabilities de {surface_id}: {', '.join(missing)}"
+            )
         starter, _, _ = _starter_manifest_entry(
             provider["id"],
             selected_features=selected_features,
@@ -498,9 +552,120 @@ def _write_text_atomic(path: Path, value: str) -> None:
     temporary.replace(path)
 
 
+AI_DOC_PATTERN = re.compile(r"\b[A-Za-z0-9_][A-Za-z0-9_./-]*\.md\b")
+
+
+def starter_ai_docs(entry: dict[str, Any], destination: str | None) -> list[str]:
+    """AI-facing doc paths declared in the boilerplate evidence, prefixed."""
+    evidence_ref = (entry.get("integration", {}) or {}).get("evidence")
+    if not evidence_ref:
+        return []
+    try:
+        evidence = read_json(ROOT / evidence_ref)
+    except PlatformError:
+        return []
+    docs: list[str] = []
+    prefix = (destination or "").strip()
+    if prefix in {"", "."}:
+        prefix = ""
+    for item in evidence.get("evidence", []):
+        if not isinstance(item, str):
+            continue
+        for token in AI_DOC_PATTERN.findall(item):
+            doc = token.rstrip(".,;:")
+            full = f"{prefix}/{doc}" if prefix else doc
+            if full not in docs:
+                docs.append(full)
+    return docs
+
+
+def starter_docs_map(manifest: dict[str, Any]) -> dict[str, list[str]]:
+    """Map starter id to its AI-facing docs (only starters declaring any)."""
+    boilerplates = by_id(data()["boilerplates"]["entries"])
+    docs_map: dict[str, list[str]] = {}
+    for starter in manifest.get("starters", []):
+        entry = boilerplates.get(starter.get("id"), {})
+        docs = starter_ai_docs(entry, starter.get("destination"))
+        if docs:
+            docs_map[starter["id"]] = docs
+    return docs_map
+
+
+def _capability_owner_surface(capability: str) -> str | None:
+    """Return the surface id if the capability belongs to exactly one surface."""
+    owners = [
+        surface_id
+        for surface_id, capabilities in SURFACE_CAPABILITIES.items()
+        if capability in capabilities
+    ]
+    return owners[0] if len(owners) == 1 else None
+
+
+def _implied_surface_ids(intake: dict[str, Any]) -> list[str]:
+    """Surface ids implied by domain signals (explicit surface or capability)."""
+    signals = set(intake.get("signals", []) or [])
+    implied: set[str] = set()
+    for signal in signals:
+        if signal in SURFACE_CAPABILITIES:
+            implied.add(signal)
+            continue
+        owner = _capability_owner_surface(signal)
+        if owner is not None:
+            implied.add(owner)
+    explicit = {
+        item.get("id")
+        for item in (intake.get("surfaces", []) or [])
+        if isinstance(item, dict)
+    }
+    return sorted(implied - explicit)
+
+
+def _implied_surface_requests(
+    intake: dict[str, Any], boilerplate_index: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Build surface requests from domain signals not declared in the intake."""
+    signals = set(intake.get("signals", []) or [])
+    capabilities_by_surface: dict[str, set[str]] = {}
+    for signal in signals:
+        if signal in SURFACE_CAPABILITIES:
+            capabilities_by_surface.setdefault(signal, set())
+            continue
+        owner = _capability_owner_surface(signal)
+        if owner is not None:
+            capabilities_by_surface.setdefault(owner, set()).add(signal)
+    requests = []
+    for surface_id in sorted(capabilities_by_surface):
+        capabilities = sorted(capabilities_by_surface[surface_id])
+        if not capabilities:
+            candidates = _surface_provider_candidates(surface_id, boilerplate_index)
+            if candidates:
+                declared = _boilerplate_surface(candidates[0], surface_id) or {}
+                capabilities = sorted(declared.get("capabilities", []))
+        requests.append({"id": surface_id, "capabilities": capabilities})
+    return requests
+
+
+def _requested_surface_ids(intake: dict[str, Any]) -> list[str]:
+    """Return known requested surface ids without validating vocabulary.
+
+    Includes surfaces implied by domain signals, so intent expressed only
+    as signals still selects a composable recipe.
+    """
+    value = intake.get("surfaces", [])
+    if not isinstance(value, list):
+        return []
+    explicit = {
+        item.get("id")
+        for item in value
+        if isinstance(item, dict) and item.get("id") in SURFACE_CAPABILITIES
+    }
+    return sorted(explicit.union(_implied_surface_ids(intake)))
+
+
 def _recipe_for_intake(intake: dict[str, Any], recipes: list[dict[str, Any]]) -> dict[str, Any]:
     project_type = intake.get("project_type")
     signals = set(intake.get("signals", []))
+    requested_surfaces = _requested_surface_ids(intake)
     ranked: list[tuple[int, dict[str, Any]]] = []
     for recipe in recipes:
         match = recipe["match"]
@@ -516,7 +681,28 @@ def _recipe_for_intake(intake: dict[str, Any], recipes: list[dict[str, Any]]) ->
         raise PlatformError(
             f"project_type={project_type!r} no está soportado. Opciones: {', '.join(supported)}"
         )
-    return ranked[0][1]
+    best = ranked[0][1]
+    if requested_surfaces and not all(
+        surface in best.get("composable_surfaces", []) for surface in requested_surfaces
+    ):
+        compatible = sorted(
+            recipe["id"]
+            for recipe in recipes
+            if all(
+                surface in recipe.get("composable_surfaces", [])
+                for surface in requested_surfaces
+            )
+        )
+        if not compatible:
+            raise PlatformError(
+                f"Ninguna Recipe permite componer las Surfaces {requested_surfaces}; "
+                "quitá surfaces del intake o proponé una decisión de plataforma."
+            )
+        raise PlatformError(
+            f"{best['id']} no permite componer las Surfaces {requested_surfaces}; "
+            f"reintentá con project_type='multi-app' ({', '.join(compatible)} la permiten)."
+        )
+    return best
 
 
 def _expand_features(
@@ -640,6 +826,50 @@ def _starter_manifest_entry(
     return starter, provided, unresolved
 
 
+def _select_starter(
+    starter_id: str,
+    *,
+    alternatives: list[str],
+    signals: list[str],
+    boilerplate_index: dict[str, dict[str, Any]],
+) -> tuple[str, str]:
+    """Swap to a same-category alternative on strictly stronger signals.
+
+    Returns (selected_id, note). A non-materializable alternative never
+    wins; it only produces a warning naming what is missing.
+    """
+    entries = boilerplate_index
+    default = entries.get(starter_id, {})
+    wanted = set(signals or [])
+    default_score = len(wanted.intersection(default.get("use_when", []) or []))
+    selected, score, note = starter_id, default_score, ""
+    for alt_id in alternatives or []:
+        alt = entries.get(alt_id, {})
+        if not alt or alt.get("category") != default.get("category"):
+            continue
+        matched = sorted(wanted.intersection(alt.get("use_when", []) or []))
+        if len(matched) <= score:
+            continue
+        materializable = (
+            alt.get("delivery_status") in {"curated", "released"}
+            and bool(alt.get("integration", {}).get("adapter"))
+            and bool(alt.get("upstream", {}).get("commit"))
+        )
+        if materializable:
+            selected, score = alt_id, len(matched)
+            note = (
+                f"Se seleccionó {alt_id} sobre {starter_id} por señales: "
+                + ", ".join(matched)
+            )
+        elif selected == starter_id:
+            note = (
+                f"{alt_id} justifica el intake por señales ({', '.join(matched)}) "
+                f"pero no es materializable ({alt.get('delivery_status')}); "
+                f"se usa {starter_id}."
+            )
+    return selected, note
+
+
 def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
     platform = data()
     recipe = _recipe_for_intake(intake, platform["recipes"]["paths"])
@@ -689,12 +919,21 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
     capability_providers: dict[str, list[str]] = {feature: [] for feature in features}
     warnings: list[str] = []
     for starter_id in recipe["stack"]["starters"]:
-        starter, provided_features, unresolved_features = _starter_manifest_entry(
+        selected_id, selection_note = _select_starter(
             starter_id,
+            alternatives=recipe["stack"].get("alternatives", []),
+            signals=intake.get("signals", []),
+            boilerplate_index=boilerplate_index,
+        )
+        if selection_note:
+            warnings.append(selection_note)
+        starter, provided_features, unresolved_features = _starter_manifest_entry(
+            selected_id,
             selected_features=features,
             database=requested_database,
             boilerplate_index=boilerplate_index,
         )
+        starter_id = selected_id
         for feature_id in provided_features:
             capability_providers[feature_id].append(starter_id)
         if unresolved_features:
@@ -704,8 +943,28 @@ def resolve_recipe(intake: dict[str, Any]) -> dict[str, Any]:
             )
         starter["role"] = "primary"
         starters.append(starter)
+    effective_intake = dict(intake)
+    implied_requests = [
+        request
+        for request in _implied_surface_requests(intake, boilerplate_index)
+        if request["id"] not in {
+            item.get("id")
+            for item in (intake.get("surfaces", []) or [])
+            if isinstance(item, dict)
+        }
+    ]
+    if implied_requests:
+        effective_intake["surfaces"] = list(intake.get("surfaces", []) or []) + implied_requests
+        warnings.append(
+            "Surfaces inferidas desde señales: "
+            + ", ".join(
+                f"{request['id']} ({', '.join(request['capabilities']) or 'sin capabilities'})"
+                for request in implied_requests
+            )
+            + "; declara capabilities explícitas en el intake para fijar el alcance."
+        )
     starters, surfaces = _resolve_surfaces(
-        intake,
+        effective_intake,
         recipe,
         starters,
         boilerplate_index,
@@ -817,7 +1076,7 @@ def agents_markdown(manifest: dict[str, Any]) -> str:
 Antes de cambiar código, lee `.engineering/project.json` y `ARCHITECTURE.md`.
 
 - Recipe: `{manifest['recipe']['id']}@{manifest['recipe']['version']}`.
-- Skills permitidos para esta arquitectura: {', '.join(f'`{item}`' for item in manifest['skills'])}.
+- Skills permitidos para esta arquitectura (post-bootstrap): {', '.join(f'`{item}`' for item in manifest['skills'] if item not in {'architecture-selector', 'project-bootstrap'})}.
 - Ejecuta los gates aplicables antes de terminar: {', '.join(f'`{item}`' for item in manifest['gates'])}.
 - Lee `GENTLE.md` para la intención del producto y la estrategia de entrega.
 - No agregues frameworks, bases de datos o feature packs sin actualizar primero el intake y resolver de nuevo la Recipe.
@@ -1597,6 +1856,8 @@ def gentle_handoff_data(
         "project": {"name": manifest["project"]["name"]},
         "composition": {
             "primary_recipe": manifest["recipe"]["id"],
+            "future_surfaces": uninstalled_composable_surfaces(manifest)[1],
+            "starter_docs": starter_docs_map(manifest),
             "primary_starters": [
                 item["id"]
                 for item in manifest.get("starters", [])
@@ -1645,6 +1906,13 @@ def gentle_markdown(
         if status.get("state") == "pending-implementation"
     ]
     pending_text = ", ".join(f"`{item}`" for item in pending) or "ninguna"
+    primaries = [item for item in manifest.get("starters", []) if item.get("role", "primary") == "primary"]
+    api_home = next(
+        (item.get("destination") for item in primaries if (item.get("destination") or "").startswith("services/")),
+        primaries[0].get("destination") if primaries else None,
+    )
+    if pending and api_home:
+        pending_text += f" (las implementa Gentle; destino por defecto: `{api_home}`)"
     primary = ", ".join(
         f"`{item['id']}` → `{item.get('destination') or 'por definir'}`"
         for item in manifest.get("starters", [])
@@ -1656,6 +1924,21 @@ def gentle_markdown(
         for item in _infer_surfaces(manifest)
     ]
     surface_text = "\n".join(surface_lines) or "- Ninguna Surface adicional solicitada."
+    _, future_missing = uninstalled_composable_surfaces(manifest)
+    future_text = "\n".join(
+        f"- `{surface_id}`: reservada por la Recipe, aún no instalada."
+        for surface_id in future_missing
+    ) or "- Ninguna: la Recipe no permite componer más surfaces."
+    docs_map = starter_docs_map(manifest)
+    by_destination = {item.get("id"): item for item in manifest.get("starters", [])}
+    starter_docs_lines = []
+    for starter_id, docs in docs_map.items():
+        destination = (by_destination.get(starter_id) or {}).get("destination") or "por definir"
+        starter_docs_lines.append(
+            f"- `{destination}` (`{starter_id}`): "
+            + ", ".join(f"`{doc}`" for doc in docs)
+        )
+    starter_docs_text = "\n".join(starter_docs_lines) or "- Ninguna declarada en la evidencia de curación."
     return f"""# Handoff a Gentle AI
 
 ## Contexto
@@ -1677,6 +1960,18 @@ Surfaces:
 
 {surface_text}
 
+## Superficies futuras
+
+{future_text}
+
+- No hardcodees rutas ni navegación de una surface futura dentro del admin u otra surface: cada cliente vive en su destino y comparte contratos y API.
+- Los contratos compartidos van primero: un campo que usará el portal o la app móvil se modela en la API, no en el frontend.
+- Cuando se confirme, `eng surface add <id> --project .` (dry-run primero, luego `--apply`, luego `eng doctor --project .`).
+
+## Documentación por starter
+
+{starter_docs_text}
+
 ## Fuentes de verdad
 
 - Idea y alcance: `{sources.get('idea', 'no disponible')}`
@@ -1691,6 +1986,7 @@ Surfaces:
 2. Decide entre ejecución directa y SDD según riesgo, ambigüedad, contratos, datos y permisos; registra brevemente el motivo.
 3. Conserva la Recipe, el stack, los patrones y las exclusiones; consulta las fuentes antes de desviarte.
 4. Implementa únicamente las capacidades pendientes que pertenezcan al incremento solicitado; una capability de Surface solicitada no está terminada hasta que código y checks lo demuestren.
+    4b. Aceptación por capability: API → gates `contract` e `integration`; clientes (admin/portal/móvil) → `build` + `security`; datos → `migration`. Sin su gate en verde, la capability sigue pendiente.
 5. Implementa el incremento vertical mínimo y ejecuta los quality gates indicados en `.engineering/project.json`.
 6. Si readiness es `code-ready`, ejecuta `eng check --run` antes de tratar el proyecto como verificado.
 7. No muevas ni sustituyas providers o rutas de Surface, no unifiques runtimes, no dupliques auth/backend y no compartas secretos con `public-web` sin un cambio arquitectónico explícito.
@@ -2022,6 +2318,31 @@ def inspect_project(project: Path) -> tuple[dict[str, Any], list[str], list[str]
         if handoff.get("strategy", {}).get("owner") != "gentle-ai":
             errors.append("El handoff no delega la estrategia de desarrollo a Gentle AI")
     return manifest, errors, warnings
+
+
+def uninstalled_composable_surfaces(manifest: dict[str, Any]) -> tuple[str, list[str]]:
+    """Return (recipe_id, surface ids) the recipe allows but are not installed."""
+    recipes = by_id(data()["recipes"]["paths"])
+    recipe = recipes.get(manifest.get("recipe", {}).get("id"))
+    if not recipe:
+        return "", []
+    installed = {item.get("id") for item in _infer_surfaces(manifest)}
+    missing = [
+        surface_id
+        for surface_id in recipe.get("composable_surfaces", [])
+        if surface_id not in installed
+    ]
+    return recipe["id"], missing
+
+
+def evolution_hints(manifest: dict[str, Any]) -> list[str]:
+    """Remind which composable surfaces the recipe allows but are not installed."""
+    recipe_id, missing = uninstalled_composable_surfaces(manifest)
+    return [
+        f"{recipe_id} permite componer {surface_id} (aún no instalada); "
+        f"ver: eng surface add {surface_id} --project . --dry-run"
+        for surface_id in missing
+    ]
 
 
 def _infer_capability_status(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -2743,8 +3064,38 @@ def command_boilerplate_remove(args: argparse.Namespace) -> int:
     return 0
 
 
+def suggest_intake_correction(intake: dict[str, Any], message: str) -> dict[str, Any] | None:
+    """Return a corrected intake for a recoverable recommend failure, if known."""
+    if "reintentá con project_type='multi-app'" in message and intake.get("project_type") != "multi-app":
+        corrected = dict(intake)
+        corrected["project_type"] = "multi-app"
+        return corrected
+    return None
+
+
 def command_recommend(args: argparse.Namespace) -> int:
     intake = read_json(Path(args.input))
+    if getattr(args, "suggest", False):
+        try:
+            print(dump_json(resolve_recipe(intake)), end="")
+            return 0
+        except PlatformError as exc:
+            corrected = suggest_intake_correction(intake, str(exc))
+            if corrected is None:
+                raise
+            manifest = resolve_recipe(corrected)
+            print(
+                dump_json(
+                    {
+                        "corrected": True,
+                        "correction": str(exc),
+                        "corrected_intake": corrected,
+                        "manifest": manifest,
+                    }
+                ),
+                end="",
+            )
+            return 0
     print(dump_json(resolve_recipe(intake)), end="")
     return 0
 
@@ -3131,6 +3482,7 @@ def command_doctor(args: argparse.Namespace) -> int:
         "project": manifest.get("project", {}).get("name"),
         "errors": errors,
         "warnings": warnings,
+        "evolution_hints": evolution_hints(manifest),
     }
     print(dump_json(result), end="")
     return 1 if errors else 0
@@ -3334,17 +3686,25 @@ def command_update(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="eng", description="Engineering Platform: recetas mínimas y verificables")
+    parser = argparse.ArgumentParser(
+        prog="eng",
+        description="Engineering Platform: recetas mínimas y verificables",
+        epilog=(
+            "Fases: [descubrir] catalog/boilerplate/recommend/new/start, "
+            "[componer] bootstrap/handoff, [evolucionar] add/extend/surface/update, "
+            "[verificar] doctor/plan/check, [entorno] install/uninstall."
+        ),
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {PLATFORM_VERSION}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    catalog = sub.add_parser("catalog", help="Listar boilerplates y estados")
+    catalog = sub.add_parser("catalog", help="[descubrir] Listar boilerplates y estados")
     catalog.add_argument("--category")
     catalog.add_argument("--decision-status")
     catalog.add_argument("--delivery-status")
     catalog.set_defaults(handler=command_catalog)
 
-    boilerplate = sub.add_parser("boilerplate", help="Curar un boilerplate")
+    boilerplate = sub.add_parser("boilerplate", help="[descubrir] Curar un boilerplate")
     boilerplate_sub = boilerplate.add_subparsers(dest="boilerplate_command", required=True)
     evaluate = boilerplate_sub.add_parser("evaluate", help="Detectar duplicado o alta candidata")
     evaluate.add_argument("repository")
@@ -3367,19 +3727,24 @@ def build_parser() -> argparse.ArgumentParser:
     remove_boilerplate.add_argument("--apply", action="store_true")
     remove_boilerplate.set_defaults(handler=command_boilerplate_remove)
 
-    recommend = sub.add_parser("recommend", help="Resolver una Recipe desde un intake")
+    recommend = sub.add_parser("recommend", help="[descubrir] Resolver una Recipe desde un intake")
     recommend.add_argument("--input", required=True)
+    recommend.add_argument(
+        "--suggest",
+        action="store_true",
+        help="Ante un project_type no componible, devuelve el intake corregido a multi-app con su manifest en vez de fallar",
+    )
     recommend.set_defaults(handler=command_recommend)
 
-    new = sub.add_parser("new", help="Crear blueprint reproducible desde un intake")
+    new = sub.add_parser("new", help="[descubrir] Crear blueprint reproducible desde un intake")
     new.add_argument("--from", dest="input", required=True)
     new.add_argument("--output", required=True)
     new.add_argument("--dry-run", action="store_true")
     new.set_defaults(handler=command_new)
 
     bootstrap = sub.add_parser(
-        "bootstrap", help="Crear proyecto y handoff desde una definición confirmada"
-    )
+        "bootstrap", help="[componer] Crear proyecto y handoff desde una definición confirmada"
+        )
     bootstrap.add_argument("--from", dest="input", required=True)
     bootstrap.add_argument("--output", default=".")
     bootstrap.add_argument("--dry-run", action="store_true")
@@ -3388,14 +3753,14 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap.set_defaults(handler=command_bootstrap)
 
     start = sub.add_parser(
-        "start", help="Crear una carpeta de proyecto en el workspace y abrir Pi"
-    )
+        "start", help="[descubrir] Crear una carpeta de proyecto en el workspace y abrir Pi"
+        )
     start.add_argument("name")
     start.add_argument("--workspace")
     start.add_argument("--dry-run", action="store_true")
     start.set_defaults(handler=command_start)
 
-    install = sub.add_parser("install", help="Instalar globalmente la integración Pi")
+    install = sub.add_parser("install", help="[entorno] Instalar globalmente la integración Pi")
     install.add_argument("--global", dest="global_install", action="store_true", required=True)
     install.add_argument("--target", choices=["pi"], default="pi")
     install.add_argument("--home", help=argparse.SUPPRESS)
@@ -3403,44 +3768,44 @@ def build_parser() -> argparse.ArgumentParser:
     install.add_argument("--dry-run", action="store_true")
     install.set_defaults(handler=command_install)
 
-    uninstall = sub.add_parser("uninstall", help="Retirar la integración Pi global")
+    uninstall = sub.add_parser("uninstall", help="[entorno] Retirar la integración Pi global")
     uninstall.add_argument("--global", dest="global_install", action="store_true", required=True)
     uninstall.add_argument("--target", choices=["pi"], default="pi")
     uninstall.add_argument("--home", help=argparse.SUPPRESS)
     uninstall.add_argument("--dry-run", action="store_true")
     uninstall.set_defaults(handler=command_uninstall)
 
-    doctor = sub.add_parser("doctor", help="Revisar coherencia de un proyecto")
+    doctor = sub.add_parser("doctor", help="[verificar] Revisar coherencia de un proyecto")
     doctor.add_argument("--project", default=".")
     doctor.add_argument("--global", dest="global_install", action="store_true")
     doctor.add_argument("--home", help=argparse.SUPPRESS)
     doctor.set_defaults(handler=command_doctor)
 
-    handoff = sub.add_parser("handoff", help="Regenerar instrucciones para Gentle AI")
+    handoff = sub.add_parser("handoff", help="[componer] Regenerar instrucciones para Gentle AI")
     handoff.add_argument("--project", default=".")
     handoff.set_defaults(handler=command_handoff)
 
-    plan = sub.add_parser("plan", help="Seleccionar skills y gates para un cambio")
+    plan = sub.add_parser("plan", help="[verificar] Seleccionar skills y gates para un cambio")
     plan.add_argument("--project", default=".")
     plan.add_argument("--change-type", choices=sorted(CHANGE_PLANS), required=True)
     plan.set_defaults(handler=command_plan)
 
-    check = sub.add_parser("check", help="Seleccionar gates por manifest y archivos")
+    check = sub.add_parser("check", help="[verificar] Seleccionar gates por manifest y archivos")
     check.add_argument("--project", default=".")
     check.add_argument("--changed-files", nargs="*")
     check.add_argument("--run", action="store_true", help="Ejecutar setup y checks registrados por los adapters")
     check.add_argument("--force-setup", action="store_true", help="Repetir la instalación aunque ya haya pasado")
     check.set_defaults(handler=command_check)
 
-    add = sub.add_parser("add", help="Planear o aplicar un feature pack")
+    add = sub.add_parser("add", help="[evolucionar] Planear o aplicar un feature pack")
     add.add_argument("feature")
     add.add_argument("--project", default=".")
     add.add_argument("--apply", action="store_true", help="Actualizar intake, manifest y secciones gestionadas")
     add.set_defaults(handler=command_add)
 
     extend = sub.add_parser(
-        "extend", help="Planear o agregar un starter a un proyecto existente"
-    )
+        "extend", help="[evolucionar] Planear o agregar un starter a un proyecto existente"
+        )
     extend.add_argument("starter")
     extend.add_argument("--project", default=".")
     extend.add_argument("--apply", action="store_true")
@@ -3448,7 +3813,7 @@ def build_parser() -> argparse.ArgumentParser:
     extend.add_argument("--skip-checks", action="store_true")
     extend.set_defaults(handler=command_extend)
 
-    surface = sub.add_parser("surface", help="Gestionar Surfaces componibles")
+    surface = sub.add_parser("surface", help="[evolucionar] Gestionar Surfaces componibles")
     surface_sub = surface.add_subparsers(dest="surface_command", required=True)
     surface_add = surface_sub.add_parser(
         "add", help="Resolver y agregar una Surface por intención de producto"
@@ -3461,7 +3826,7 @@ def build_parser() -> argparse.ArgumentParser:
     surface_add.add_argument("--skip-checks", action="store_true")
     surface_add.set_defaults(handler=command_surface_add)
 
-    update = sub.add_parser("update", help="Planear actualización según cada upstream")
+    update = sub.add_parser("update", help="[evolucionar] Planear actualización según cada upstream")
     update.add_argument("--project", default=".")
     update.add_argument("--check", action="store_true")
     update.set_defaults(handler=command_update)

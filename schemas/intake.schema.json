@@ -6,11 +6,24 @@
   "required": ["name", "project_type"],
   "properties": {
     "name": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
-    "project_type": {"enum": ["public-web", "admin", "institutional-admin", "python-data", "mobile", "desktop", "multi-app", "commercial-saas", "ai-assistant"]},
+    "project_type": {"enum": ["public-web", "admin", "institutional-admin", "python-data", "mobile", "desktop", "multi-app", "commercial-saas"]},
     "signals": {"type": "array", "items": {"type": "string"}},
     "features": {"type": "array", "items": {"type": "string"}},
     "excluded_features": {"type": "array", "items": {"type": "string"}},
     "database": {"type": ["string", "null"]},
-    "constraints": {"type": "array", "items": {"type": "string"}}
+    "constraints": {"type": "array", "items": {"type": "string"}},
+    "surfaces": {
+      "type": "array",
+      "description": "Surfaces componibles solicitadas; cada capability debe pertenecer al vocabulario de su Surface (scripts/eng.py SURFACE_CAPABILITIES).",
+      "items": {
+        "type": "object",
+        "required": ["id", "capabilities"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "enum": ["public-web", "public-intake", "mobile", "desktop"]},
+          "capabilities": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
   }
 }

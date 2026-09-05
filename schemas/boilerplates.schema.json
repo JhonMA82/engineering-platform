@@ -28,6 +28,22 @@
               "mode": {"enum": ["direct", "overlay", "curated-fork", "seed-fork", "internal", "reference-only"]},
               "update_strategy": {"type": "string"}
             }
+          },
+          "provides_surfaces": {
+            "type": "array",
+            "description": "Surfaces que este boilerplate puede materializar; cada capability debe estar verificada en su evidencia de curación (vocabulario: scripts/eng.py SURFACE_CAPABILITIES).",
+            "items": {
+              "type": "object",
+              "required": ["id", "capabilities"],
+              "properties": {
+                "id": {"type": "string", "enum": ["public-web", "public-intake", "mobile", "desktop"]},
+                "capabilities": {
+                  "type": "array",
+                  "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+                  "uniqueItems": true
+                }
+              }
+            }
           }
         }
       }

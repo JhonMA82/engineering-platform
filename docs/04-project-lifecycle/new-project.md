@@ -12,7 +12,7 @@ El launcher crea `~/dev/my-project`, cambia a ese directorio y abre Pi. Si Pi ya
 
 ## 1. Descubrimiento
 
-El skill `project-discovery` pregunta progresivamente por problema, usuarios, resultados, alcance, datos, permisos y restricciones. No pide un framework. Antes de escribir solicita confirmación explícita y guarda `.engineering/project-definition.json`.
+El skill `project-discovery` pregunta progresivamente por problema, usuarios, resultados, alcance, datos, permisos y restricciones, siempre con la tool nativa de preguntas: 2-4 opciones predefinidas por pregunta más escritura libre. No pide un framework. Después de cada ronda corre `eng recommend --suggest` como lectura provisional («con lo que sé iríamos a GP-X») y adopta la corrección si el motor la propone. Dos o más clientes (dashboard + portal/kiosco/móvil), o uno más otro futuro explícito, → `project_type: multi-app` (GP-06) compartiendo la misma API; el vocabulario de capabilities es cerrado y el lenguaje QR/kiosco/folio se traduce, no se copia. Antes de escribir solicita confirmación explícita y guarda `.engineering/project-definition.json`.
 
 ## 2. Resolución y bootstrap
 
@@ -29,7 +29,7 @@ eng doctor --project .
 eng check --project . --run
 ```
 
-`scaffold_status: materialized` confirma que el código existe. `readiness: verified` confirma además que pasaron los checks; `code-ready` exige ejecutar `eng check --run`.
+`eng doctor` además lista `evolution_hints` con las Surfaces componibles aún no instaladas. `scaffold_status: materialized` confirma que el código existe. `readiness: verified` confirma además que pasaron los checks; `code-ready` exige ejecutar `eng check --run`.
 El setup ya aprobado se reutiliza en comprobaciones posteriores; usa `eng check --project . --run --force-setup` solo cuando necesites reinstalar dependencias.
 
 ## 4. Materialización

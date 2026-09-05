@@ -26,4 +26,4 @@ En la primera salida identifica Recipe, starters, datos, features, skills, gates
 
 Una escuela única necesita solicitudes y aprobación. GP-02 cubre el problema; auth, RBAC y audit son necesarios. Multitenancy, jobs y mobile quedan fuera hasta que un requisito los active.
 
-Después revisa el [ejemplo completo](../13-examples/END_TO_END_SCHOOL_REQUESTS.md) y el [flujo de proyecto nuevo](../04-project-lifecycle/new-project.md).
+Después revisa el [ejemplo completo](../13-examples/END_TO_END_SCHOOL_REQUESTS.md), el [flujo de proyecto nuevo](../04-project-lifecycle/new-project.md) y los [escenarios y combinaciones del flujo](../04-project-lifecycle/flow-scenarios.md).

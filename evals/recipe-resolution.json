@@ -8,6 +8,7 @@
     {"id": "pdf-desktop", "intake": {"name": "pdf-desktop", "project_type": "desktop"}, "expected_recipe": "GP-05", "expected_database": "sqlite-local", "expected_features": ["observability"]},
     {"id": "shared-clients", "intake": {"name": "shared-clients", "project_type": "multi-app"}, "expected_recipe": "GP-06", "expected_database": "postgresql-managed", "expected_features": ["auth", "rbac", "audit", "api-keys", "observability"]},
     {"id": "paid-saas", "intake": {"name": "paid-saas", "project_type": "commercial-saas"}, "expected_recipe": "GP-07", "expected_database": "postgresql-managed", "expected_features": ["auth", "billing", "rbac", "audit", "multitenancy", "observability"]},
-    {"id": "governed-assistant", "intake": {"name": "governed-assistant", "project_type": "ai-assistant"}, "expected_recipe": "GP-08", "expected_database": "postgresql-managed", "expected_features": ["auth", "audit", "ai-tools", "observability"]}
+    {"id": "dashboard-plus-portal", "intake": {"name": "dashboard-plus-portal", "project_type": "multi-app", "signals": ["shared-api", "public-intake", "kiosk-mode"], "surfaces": [{"id": "public-intake", "capabilities": ["form-capture", "offline-outbox", "tracking-token", "kiosk-mode"]}]}, "expected_recipe": "GP-06", "expected_database": "postgresql-managed", "expected_features": ["auth", "rbac", "audit", "api-keys", "observability"]},
+    {"id": "dashboard-plus-mobile", "intake": {"name": "dashboard-plus-mobile", "project_type": "multi-app", "signals": ["shared-api", "web-and-mobile"], "surfaces": [{"id": "mobile", "capabilities": ["authenticated-app"]}]}, "expected_recipe": "GP-06", "expected_database": "postgresql-managed", "expected_features": ["auth", "rbac", "audit", "api-keys", "observability"]}
   ]
 }

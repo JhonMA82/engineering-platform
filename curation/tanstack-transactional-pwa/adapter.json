@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "tanstack-transactional-pwa",
+  "reviewed_at": "2026-09-04",
+  "source": {
+    "repository": "https://github.com/JhonMA82/tanstack-transactional-pwa",
+    "branch": "main",
+    "commit": "f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c",
+    "license": "MIT",
+    "package": "tanstack-transactional-pwa@0.1.0"
+  },
+  "requirements": [
+    {"executable": "bun", "version_prefix": "1.4.", "ci_version": "1.4.0"}
+  ],
+  "integration": {"mode": "direct", "remote": "seed-tanstack-transactional-pwa", "update_strategy": "curated-diff"},
+  "extension_destination": "apps/intake",
+  "materializer": {
+    "type": "git-copy",
+    "destination": ".",
+    "setup": [["bun", "install", "--frozen-lockfile"]],
+    "checks": [
+      {"gate": "lint", "command": ["bun", "run", "check"]},
+      {"gate": "typecheck", "command": ["bun", "run", "check-types"]},
+      {"gate": "test", "command": ["bun", "run", "test:run"]},
+      {"gate": "build", "command": ["bun", "run", "build"]}
+    ]
+  }
+}

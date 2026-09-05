@@ -1,9 +1,48 @@
 {
   "schema_version": 1,
   "boilerplate_id": "tauri-ui",
-  "reviewed_at": "2026-08-31",
+  "reviewed_at": "2026-09-04",
   "ai_friendly": "medium",
   "evidence": ["non-interactive generator", "native smoke matrix", "stable Vite template"],
   "gaps": ["generated project has no AGENTS.md", "transitive upstream CLIs are not commit-pinned"],
-  "decision": "overlay-with-curated-fork-follow-up"
+  "decision": "overlay-with-curated-fork-follow-up",
+  "pilot": {
+    "date": "2026-09-04",
+    "runtime": "bun 1.4.0, node 22.23.1 (adapter requires node 24.x; generator ran under 22 without failures)",
+    "commit": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea",
+    "clone": "/tmp/opencode/pilots/tauri-ui",
+    "app": "/tmp/opencode/pilots/tauri-ui-app",
+    "commands": [
+      {"command": "git checkout 8eb86d894c19b6df04ff883ab28b412b1e5f23ea", "status": "pass", "result": "git rev-parse HEAD equals the pin; upstream master HEAD matches the pin (default branch is master; refs/heads/main does not exist although registry/adapter record 'main')"},
+      {"command": "git apply curation/tauri-ui/patches/create-tauri-app-version.patch", "status": "pass", "result": "applied cleanly with 1-line offset; pins transitive create-tauri-app to 4.6.2"},
+      {"command": "bun install --frozen-lockfile (source)", "status": "pass", "result": "771 packages installed in 16.40s"},
+      {"command": "bun run --cwd packages/create-tauri-ui build", "status": "pass", "result": "unbuild dist/index.mjs 64.1 kB, exit 0"},
+      {"command": "node packages/create-tauri-ui/index.js {output} --template vite --yes --no-workflow", "status": "pass", "result": "4 phases in 66s; two earlier attempts failed with ENOSPC during shadcn init bun add because /tmp is a 1.9G tmpfs at 100% capacity — environmental, not a template defect"},
+      {"command": "bun install --frozen-lockfile (generated app)", "status": "pass", "result": "505 installs across 554 packages checked, no changes (generator pre-installed)"},
+      {"command": "bun run build", "status": "pass", "result": "tsc -b && vite build in 7.64s, exit 0; single >500 kB chunk warning only"}
+    ]
+  },
+  "license": "MIT declared in README (License section) and packages/create-tauri-ui/package.json; no LICENSE file in the repository at the pinned commit (deleted upstream in 0a9dce3, 2023)",
+  "verified_capabilities": [
+    "Tauri v2 native desktop shell: main window 1400x918 centered, hidden until first page load then shown (src-tauri/tauri.conf.json app.windows; src-tauri/src/lib.rs on_page_load -> window().show(); src-tauri/src/main.rs entrypoint)",
+    "cross-platform bundling config for installers: bundle.active=true with targets 'all' and icns/ico/png icon set (src-tauri/tauri.conf.json bundle; src-tauri/icons/); config verified only — actual installer generation requires cargo/tauri build, outside the registered checks",
+    "Rust IPC command wired end-to-end: greet command registered in invoke_handler (src-tauri/src/lib.rs) consumed via trackedInvoke('greet') (src/components/greet.tsx; src/lib/tauri.ts invoke+emit wrapper)",
+    "structured logging: tauri-plugin-log with Stdout, LogDir and Webview targets (src-tauri/Cargo.toml; src-tauri/src/lib.rs; @tauri-apps/plugin-log in package.json)",
+    "system opener integration: tauri-plugin-opener 2 with opener:default permission (src-tauri/Cargo.toml; src-tauri/capabilities/default.json; @tauri-apps/plugin-opener 2.5.5)",
+    "external-link guard: custom on_navigation plugin sends external http/https/mailto/tel to the system browser (src-tauri/src/lib.rs external_navigation_plugin; src/components/external-link-guard.tsx)",
+    "Tauri v2 ACL capabilities scaffold against desktop schema (src-tauri/capabilities/default.json: core:default, opener:default, log:default)",
+    "offline-by-architecture frontend: production UI served from bundled assets (tauri.conf.json build.frontendDist ../dist) with zero network calls in src (rg fetch/axios/XMLHttpRequest/WebSocket/EventSource: no matches) and local Inter fonts (@fontsource-variable/inter; woff2 emitted to dist/assets)",
+    "React 19 + Vite 8 (rolldown) + TypeScript build with tsc -b type gate in the build script (package.json scripts.build; vite.config.ts)",
+    "shadcn/ui b0 preset dashboard starter with Tailwind v4 (components.json; src/App.tsx; src/components/*)",
+    "invoke/event tracking with debug panel (src/lib/debug-events.ts; src/components/debug-panel.tsx)"
+  ],
+  "declared_vs_verified": [
+    "use_when lists local-files, but the generated template ships no tauri-plugin-fs, no fs:* permissions and no @tauri-apps/plugin-fs; local file I/O must be added by the project (opener only opens/reveals paths with the system default app)",
+    "native-integration verified in narrow scope only: greet IPC, logging, opener, external-link guard; no notifications, global shortcuts, clipboard or single-instance plugins present",
+    "auto-update, system-tray and deep-links are absent: no tauri-plugin-updater, no app.trayIcon config, no tauri-plugin-deep-link anywhere in src-tauri or package.json",
+    "desktop-shell and installer capabilities verified at source/config level only: the registered build gate is frontend (tsc -b && vite build); the Rust layer and real installer generation were not exercised (cargo build outside registered checks)",
+    "offline is architectural (bundled assets, no server dependency), not a data-layer capability: no offline storage plugin, sync or service worker in the template",
+    "materialization depends on live network state: shadcn@4.16.1 init and create-tauri-app@4.6.2 (patch-pinned) are fetched from the registry at generation time; upstream default branch is master while registry/adapter record 'main'",
+    "repository has no LICENSE file at the pinned commit (deleted upstream in 0a9dce3, 2023); MIT is README/package declared only"
+  ]
 }

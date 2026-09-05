@@ -13,6 +13,8 @@
     {"id": "authorization", "path": ".opencode/skills/authorization/SKILL.md", "scope": "project", "purpose": "Modelar permisos y probar denegación, aislamiento y auditoría."},
     {"id": "security-review", "path": ".opencode/skills/security-review/SKILL.md", "scope": "project", "purpose": "Revisar fronteras de confianza y riesgos del cambio."},
     {"id": "react-starter-kit-updater", "path": ".opencode/skills/react-starter-kit-updater/SKILL.md", "scope": "project", "purpose": "Actualizar React Starter Kit conservando identidad con merge-seed."},
-    {"id": "knowledge-capture", "path": ".opencode/skills/knowledge-capture/SKILL.md", "scope": "platform", "purpose": "Convertir soluciones repetibles en conocimiento o mejora de la plataforma."}
+    {"id": "knowledge-capture", "path": ".opencode/skills/knowledge-capture/SKILL.md", "scope": "platform", "purpose": "Convertir soluciones repetibles en conocimiento o mejora de la plataforma."},
+    {"id": "project-discovery", "path": "pi-skills/project-discovery/SKILL.md", "scope": "platform", "purpose": "Descubrir la idea en texto libre y preparar la definición confirmada para bootstrap."},
+    {"id": "project-evolution", "path": "pi-skills/project-evolution/SKILL.md", "scope": "project", "purpose": "Aplicar cambios posteriores al bootstrap (starter, capacidad o surface) sin regenerar."}
   ]
 }

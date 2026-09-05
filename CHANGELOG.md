@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+- README con tabla de boilerplates (cuándo se usa, dónde y URL, generada desde el registro) y retirada la fila GP-08.
+
+- `next-admin` curado y seleccionable: piloto en verde (npm ci, biome check, next build) en el pin `15e0a081`, adapter `overlay` → `apps/admin`, evidencia AI-friendly y `delivery_status: curated`; `recommend` ahora auto-selecciona una alternativa curada de la misma categoría cuando sus señales pesan más que las del default (`next-ecosystem` → `next-admin` con aviso; empates y alternativas no materializables conservan el default).
+
+- Se retira `self-hosted-ai-starter-kit` del catálogo (11 entradas; sin uso en Recipes).
+
+- Borrado total de GP-08: se retiran `ai-assistant-starter` (entrada, `starters/ai-assistant/`, `curation/ai-assistant-starter/`), la Recipe GP-08 con su ficha, `ai-assistant` del enum de `project_type`, el eval `governed-assistant` y 6 tests de materialización offline (sin starter local, esa cobertura se pierde; el resto del flujo se verifica en blueprint).
+- Restaurado `goship` en el catálogo (13 entradas) tras confirmar que sí tiene repo.
+
+- Catálogo reducido a 12 entradas: se retiran `consulting-admin-family`, `speedpy-lite`, `institutional-operations-starter`, `python-service-starter`, `vercel-chatbot`, `open-saas` y `goship` (sin uso previsto); se limpian alternativas de GP-03/GP-07/GP-08, `solution_packs` de GP-02, fichas y matriz de escenarios. GP-08 se conserva con `ai-assistant-starter` pendiente de revisión.
+
+- El handoff enlaza la documentación por starter: los paths `*.md` de cada `evidence.json` llegan a `composition.starter_docs` y a la sección «Documentación por starter» de `GENTLE.md` (p. ej. `apps/intake/docs/API-CONTRACT.md`), para que Gentle no tenga que descubrirlos.
+
+- Handoff más AI-friendly: tildes consistentes en `GENTLE.md`, las capacidades pendientes indican destino por defecto (`services/api`), nueva regla de aceptación por capability (API → `contract`+`integration`, clientes → `build`+`security`, datos → `migration`), y `AGENTS.md` lista solo skills post-bootstrap.
+
+- Test de scaffold punta a punta (`tests/test_scaffold_flow.py`, 3 escenarios): idea → blueprint generado; verifica starters/surfaces elegidos, archivos (`GENTLE.md`, `AGENTS.md`, `ARCHITECTURE.md`, `.engineering/*`), contenidos clave (`future_surfaces`, sección Superficies futuras) y `doctor` limpio.
+
+- Test de flujo de intención (`tests/test_intent_flow.py`, 7 escenarios): idea completa, solo señales, admin que pide portal (error + autocorrección vía `--suggest`), admin con solo señales, vocabulario inventado (did-you-mean), móvil futuro (Recipe componible + `evolution_hints`) y admin solo mínimo.
+
+- Discovery con opciones guiadas: `project-discovery` ahora exige la tool nativa de preguntas de Pi (`ask_user_question`) con 2-4 opciones predefinidas de necesidades/clientes/alcance (nunca stack ni Recipes) más la fila de escritura libre de la tool; se elimina la prohibición anterior de selectores.
+
+- La idea manda aunque el intake venga imperfecto: `recommend`/`bootstrap`/`new` ahora infieren Surfaces desde señales de dominio (`kiosk-mode`/`tracking-token` → `public-intake` con esas capabilities, solo si la señal pertenece a una única surface) y avisan en `warnings`; la inferencia también filtra la Recipe (`admin` + señales de kiosco sugiere `multi-app` en vez de un dashboard mudo). Sumados 3 tests de inferencia, eval `portal-signals-only` y notas en `flow-scenarios.md` y `project-discovery`.
+
+- Flujo por intención de cliente (8 refuerzos): `skills/registry.json` registra `project-discovery` y `project-evolution` (antes huérfanos); `eng recommend --suggest` devuelve el intake corregido a `multi-app` con su manifest en vez de solo fallar; `project-discovery` valida con `recommend --suggest` provisional en cada ronda; nuevo `SURFACE_SYNONYMS` con sugerencias did-you-mean ante capabilities inventadas (`qr-capture` → `form-capture, tracking-token`); nuevo `evals/discovery-cases.json` con 4 casos usuario→intake→Recipe (incluye cliente móvil futuro sin surfaces iniciales); `eng doctor` suma `evolution_hints` con las surfaces componibles aún no instaladas; el handoff (`gentle-handoff.json` + `GENTLE.md`) declara `future_surfaces` con guardarraíles de composición; y el help de `eng` agrupa comandos por fase (`descubrir/componer/evolucionar/verificar/entorno`). Documentación sincronizada: `flow-scenarios.md` refleja los mensajes y matrices reales (verificados contra el motor), `new-project.md` documenta la validación provisional y la regla `multi-app`, y `skills-and-routing.md` registra el routing por registry de discovery/evolution.
+
+- Ruteo por intención de cliente en `recommend`: la selección de Recipe ahora filtra por las Surfaces solicitadas y, si el `project_type` no permite componerlas, falla con la corrección exacta (`reintentá con project_type='multi-app'`, GP-06); GP-06 amplía sus señales de dominio (`public-intake`, `kiosk-mode`, `tracking-token`, `offline-sync`, `form-capture`, `offline-outbox`, `pwa-installable`, `field-app`, `camera`, `push`, `offline`); `project-discovery` y `architecture-selector` documentan la tabla clientes→intake (dos o más clientes, o uno más otro futuro explícito, → `multi-app` compartiendo la misma API; el vocabulario de capabilities es cerrado y el lenguaje QR/kiosco/folio se traduce, no se copia); sumados evals `dashboard-plus-portal` y `dashboard-plus-mobile` más la regresión `admin+surface sugiere multi-app`.
+
+- Habilitada la Surface `desktop` con proveedor curado: `tauri-ui` declara `provides_surfaces` respaldado por la evidencia del piloto en el pin `8eb86d89` (desktop-shell, installer verificado a nivel de configuración, native-integration en alcance estrecho y offline arquitectural), GP-07 y GP-06 la admiten en `composable_surfaces`, y se retira `local-files` de su `use_when` porque la plantilla no incluye plugin fs.
+
+- Habilitada la composición real de Surfaces: `public-intake` entra al vocabulario de capabilities de Surface, GP-06 declara `composable_surfaces` (`public-intake` y `mobile`), `tanstack-transactional-pwa` e Ignite registran `provides_surfaces` limitado a capabilities verificadas en su evidencia de curación, el adapter declara `apps/intake` como destino de Surface adicional y la verificación de cobertura de capabilities del provider se aplica a toda Surface solicitada, no solo `public-web`.
+
+- Registrado `tanstack-transactional-pwa` como `specialized`/`curated` tras un piloto completo en el pin `f2571ea8` (install, Biome, tipos, pruebas y build en verde con Bun 1.4.0), con adapter `git-copy` de modo directo, evidencia AI-friendly y ficha en `catalog/profiles/`; cubre captura pública offline con outbox idempotente, adjuntos Blob, kiosco y token de seguimiento, brechas que ningún starter del catálogo cubría.
+
 ## [0.9.0] - 2026-09-04
 
 - Añadidas Composable Project Surfaces sin multiplicar Golden Paths.

@@ -20,6 +20,20 @@ class DecisionEvalTests(unittest.TestCase):
                 self.assertEqual(result["database"], case["expected_database"])
                 self.assertEqual(result["features"], case["expected_features"])
 
+    def test_discovery_cases_resolve_to_expected_recipe(self) -> None:
+        cases = json.loads((ROOT / "evals/discovery-cases.json").read_text(encoding="utf-8"))["cases"]
+        for case in cases:
+            with self.subTest(case=case["id"]):
+                result = resolve_recipe(case["expected_intake"])
+                self.assertEqual(result["recipe"]["id"], case["expected_recipe"])
+                self.assertEqual(result["database"], case["expected_database"])
+                self.assertEqual(result["features"], case["expected_features"])
+                if "expected_starters" in case:
+                    self.assertEqual(
+                        [item["id"] for item in result["starters"]],
+                        case["expected_starters"],
+                    )
+
     def test_boilerplate_curator_cases(self) -> None:
         cases = json.loads((ROOT / "evals/boilerplate-curation.json").read_text(encoding="utf-8"))["cases"]
         for case in cases:

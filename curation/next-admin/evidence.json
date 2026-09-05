@@ -1,0 +1,28 @@
+{
+  "ai_friendly": "high",
+  "boilerplate_id": "next-admin",
+  "decision": "direct",
+  "evidence": [
+    "AGENTS.md with routing, shadcn and Next-docs rules",
+    "Next.js 16 + React 19 + Tailwind v4 + shadcn/radix-nova",
+    "biome check clean across 251 files",
+    "next build passes (static + dynamic dashboard routes)",
+    "npm scripts for check/lint/format/build",
+    "package-lock.json with pinned dependencies"
+  ],
+  "gaps": [
+    "no upstream CI",
+    "no tests directory upstream",
+    "same author as tanstack-admin, shared maintenance risk"
+  ],
+  "pilot": {
+    "build": "next build exit 0",
+    "check": "biome check clean, 251 files",
+    "commit": "15e0a081bc1acad2b47adc638471b6e67fa36f10",
+    "date": "2026-09-05",
+    "install": "npm ci, 549 packages in 34s",
+    "runtime": "node v22.23.1"
+  },
+  "reviewed_at": "2026-09-05",
+  "schema_version": 1
+}

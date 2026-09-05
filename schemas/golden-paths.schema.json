@@ -27,6 +27,12 @@
           },
           "skills": {"type": "array", "minItems": 1, "items": {"type": "string"}},
           "gates": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "composable_surfaces": {
+            "type": "array",
+            "description": "Surfaces que esta Recipe permite componer además de sus starters primarios; el provider se resuelve entre los boilerplates que declaran provides_surfaces.",
+            "items": {"type": "string", "enum": ["public-web", "public-intake", "mobile", "desktop"]},
+            "uniqueItems": true
+          },
           "exclusions": {"type": "array", "items": {"type": "string"}}
         }
       }

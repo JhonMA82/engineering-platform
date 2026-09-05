@@ -83,7 +83,7 @@ Necesidad: “Una escuela necesita solicitudes internas, adjuntos y aprobación�
 
 ## Catálogo sin duplicados
 
-El catálogo anterior fue integrado, no descartado. Las 17 entradas y sus fichas se conservan en [`catalog/legacy-v1.2.3`](catalog/legacy-v1.2.3/README.md); el registro normalizado vigente es [`platform/boilerplates.json`](platform/boilerplates.json).
+El catálogo anterior fue integrado, no descartado. Las entradas originales y sus fichas se conservan en [`catalog/legacy-v1.2.3`](catalog/legacy-v1.2.3/README.md); el registro normalizado vigente es [`platform/boilerplates.json`](platform/boilerplates.json).
 
 Cada entrada tiene dos estados independientes:
 
@@ -108,6 +108,24 @@ Resultado actual: `ALREADY_REGISTERED`. React Starter Kit conserva una sola entr
 
 El resultado pasa a `ALREADY_REGISTERED_REFRESH`, no a una entrada duplicada. El skill [`boilerplate-curator`](.opencode/skills/boilerplate-curator/SKILL.md) guía la inspección, comparación y registro completo.
 
+## Boilerplates
+
+_Generada desde [`platform/boilerplates.json`](platform/boilerplates.json): id, cuándo se usa y URL._
+
+| Boilerplate | Cuándo se usa | Dónde | URL |
+|---|---|---|---|
+| `stardrive` | `landing`, `blog`, `documentation`, `public-content` | GP-01 (primary) | [https://github.com/peltmonger/stardrive](https://github.com/peltmonger/stardrive) |
+| `tanstack-admin` | `admin`, `crm`, `workflow`, `external-api` | GP-02 (primary), GP-06 (primary) | [https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard](https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard) |
+| `next-admin` | `next-ecosystem`, `public-private-hybrid` | GP-02 (alternativa) | [https://github.com/arhamkhnz/next-shadcn-admin-dashboard](https://github.com/arhamkhnz/next-shadcn-admin-dashboard) |
+| `ignite` | `native-mobile`, `field-app` | GP-04 (primary), surface `mobile` en GP-06 | [https://github.com/infinitered/ignite](https://github.com/infinitered/ignite) |
+| `tauri-ui` | `desktop`, `native-capabilities` | GP-05 (primary), surface `desktop` en GP-06, GP-07 | [https://github.com/agmmnn/tauri-ui](https://github.com/agmmnn/tauri-ui) |
+| `speedpy` | `excel`, `documents`, `reports`, `python-data`, `django-admin` | GP-02 (alternativa), GP-03 (primary) | [https://github.com/speedpy/speedpy](https://github.com/speedpy/speedpy) |
+| `fastapi` | `python-api`, `ai-data-backend`, `multiple-clients` | GP-03 (alternativa), GP-06 (alternativa) | [https://github.com/fastapi/full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) |
+| `react-starter-kit` | `commercial-saas`, `cloudflare-first`, `billing`, `organizations` | GP-07 (primary) | [https://github.com/kriasoft/react-starter-kit](https://github.com/kriasoft/react-starter-kit) |
+| `goship` | `measured-go-advantage`, `sse`, `webhooks` | solo catálogo | [https://github.com/leomorpho/goship](https://github.com/leomorpho/goship) |
+| `hono-api` | `multiple-clients`, `integrations`, `typescript-domain`, `openapi` | GP-02 (primary), GP-04 (primary), GP-06 (primary) | [https://github.com/JhonMA82/api-starter](https://github.com/JhonMA82/api-starter) |
+| `tanstack-transactional-pwa` | `public-intake`, `offline-sync`, `kiosk`, `qr-capture`, `tracking-token` | surface `public-intake` en GP-06 | [https://github.com/JhonMA82/tanstack-transactional-pwa](https://github.com/JhonMA82/tanstack-transactional-pwa) |
+
 ## Golden Paths vigentes
 
 | Recipe | Default | Canal |
@@ -119,7 +137,6 @@ El resultado pasa a `ALREADY_REGISTERED_REFRESH`, no a una entrada duplicada. El
 | GP-05 Desktop | Tauri UI | stable |
 | GP-06 Multi-App | TanStack Admin + Hono API | stable |
 | GP-07 Commercial SaaS | React Starter Kit | trial |
-| GP-08 Governed AI Assistant | AI Assistant Starter | trial |
 
 El resolver incluye alternativas, datos permitidos, features, skills, gates y exclusiones; esta tabla es solo el mapa rápido.
 

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "tanstack-transactional-pwa",
+  "reviewed_at": "2026-09-04",
+  "ai_friendly": "high",
+  "evidence": [
+    "AGENTS.md with boundaries, commands and definition of done",
+    "docs/API-CONTRACT.md declaring POST/GET /v1/public/intake/submissions and server obligations",
+    "docs/CURATION.md with explicit scope, exclusions and outbox limits",
+    "SECURITY.md and NOTICE.md (Better-T-Stack 3.42.2 attribution, MIT)",
+    "bun.lock with pinned dependencies (Bun 1.4 workspace)",
+    "offline persistence tests (vitest + fake-indexeddb)"
+  ],
+  "gaps": [
+    "no upstream CI",
+    "no releases",
+    "single maintainer, one commit, new repository (maintenance tier B)"
+  ],
+  "decision": "direct",
+  "pilot": {
+    "date": "2026-09-04",
+    "runtime": "bun 1.4.0",
+    "commit": "f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c",
+    "clone": "/tmp/opencode/pilots/tanstack-transactional-pwa",
+    "commands": [
+      {"command": "bun install", "status": "pass", "result": "692 packages installed in 22.64s"},
+      {"command": "bun run check", "status": "pass", "result": "biome check . clean across 57 files"},
+      {"command": "bun run check-types", "status": "pass", "result": "vite build + tsc --noEmit per workspace, exit 0"},
+      {"command": "bun run test:run", "status": "pass", "result": "2 test files, 4 tests passed (outbox persistence + intake schema)"},
+      {"command": "bun run build", "status": "pass", "result": "production build; PWA service worker and precache generated (vite-plugin-pwa 1.3.0)"}
+    ]
+  },
+  "license": "MIT (LICENSE, Copyright (c) 2026 Juan Jose Meza Aguiñaga)",
+  "verified_capabilities": [
+    "React 19 + Vite 8 + TypeScript strict workspace (apps/intake, packages/config, packages/env, packages/ui)",
+    "TanStack Router with typed routes and auto code splitting (router-plugin in vite.config.ts)",
+    "React Hook Form + Zod intake schema with tests (apps/intake/src/features/intake)",
+    "shadcn/ui primitives in packages/ui shared across apps",
+    "installable PWA via vite-plugin-pwa with manifest, navigateFallback and NetworkFirst document caching",
+    "IndexedDB drafts and outbox via Dexie (offline-db.ts: outbox + drafts tables)",
+    "offline Blob attachments stored in outbox records",
+    "idempotency keys per submission and exponential backoff retries capped at 30 minutes (outbox.ts)",
+    "connectivity status and manual sync (use-connectivity.ts flushes outbox on online event and on demand)",
+    "opaque 256-bit tracking token via Web Crypto getRandomValues, base64url (tracking-token.ts)",
+    "kiosk mode activated by ?kiosk=1 with idle draft cleanup (use-kiosk-session.ts, VITE_KIOSK_IDLE_SECONDS)",
+    "public tracking route track.$trackingToken against GET /v1/public/intake/submissions/:trackingToken",
+    "Biome lint/format and Vitest suite included"
+  ],
+  "declared_vs_verified": [
+    "All README capability claims verified against source; no false declarations found",
+    "qr-capture signal refers to arriving via QR-coded links to the intake route; there is no in-app QR scanning code",
+    "outbox is fault tolerance, not durable storage; upstream CURATION.md documents this limit explicitly"
+  ]
+}

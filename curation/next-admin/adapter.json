@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "boilerplate_id": "next-admin",
+  "reviewed_at": "2026-09-05",
+  "source": {
+    "branch": "main",
+    "commit": "15e0a081bc1acad2b47adc638471b6e67fa36f10",
+    "license": "MIT",
+    "repository": "https://github.com/arhamkhnz/next-shadcn-admin-dashboard"
+  },
+  "integration": {
+    "mode": "overlay",
+    "remote": "seed-next-admin",
+    "update_strategy": "curated-diff"
+  },
+  "requirements": [
+    {
+      "ci_version": 22,
+      "executable": "node",
+      "version_prefix": "22."
+    },
+    {
+      "executable": "npm"
+    }
+  ],
+  "project_dependencies": {
+    "one_of": [
+      "hono-api",
+      "fastapi"
+    ]
+  },
+  "materializer": {
+    "checks": [
+      {
+        "command": [
+          "npm",
+          "run",
+          "check"
+        ],
+        "gate": "lint"
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "gate": "build"
+      }
+    ],
+    "destination": "apps/admin",
+    "setup": [
+      [
+        "npm",
+        "ci"
+      ]
+    ],
+    "type": "git-copy"
+  }
+}
