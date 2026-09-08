@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "project": "field ops",
+  "recipe": "GP-06",
+  "recipe_version": "1.0.0",
+  "components": [
+    {
+      "boilerplate": "tanstack-admin",
+      "pin": "v1.0.0",
+      "destination": "apps/admin",
+      "surface": "web-admin"
+    },
+    {
+      "boilerplate": "tanstack-transactional-pwa",
+      "pin": "v1.0.0",
+      "destination": "apps/mobile",
+      "surface": "mobile-native"
+    },
+    {
+      "boilerplate": "hono-api",
+      "pin": "v1.0.0",
+      "destination": "services/api",
+      "surface": "api"
+    }
+  ],
+  "database_profile": "postgresql-managed",
+  "operations": [
+    "materialize apps/admin from tanstack-admin@v1.0.0",
+    "materialize apps/mobile from tanstack-transactional-pwa@v1.0.0",
+    "materialize services/api from hono-api@v1.0.0"
+  ],
+  "setup": [
+    "provision database profile postgresql-managed"
+  ],
+  "checks": [
+    "contract-test",
+    "typecheck",
+    "auth-smoke"
+  ],
+  "fingerprint": "90043f093a5ba29a984efdcbc2f76e4553d422a4ce7da5487bd4f598225ec84a"
+}

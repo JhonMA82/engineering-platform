@@ -1,0 +1,11 @@
+{
+  "name": "path-traversal",
+  "intent_file": "testdata/routing/admin-only.json",
+  "destinations": {
+    "web-admin": "../evil"
+  },
+  "expect": {
+    "recipe": "GP-02",
+    "must_fail": true
+  }
+}

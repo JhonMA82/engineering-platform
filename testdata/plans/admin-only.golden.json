@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "project": "backoffice",
+  "recipe": "GP-02",
+  "recipe_version": "1.0.0",
+  "components": [
+    {
+      "boilerplate": "tanstack-admin",
+      "pin": "v1.0.0",
+      "destination": "apps/admin",
+      "surface": "web-admin"
+    }
+  ],
+  "database_profile": "postgresql-managed",
+  "operations": [
+    "materialize apps/admin from tanstack-admin@v1.0.0"
+  ],
+  "setup": [
+    "provision database profile postgresql-managed"
+  ],
+  "checks": [
+    "typecheck",
+    "auth-smoke"
+  ],
+  "fingerprint": "ddeee33aa8742b9c6e956dfc93a79e3a69ded08a03dc308bf0b58b85a35d6259"
+}

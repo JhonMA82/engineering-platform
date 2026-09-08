@@ -1,0 +1,17 @@
+{
+  "name": "admin-public-intake",
+  "intent_file": "testdata/routing/admin-public-intake.json",
+  "expect": {
+    "recipe": "GP-06",
+    "database_profile": "postgresql-managed",
+    "components": [
+      { "surface": "web-admin", "provider": "tanstack-admin", "destination": "apps/admin" },
+      {
+        "surface": "public-intake",
+        "provider": "tanstack-transactional-pwa",
+        "destination": "apps/intake"
+      },
+      { "surface": "api", "provider": "hono-api", "destination": "services/api" }
+    ]
+  }
+}

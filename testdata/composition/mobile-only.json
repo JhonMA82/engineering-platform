@@ -1,0 +1,12 @@
+{
+  "name": "mobile-only",
+  "intent_file": "testdata/routing/mobile-field-app.json",
+  "expect": {
+    "recipe": "GP-04",
+    "database_profile": "postgresql-managed",
+    "components": [
+      { "surface": "mobile-native", "provider": "ignite", "destination": "apps/mobile" },
+      { "surface": "api", "provider": "hono-api", "destination": "services/api" }
+    ]
+  }
+}

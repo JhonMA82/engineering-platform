@@ -1,0 +1,9 @@
+{
+  "name": "desktop-only",
+  "intent_file": "testdata/routing/desktop-local-tool.json",
+  "expect": {
+    "recipe": "GP-05",
+    "database_profile": "sqlite-local",
+    "components": [{ "surface": "desktop", "provider": "tauri-ui", "destination": "apps/desktop" }]
+  }
+}

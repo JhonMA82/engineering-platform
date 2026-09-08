@@ -1,0 +1,12 @@
+{
+  "name": "saas-marketing",
+  "intent_file": "testdata/routing/saas-plus-marketing.json",
+  "expect": {
+    "recipe": "GP-07",
+    "database_profile": "postgresql-managed",
+    "components": [
+      { "surface": "public-web", "provider": "react-starter-kit", "destination": "apps/web" },
+      { "surface": "api", "provider": "react-starter-kit", "destination": "services/api" }
+    ]
+  }
+}

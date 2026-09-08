@@ -1,0 +1,17 @@
+{
+  "name": "admin-mobile",
+  "intent_file": "testdata/routing/admin-mobile.json",
+  "expect": {
+    "recipe": "GP-06",
+    "database_profile": "postgresql-managed",
+    "components": [
+      { "surface": "web-admin", "provider": "tanstack-admin", "destination": "apps/admin" },
+      {
+        "surface": "mobile-native",
+        "provider": "tanstack-transactional-pwa",
+        "destination": "apps/mobile"
+      },
+      { "surface": "api", "provider": "hono-api", "destination": "services/api" }
+    ]
+  }
+}

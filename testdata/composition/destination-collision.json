@@ -1,0 +1,12 @@
+{
+  "name": "destination-collision",
+  "intent_file": "testdata/routing/admin-mobile.json",
+  "destinations": {
+    "web-admin": "apps/main",
+    "mobile-native": "apps/main"
+  },
+  "expect": {
+    "recipe": "GP-06",
+    "must_fail": true
+  }
+}
