@@ -1,0 +1,8 @@
+# Local Pi runtime state
+.atl/
+# build artifacts
+/eng
+coverage.out
+*.test
+# Pi local runtime
+.pi/

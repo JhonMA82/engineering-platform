@@ -1,0 +1,19 @@
+name: pilots
+
+# Offline materialization pilots (§53): Golden Path slices materialized with
+# local fixture sources only. No network, no real upstreams — E2E against
+# real upstreams stays separate per §33.
+on:
+  push:
+  pull_request:
+
+jobs:
+  pilots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+      - run: go build ./...
+      - run: go test ./internal/app/ -run 'Pilot' -count=1 -v
