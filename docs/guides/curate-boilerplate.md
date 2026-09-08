@@ -10,6 +10,20 @@ as reference; never copy code, only extract knowledge.
 `maintenance_tier`, `use_when`/`avoid_when`, `integration` (mode,
 update_strategy, adapter/evidence paths).
 
+## 1b. Identity rule (never derive one field from another)
+
+Catalog id, display name, repository URL, upstream pin, adapter id and
+Surface are independent concepts: never derive one from another by textual
+similarity. Copy `repository` and `upstream.commit` verbatim from the
+legacy entry — an id like `hono-api` may point at `JhonMA82/api-starter`,
+and `tanstack-admin` at `arhamkhnz/tanstack-shadcn-admin-dashboard`.
+Cross-check every repo/pin against the legacy source before writing; when
+in doubt, legacy wins and the discrepancy goes in the migration notes.
+Record the mapping in the entry `provenance` object: the regression suite
+(`internal/catalog/legacy_migration_test.go` over
+`testdata/catalog/legacy-boilerplate-baseline.json`) guards the restored
+identity.
+
 ## 2. Read the adapter
 
 `curation/<id>/adapter.json`: integration mode (overlay / direct /

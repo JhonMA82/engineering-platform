@@ -42,7 +42,7 @@ cross-compile matrix (linux/amd64+arm64, darwin/arm64, windows/amd64) → all OK
 | 17 | Routing dataset tiene guard >= 40 | pass (H6) | `minRoutingFixtures = 40` named constant (`resolver_test.go`); 46 fixtures (`ls testdata/routing \| wc -l` = 46) |
 | 18 | Build matrix multiplataforma pasa | pass (H6) | `ci.yml` `build-matrix` job (4 targets, compile-only); all four verified locally this pass |
 | 19 | Pi plugin tiene versión fijada | pass (H6) | `integrations/pi/package.json`: `^2.9.0` (was `*`; 2.9.0 is the latest published line, verified via `npm view`) |
-| 20 | Pins críticos son reproducibles | pass (H6) | 4 SHA pins (verified HEADs/snapshot) + 4 first-party `v1.0.0` tags recorded as **re-verify-on-pilot** (no invented SHAs); pin table in migration-notes §H6; policy in curate guide §4 |
+| 20 | Pins críticos son reproducibles | pass (H6+repair) | 9 SHA pins (verified HEADs/snapshots via commits API) + fastapi/goship pin-less catalog-only by design (no invented SHAs); per-entry table in migration-notes §Legacy repair; policy in curate guide §4 |
 | 21 | Release artifacts incluyen checksums | pass (H6) | `release.yml` (`v*` tags → 4 binaries + `checksums.txt` via sha256sum → gh-release assets); runbook `docs/guides/release.md` |
 | 22 | `go test ./...` pasa | pass | observed all ok (see header) |
 | 23 | `go vet ./...` pasa | pass | observed clean |
@@ -76,8 +76,10 @@ Checked first: none of the five topics was covered by an existing ADR.
 
 ## Known non-blockers (post-v1)
 
-- The four first-party `v1.0.0` tag pins need one pilot each to quote SHAs
-  and re-pin (migration-notes §H6, release guide versioning rules).
+- The five restored SHA pins were verified by `TestUpstreamCommitPins` on
+  2026-09-08 (all repos reachable, all pins exist upstream; see
+  migration-notes §Legacy repair). fastapi/goship stay pin-less catalog-only
+  until a real curation pilot freezes a commit.
 - `TestPilotIgniteGeneration` still requires `ENG_UPSTREAM_PILOTS=1` +
   network (by design — never part of `go test ./...`).
 - Tag v1.0.0 when the parent accepts this tree; `release.yml` handles assets.

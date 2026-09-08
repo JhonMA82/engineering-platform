@@ -47,12 +47,17 @@ output directory is only ever touched by the rename commit.
 ## Git-pin policy
 
 - Real boilerplates are fetched with
-  `git clone --depth 1 --branch <pin>`.
+  `git clone --depth 1 --branch <pin>` for named refs, or with a
+  single-commit fetch (`init` + `fetch --depth 1 origin <sha>` +
+  detached checkout) for full SHA pins.
 - After cloning, HEAD must resolve to the pin
   (`rev-list -n 1 <pin>` == HEAD); otherwise the fetch is discarded.
 - A missing pin fails the clone itself, so default-branch drift can
-  never satisfy a pinned fetch. Pins are tags by convention
-  (`v1.0.0`); the verification, not the naming, is the guarantee.
+  never satisfy a pinned fetch. Pins are immutable commit SHAs by
+  convention (boilerplate pin policy H6); a full SHA is fetched as one
+  commit (`init` + `fetch --depth 1 origin <sha>` + detached checkout)
+  because `clone --branch` cannot resolve a SHA. The verification, not
+  the naming, is the guarantee.
 - `local` sources exist for fixtures and tests. They verify the pin
   against a `PIN` marker file at the source root (trimmed content must
   equal the plan pin) — the offline analog of the tag match. The marker

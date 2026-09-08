@@ -35,7 +35,7 @@ Provider ranking per surface is deterministic: recipe primary boilerplates
 first (catalog order), then must-use technology fit, then how many required
 capabilities the provider covers, then smallest id. Example: for
 `public-web` the offline-capable `tanstack-transactional-pwa` wins only
-when offline operation is required; otherwise `stardrive-public-web` wins
+when offline operation is required; otherwise `stardrive` wins
 by id order. A recipe with `database_policy.shared_backend` always gains
 the shared `api` backend component (hono-api), even when the intent did not
 name the api surface.

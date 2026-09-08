@@ -24,7 +24,7 @@ ArchitectureDecision + Catalog → Composer → Composition → Planner → Mate
 
 `eng plan --input intent.json` resolves, composes and plans without
 touching the filesystem: one pinned provider per required surface
-(`tanstack-admin`, `hono-api`, `stardrive-public-web`,
+(`tanstack-admin`, `hono-api`, `stardrive`,
 `tanstack-transactional-pwa`, plus Fase 9: `ignite`, `tauri-ui`, `speedpy`,
 `react-starter-kit`), conventional destinations
 (`services/api`, `apps/admin`, `apps/mobile`, `apps/web`, `apps/intake`,
@@ -166,12 +166,12 @@ surfaces). Runbook: `docs/guides/evolve-project.md`.
 
 | Recipe | Family | Primary foundation(s) |
 | --- | --- | --- |
-| GP-01 | Public web | stardrive-public-web |
+| GP-01 | Public web | stardrive |
 | GP-02 | Admin | tanstack-admin |
 | GP-03 | Python/Data | speedpy |
 | GP-04 | Mobile | ignite, hono-api |
 | GP-05 | Desktop | tauri-ui |
-| GP-06 | Multi-app | stardrive-public-web, tanstack-admin, hono-api, tanstack-transactional-pwa |
+| GP-06 | Multi-app | stardrive, tanstack-admin, hono-api, tanstack-transactional-pwa |
 | GP-07 | Commercial SaaS | react-starter-kit |
 
 Surfaces: `public-web`, `web-admin`, `public-intake`, `api`,

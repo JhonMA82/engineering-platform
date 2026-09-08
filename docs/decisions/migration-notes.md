@@ -214,3 +214,86 @@ the tag once, quotes the SHA, and the entry is re-pinned to it.
 
 Pin policy (mutable refs, expected SHAs, pilot re-pinning) is documented in
 `docs/guides/curate-boilerplate.md` §4 pin policy.
+
+## Legacy catalog identity repair (2026-09-08)
+
+The rewrite had mistaken four catalog ids for repository names and frozen
+four invented `v1.0.0` tag pins, and had dropped three legacy entries.
+Canonical source for every value below:
+`JhonMA82/engineering-platform-legacy/platform/boilerplates.json`
+(catalog_version `2.1.0`, 11 entries). **Legacy-vs-doc discrepancies:
+none** — every repo/pin/status in the fix doc matches the legacy source
+byte for byte (including the §4 pins for ignite/tauri-ui/speedpy/
+react-starter-kit, confirmed, not assumed).
+
+### Per-entry table (11 ids)
+
+| ID | Canonical repo | Pin or unvalidated | v1 status | Pilot | Downgrade reason |
+| --- | --- | --- | --- | --- | --- |
+| stardrive | `peltmonger/stardrive` | `5c44981…77a` (sha) | default / pilot-ready | reachable, pin exists (frozen, not tip) | curated → pilot-ready: no v1 pilot for this pin yet (H3) |
+| tanstack-admin | `arhamkhnz/tanstack-shadcn-admin-dashboard` | `e6e5d3b…1f0` (sha) | default / pilot-ready | reachable, pin exists (frozen, not tip) | curated → pilot-ready (H3) |
+| hono-api | `JhonMA82/api-starter` | `360eb27…dfc9` (sha) | default / pilot-ready | reachable, pin IS upstream HEAD | released → pilot-ready (H3) |
+| tanstack-transactional-pwa | `JhonMA82/tanstack-transactional-pwa` | `f2571ea…c0c` (sha) | specialized / pilot-ready | reachable, pin IS upstream HEAD | curated → pilot-ready (H3) |
+| next-admin | `arhamkhnz/next-shadcn-admin-dashboard` | `15e0a08…f10` (sha) | alternative / pilot-ready | reachable, pin exists (frozen, not tip) | curated → pilot-ready (H3); stays alternative, never default |
+| fastapi | `fastapi/full-stack-fastapi-template` | unvalidated (no pin) | alternative / catalog-only | excluded (no pin to verify) | pilot-ready → catalog-only: legacy recorded no pin; non-selectable until curation freezes one |
+| goship | `leomorpho/goship` | unvalidated (no pin) | experimental / catalog-only | excluded (catalog-only by design) | none (unchanged from legacy) |
+| ignite | `infinitered/ignite` | `e829d2f…3f13` (sha) | default / pilot-ready | prior scope (unchanged) | curated → pilot-ready (H3, prior) |
+| tauri-ui | `agmmnn/tauri-ui` | `8eb86d8…23ea` (sha) | default / curated | legacy full pilot 2026-09-04 | none (Pilot record kept) |
+| speedpy | `speedpy/speedpy` | `3fbf725…282b9` (sha) | default / pilot-ready | prior scope (unchanged) | curated → pilot-ready (H3, prior) |
+| react-starter-kit | `kriasoft/react-starter-kit` | `0aa7603…e7ca1` (sha) | specialized / pilot-ready | prior scope (unchanged) | curated → pilot-ready (H3, prior) |
+
+Full SHAs, commit dates and verification method (commits API + ls-remote
+HEAD, 2026-09-08) live in the per-entry stubs under
+`catalog/curation/`. The H6 pin table above is superseded for the first
+four rows: no `v1.0.0` tag pins remain anywhere in the catalog.
+
+### What changed
+
+- `stardrive-public-web` retired as an active provider; canonical id
+  `stardrive` restored (`catalog/boilerplates/stardrive.json`,
+  `catalog/curation/stardrive.md`). Recipes GP-01/GP-06, the
+  `saas-public-web` composition fixture and the plan goldens now point at
+  `stardrive`. Old project manifests keep reading through a reader-side
+  alias in `project.ReadManifest` (tested); the alias is never a provider.
+- `tanstack-admin`, `hono-api`, `tanstack-transactional-pwa`: repos and
+  pins restored; fictitious curation stubs rewritten against the real
+  upstreams with honest gaps (license re-verify, placeholder adapters,
+  Pilot: not run).
+- `next-admin`, `fastapi`, `goship`: recovered with historical intent.
+  fastapi/goship are pin-less catalog-only entries (no invented pins,
+  no fake adapters); the schema now permits that form explicitly
+  (`Boilerplate.Validate` skips pin/adapter for `catalog-only`, which the
+  composer gate already excludes).
+- Provenance: every entry carries
+  `provenance: {source, legacy_catalog_version, legacy_id?,
+  historical_decision/delivery_status, migration_reason}` so the catalog
+  answers "where did this foundation come from" without commit archaeology.
+- Integrity guard: `testdata/catalog/legacy-boilerplate-baseline.json`
+  (never loaded by the runtime) plus eight tests in
+  `internal/catalog/legacy_migration_test.go` (canonical repos/pins/ids,
+  no id-derived repos, no invented pins, 11-id inventory with tombstone
+  support, non-selectable experimentals, alternatives never default).
+- Network pilot `TestUpstreamCommitPins`
+  (`ENG_UPSTREAM_PILOTS=1 go test ./internal/app/ -run
+  TestUpstreamCommitPins`): 5/5 pass on 2026-09-08 — every restored repo
+  reachable, every restored pin exists upstream.
+
+### Bug revealed by the repair (core fix, not redesign)
+
+`materializer.fetchGit` cloned every pin with
+`git clone --depth 1 --branch <pin>`, which can never resolve a full SHA —
+so the restored (and pre-existing Fase 9) SHA pins were unfetchable. The
+fetch path now detects 40-hex pins and stages exactly one commit
+(`init` + `fetch --depth 1 origin <sha>` + detached checkout); named
+refs keep the old path and the HEAD==pin verification is unchanged.
+Proven live once against `JhonMA82/api-starter@360eb27` (HEAD == pin
+after fetch). Offline unit test: `TestIsSHAPin`.
+
+### AGENTS.md honesty (§16, verified per adapter)
+
+`managed_files: ["AGENTS.md"]` is kept on all nine materializable entries
+because the handoff generator always emits `<destination>/AGENTS.md`
+(non-overwriting) for every materialized component
+(`internal/handoff/generator.go`) — the process produces it, so the claim
+holds for fetch+copy, generate and placeholder adapters alike. fastapi and
+goship declare no adapter at all, hence no managed_files claim.
