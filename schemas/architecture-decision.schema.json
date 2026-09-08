@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform/schemas/architecture-decision.schema.json",
+  "title": "ArchitectureDecision",
+  "type": "object",
+  "required": ["schema_version", "status"],
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["resolved", "ambiguous", "catalog-gap", "unsupported", "invalid"]
+    },
+    "intent_fingerprint": { "type": "string" },
+    "selected": {
+      "type": "object",
+      "required": ["recipe", "score"],
+      "properties": {
+        "recipe": { "type": "string" },
+        "recipe_version": { "type": "string" },
+        "score": { "type": "integer" }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "string" },
+        "margin": { "type": "integer" }
+      }
+    },
+    "reasons": { "type": "array", "items": { "type": "string" } },
+    "candidates": { "type": "array", "items": { "type": "object" } },
+    "derived_requirements": { "type": "array", "items": { "type": "object" } },
+    "unresolved_dimensions": { "type": "array", "items": { "type": "object" } },
+    "missing_architecture": { "type": "array", "items": { "type": "object" } }
+  }
+}

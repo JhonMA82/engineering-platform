@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform/schemas/project-intent.schema.json",
+  "title": "ProjectIntent",
+  "type": "object",
+  "required": ["schema_version", "name"],
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "problem": { "type": "string" },
+    "product_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "architecture_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "ref": { "type": "string" },
+          "strength": { "type": "string", "enum": ["required", "possible"] }
+        }
+      }
+    },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "access": { "type": "string" },
+          "scope": {
+            "type": "string",
+            "enum": ["required_now", "planned_later", "explicitly_excluded"]
+          }
+        }
+      }
+    },
+    "data": { "type": "object" },
+    "ops": { "type": "object" },
+    "technical_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      }
+    },
+    "preferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      }
+    },
+    "scope": { "type": "object" },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}
