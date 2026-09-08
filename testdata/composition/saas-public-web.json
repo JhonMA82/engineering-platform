@@ -5,7 +5,7 @@
     "recipe": "GP-06",
     "database_profile": "postgresql-managed",
     "components": [
-      { "surface": "public-web", "provider": "stardrive-public-web", "destination": "apps/web" },
+      { "surface": "public-web", "provider": "stardrive", "destination": "apps/web" },
       { "surface": "web-admin", "provider": "tanstack-admin", "destination": "apps/admin" },
       { "surface": "api", "provider": "hono-api", "destination": "services/api" }
     ]

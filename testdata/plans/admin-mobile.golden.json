@@ -6,28 +6,28 @@
   "components": [
     {
       "boilerplate": "tanstack-admin",
-      "pin": "v1.0.0",
+      "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0",
       "destination": "apps/admin",
       "surface": "web-admin"
     },
     {
       "boilerplate": "tanstack-transactional-pwa",
-      "pin": "v1.0.0",
+      "pin": "f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c",
       "destination": "apps/mobile",
       "surface": "mobile-native"
     },
     {
       "boilerplate": "hono-api",
-      "pin": "v1.0.0",
+      "pin": "360eb274cc5936fee5aab88eb8bd94977e95dfc9",
       "destination": "services/api",
       "surface": "api"
     }
   ],
   "database_profile": "postgresql-managed",
   "operations": [
-    "materialize apps/admin from tanstack-admin@v1.0.0",
-    "materialize apps/mobile from tanstack-transactional-pwa@v1.0.0",
-    "materialize services/api from hono-api@v1.0.0"
+    "materialize apps/admin from tanstack-admin@e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0",
+    "materialize apps/mobile from tanstack-transactional-pwa@f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c",
+    "materialize services/api from hono-api@360eb274cc5936fee5aab88eb8bd94977e95dfc9"
   ],
   "setup": [
     "provision database profile postgresql-managed"
@@ -37,5 +37,5 @@
     "typecheck",
     "auth-smoke"
   ],
-  "fingerprint": "90043f093a5ba29a984efdcbc2f76e4553d422a4ce7da5487bd4f598225ec84a"
+  "fingerprint": "533b820eeaec82b05014730afdbcab072292615c5bdb7f32a652d5024561288a"
 }

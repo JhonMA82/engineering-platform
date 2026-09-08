@@ -7,7 +7,7 @@
     "surfaces": ["public-web"],
     "capabilities": ["anonymous-public-access"]
   },
-  "primary_boilerplates": ["stardrive-public-web"],
+  "primary_boilerplates": ["stardrive"],
   "allowed_surface_composition": [["public-web"]],
   "database_policy": {
     "default_profile": "sqlite-local",

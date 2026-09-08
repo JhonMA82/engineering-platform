@@ -14,7 +14,7 @@
     ]
   },
   "primary_boilerplates": [
-    "stardrive-public-web",
+    "stardrive",
     "tanstack-admin",
     "hono-api",
     "tanstack-transactional-pwa"
