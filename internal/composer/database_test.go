@@ -101,6 +101,97 @@ func TestSelectDatabaseProfilePreferFallback(t *testing.T) {
 	}
 }
 
+// TestDatabaseMustNotUseWithAlternative proves a must-not-use database
+// constraint steers selection to another allowed profile when the recipe
+// policy offers one.
+func TestDatabaseMustNotUseWithAlternative(t *testing.T) {
+	cat := dbTestCatalog()
+	profile, note, err := SelectDatabaseProfileFor(dbTestRecipe(), cat,
+		nil, []string{"postgresql"}, nil)
+	if err != nil {
+		t.Fatalf("select: %v", err)
+	}
+	if profile == "postgresql-managed" {
+		t.Fatalf("profile = %q, must not be the forbidden profile", profile)
+	}
+	if profile != "sqlite-local" {
+		t.Fatalf("profile = %q, want sqlite-local", profile)
+	}
+	if !strings.Contains(note, "must-not-use") {
+		t.Fatalf("note lacks the avoidance explanation: %q", note)
+	}
+}
+
+// TestDatabaseMustNotUseWithoutAlternative proves the v1.0.1 fix: when the
+// recipe policy offers no profile outside the forbidden one, selection
+// fails with a typed composition error instead of silently keeping the
+// prohibited profile.
+func TestDatabaseMustNotUseWithoutAlternative(t *testing.T) {
+	cat := dbTestCatalog()
+	recipe := dbTestRecipe()
+	recipe.DatabasePolicy.AllowedProfiles = []string{"postgresql-managed"}
+	profile, _, err := SelectDatabaseProfileFor(recipe, cat,
+		nil, []string{"postgresql"}, nil)
+	if err == nil {
+		t.Fatalf("expected composition error, got profile %q", profile)
+	}
+	derr, ok := err.(*domain.Error)
+	if !ok || derr.Class != domain.ClassComposition {
+		t.Fatalf("expected composition-class error, got %T: %v", err, err)
+	}
+	if profile == "postgresql-managed" {
+		t.Fatal("must never return the forbidden profile alongside the error")
+	}
+}
+
+// TestDatabaseAvoidWithoutAlternativeMayFallback proves the must-not-use /
+// avoid split: avoid stays a soft preference and may fall back to the
+// default (with an explanatory note) when no alternative exists.
+func TestDatabaseAvoidWithoutAlternativeMayFallback(t *testing.T) {
+	cat := dbTestCatalog()
+	recipe := dbTestRecipe()
+	recipe.DatabasePolicy.AllowedProfiles = []string{"postgresql-managed"}
+	profile, _, err := SelectDatabaseProfileFor(recipe, cat, nil, nil,
+		[]domain.Preference{{Kind: "avoid", Value: "postgresql"}})
+	if err != nil {
+		t.Fatalf("avoid must never fail selection: %v", err)
+	}
+	if profile != "postgresql-managed" {
+		t.Fatalf("profile = %q, want fallback to default postgresql-managed", profile)
+	}
+}
+
+// TestComposeMustNotUseDatabaseWithoutAlternativeIsCompositionFailure is the
+// end-to-end regression: an intent whose only allowed profile is forbidden
+// composes to a typed error, never to a plan containing that profile.
+func TestComposeMustNotUseDatabaseWithoutAlternativeIsCompositionFailure(t *testing.T) {
+	cat, err := catalog.Load("")
+	if err != nil {
+		t.Fatalf("load catalog: %v", err)
+	}
+	// GP-05 (desktop/tauri-ui) allows only sqlite-local: forbidding sqlite
+	// leaves the resolved recipe with no acceptable profile.
+	intent := domain.ProjectIntent{
+		SchemaVersion: 1,
+		Name:          "no sqlite desktop",
+		Surfaces:      []domain.SurfaceIntent{{Kind: "desktop", Scope: domain.ScopeRequiredNow}},
+		TechnicalConstraints: []domain.TechnicalConstraint{
+			{Target: "database", Kind: "must-not-use", Value: "sqlite"},
+		},
+	}
+	decision := resolver.Resolve(intent, cat)
+	if decision.Status != domain.StatusResolved {
+		t.Fatalf("intent did not resolve: %s", resolver.Explain(decision))
+	}
+	comp, err := Compose(decision, cat)
+	if err == nil {
+		t.Fatalf("expected composition failure, got %+v", comp)
+	}
+	if derr, ok := err.(*domain.Error); !ok || derr.Class != domain.ClassComposition {
+		t.Fatalf("expected composition-class error, got %T: %v", err, err)
+	}
+}
+
 // TestSelectDatabaseProfileAvoidsMustNotUse proves must-not-use steers
 // selection to an alternative when the policy offers one.
 func TestSelectDatabaseProfileAvoidsMustNotUse(t *testing.T) {

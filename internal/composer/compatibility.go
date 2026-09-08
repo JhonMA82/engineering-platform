@@ -27,7 +27,9 @@ func SelectDatabaseProfile(recipe domain.Recipe, cat catalog.Catalog) (string, e
 //     composition error (a catalog-wide miss is a resolver catalog-gap
 //     before composition is ever reached).
 //   - must-not-use database=X avoids that profile when an alternative
-//     allowed profile exists; otherwise the default stands with a note.
+//     allowed profile exists; otherwise selection fails with a typed
+//     composition error — a hard constraint must never silently keep the
+//     forbidden profile.
 //   - prefer database=X selects the allowed profile identifying X when one
 //     exists; otherwise the default stands and the returned note explains
 //     the deviation. avoid database=X prefers any other allowed profile.
@@ -131,9 +133,15 @@ func SelectDatabaseProfileFor(recipe domain.Recipe, cat catalog.Catalog, mustUse
 				id, policy.DefaultProfile), nil
 		}
 	}
-	return policy.DefaultProfile, fmt.Sprintf(
-		"must-not-use database leaves recipe %s no alternative; keeping default %s",
-		recipe.ID, policy.DefaultProfile), nil
+	forbidden := make([]string, 0, len(avoided))
+	for id := range avoided {
+		forbidden = append(forbidden, id)
+	}
+	sort.Strings(forbidden)
+	return "", "", domain.Composition(fmt.Sprintf(
+		"recipe %s has no allowed database profile avoiding must-not-use database (%s); "+
+			"every allowed profile is forbidden",
+		recipe.ID, strings.Join(forbidden, ", ")))
 }
 
 // CheckCompatibility verifies the composed components against the recipe
