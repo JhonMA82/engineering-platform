@@ -123,6 +123,20 @@ func (g GenerateSpec) Validate() error {
 	return nil
 }
 
+// Provenance records where a catalog entry came from without digging
+// through commit history (§12). Historical statuses preserve the legacy
+// migration semantics; the live decision_status/delivery_status fields stay
+// honest for the v1 gates (see Validate and the curation contract), and any
+// intentional downgrade is documented in docs/decisions/migration-notes.md.
+type Provenance struct {
+	Source                   string `json:"source,omitempty"`
+	LegacyCatalogVersion     string `json:"legacy_catalog_version,omitempty"`
+	LegacyID                 string `json:"legacy_id,omitempty"`
+	HistoricalDecisionStatus string `json:"historical_decision_status,omitempty"`
+	HistoricalDeliveryStatus string `json:"historical_delivery_status,omitempty"`
+	MigrationReason          string `json:"migration_reason,omitempty"`
+}
+
 // Curation is the formal curation link (§3.1). Status reuses the delivery
 // status vocabulary — there is a single status axis, so a set status must
 // equal the boilerplate delivery_status (checked by catalog validation).
@@ -301,6 +315,7 @@ type Boilerplate struct {
 	Technology       Technology   `json:"technology,omitempty"`
 	IncludedFeatures []string     `json:"included_features,omitempty"`
 	UpdateStrategy   string       `json:"update_strategy,omitempty"`
+	Provenance       Provenance   `json:"provenance,omitempty"`
 }
 
 // boilerplateWire is the JSON shape: adapter accepts a plain string (legacy
@@ -319,6 +334,7 @@ type boilerplateWire struct {
 	Technology       Technology      `json:"technology"`
 	IncludedFeatures []string        `json:"included_features"`
 	UpdateStrategy   string          `json:"update_strategy"`
+	Provenance       *Provenance     `json:"provenance,omitempty"`
 }
 
 // UnmarshalJSON parses both adapter forms. An object without an explicit
@@ -343,6 +359,9 @@ func (b *Boilerplate) UnmarshalJSON(raw []byte) error {
 	b.Technology = w.Technology
 	b.IncludedFeatures = w.IncludedFeatures
 	b.UpdateStrategy = w.UpdateStrategy
+	if w.Provenance != nil {
+		b.Provenance = *w.Provenance
+	}
 	b.AdapterSpec = nil
 	b.Adapter = ""
 	if w.Source != nil {
@@ -382,6 +401,10 @@ func (b Boilerplate) MarshalJSON() ([]byte, error) {
 		Technology:       b.Technology,
 		IncludedFeatures: b.IncludedFeatures,
 		UpdateStrategy:   b.UpdateStrategy,
+	}
+	if b.Provenance != (Provenance{}) {
+		prov := b.Provenance
+		w.Provenance = &prov
 	}
 	if b.Curation != (Curation{}) {
 		w.Curation = &b.Curation
@@ -436,15 +459,21 @@ func (b Boilerplate) EffectiveSpec() AdapterSpec {
 
 // Validate checks pin/adapter/source presence required by the catalog
 // validator. Adapter accepts the legacy string or the object form;
-// sources accept local (path) or git (repo).
+// sources accept local (path) or git (repo). Entries with delivery_status
+// catalog-only are catalog knowledge, not materializable foundations
+// (§5.2-5.3): they carry no pin and may declare no adapter, and the
+// composer eligibility gate already excludes them (no pin/adapter and a
+// non-available delivery state), so validation stays honest without
+// forcing invented pins or fake adapters.
 func (b Boilerplate) Validate() error {
 	if strings.TrimSpace(b.ID) == "" {
 		return Validation("boilerplate id is required")
 	}
-	if strings.TrimSpace(b.Pin) == "" {
+	catalogOnly := strings.TrimSpace(b.DeliveryStatus) == "catalog-only"
+	if !catalogOnly && strings.TrimSpace(b.Pin) == "" {
 		return Validation("boilerplate pin is required")
 	}
-	if strings.TrimSpace(b.Adapter) == "" && b.AdapterSpec == nil {
+	if !catalogOnly && strings.TrimSpace(b.Adapter) == "" && b.AdapterSpec == nil {
 		return Validation("boilerplate adapter is required")
 	}
 	if b.AdapterSpec != nil {
