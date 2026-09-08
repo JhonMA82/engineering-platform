@@ -47,6 +47,17 @@ func runCatalogValidate(args []string) int {
 		fmt.Fprintf(os.Stderr, "catalog validate: %v\n", err)
 		return 1
 	}
+	// H3 curation enforcement: evidence links resolve against the overlay
+	// first (overlay entries may ship their own evidence) then the base
+	// catalog — data-only evidence additions need no core changes.
+	dirs := []string{catalog.BaseDir()}
+	if strings.TrimSpace(*catalogDir) != "" {
+		dirs = append([]string{*catalogDir}, dirs...)
+	}
+	if err := catalog.ValidateCuration(cat, dirs); err != nil {
+		fmt.Fprintf(os.Stderr, "catalog validate: %v\n", err)
+		return 1
+	}
 	fmt.Printf("catalog OK: version %s, %d recipes, %d boilerplates\n",
 		cat.CatalogVersion, len(cat.Recipes), len(cat.Boilerplates))
 	return 0
@@ -197,6 +208,9 @@ func printCatalogEntry(entry any) {
 	case *domain.Boilerplate:
 		fmt.Printf("  repo: %s  pin: %s\n", v.Repo, v.Pin)
 		fmt.Printf("  adapter: %s  delivery: %s  decision: %s\n", v.Adapter, v.DeliveryStatus, v.DecisionStatus)
+		if strings.TrimSpace(v.Curation.Evidence) != "" {
+			fmt.Printf("  curation: %s  evidence: %s\n", v.Curation.Status, v.Curation.Evidence)
+		}
 		fmt.Printf("  surfaces: %s\n", surfaceList(v.Provides.Surfaces))
 		fmt.Printf("  capabilities: %s\n", capabilityList(v.Provides.Capabilities))
 		fmt.Printf("  tech_tags: %s\n", strings.Join(v.TechTags, ", "))
