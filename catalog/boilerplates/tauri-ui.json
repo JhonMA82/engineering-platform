@@ -12,14 +12,21 @@
   },
   "delivery_status": "curated",
   "decision_status": "default",
-  "curation": {"status": "curated", "evidence": "curation/tauri-ui.md"},
+  "curation": { "status": "curated", "evidence": "curation/tauri-ui.md" },
   "provides": {
     "surfaces": ["desktop"],
     "capabilities": ["offline-operation"]
   },
-      "tech_tags": ["tauri", "rust", "react", "typescript"],
+  "tech_tags": ["tauri", "rust", "react", "typescript"],
       "technology": {
         "framework": ["tauri", "react"],
         "language": ["typescript", "rust"]
-      }
+      },
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "historical_decision_status": "default",
+    "historical_delivery_status": "curated",
+    "migration_reason": "Fase 9 migration; delivery curated kept (legacy full pilot 2026-09-04 recorded in evidence)"
+  }
 }

@@ -1,7 +1,7 @@
 {
   "id": "tanstack-transactional-pwa",
   "repo": "https://github.com/JhonMA82/tanstack-transactional-pwa",
-  "pin": "v1.0.0",
+  "pin": "f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c",
   "adapter": {
     "name": "tanstack",
     "operations": ["fetch", "copy"],
@@ -11,15 +11,22 @@
     "managed_files": ["AGENTS.md"]
   },
   "delivery_status": "pilot-ready",
-  "decision_status": "curated",
-  "curation": {"status": "pilot-ready", "evidence": "curation/tanstack-transactional-pwa.md"},
+  "decision_status": "specialized",
+  "curation": { "status": "pilot-ready", "evidence": "curation/tanstack-transactional-pwa.md" },
   "provides": {
     "surfaces": ["public-web", "public-intake", "mobile-native"],
     "capabilities": ["offline-operation", "anonymous-public-access"]
   },
-      "tech_tags": ["tanstack"],
-      "technology": {
-        "framework": ["tanstack"]
-      },
-  "included_features": ["offline-sync", "installable-pwa"]
+  "tech_tags": ["tanstack"],
+  "technology": {
+    "framework": ["tanstack"]
+  },
+  "included_features": ["offline-sync", "installable-pwa"],
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "historical_decision_status": "specialized",
+    "historical_delivery_status": "curated",
+    "migration_reason": "historical pin restored (replaces invented v1.0.0 tag); delivery pilot-ready until a v1 pilot runs against the restored pin"
+  }
 }

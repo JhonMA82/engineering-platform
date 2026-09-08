@@ -1,0 +1,32 @@
+{
+  "id": "stardrive",
+  "repo": "https://github.com/peltmonger/stardrive",
+  "pin": "5c449810b763140ac72133ff4ae63d8497cce77a",
+  "adapter": {
+    "name": "astro",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [],
+    "setup": [],
+    "checks": [],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "pilot-ready",
+  "decision_status": "default",
+  "curation": { "status": "pilot-ready", "evidence": "curation/stardrive.md" },
+  "provides": {
+    "surfaces": ["public-web"],
+    "capabilities": ["anonymous-public-access"]
+  },
+  "tech_tags": ["astro"],
+  "technology": {
+    "framework": ["astro"]
+  },
+  "included_features": ["blog", "landing", "seo"],
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "historical_decision_status": "default",
+    "historical_delivery_status": "curated",
+    "migration_reason": "identity restored from legacy stardrive (repo+pin); delivery pilot-ready until a v1 pilot runs against the restored pin"
+  }
+}

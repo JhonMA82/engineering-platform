@@ -5,7 +5,10 @@
   "adapter": {
     "name": "ignite",
     "operations": ["generate"],
-    "generate": {"run": ["npx", "ignite-cli@11.5.0", "new", "{name}", "--yes"], "output": "{name}"},
+    "generate": {
+      "run": ["npx", "ignite-cli@11.5.0", "new", "{name}", "--yes"],
+      "output": "{name}"
+    },
     "prune_paths": [],
     "setup": [],
     "checks": [],
@@ -13,7 +16,7 @@
   },
   "delivery_status": "pilot-ready",
   "decision_status": "default",
-  "curation": {"status": "pilot-ready", "evidence": "curation/ignite.md"},
+  "curation": { "status": "pilot-ready", "evidence": "curation/ignite.md" },
   "provides": {
     "surfaces": ["mobile-native"],
     "capabilities": []
@@ -22,5 +25,12 @@
       "technology": {
         "framework": ["react-native", "expo"],
         "language": ["typescript"]
-      }
+      },
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "historical_decision_status": "default",
+    "historical_delivery_status": "curated",
+    "migration_reason": "Fase 9 migration; delivery pilot-ready until a materialization pilot runs (H3)"
+  }
 }

@@ -1,7 +1,7 @@
 {
   "id": "tanstack-admin",
-  "repo": "https://github.com/JhonMA82/tanstack-admin",
-  "pin": "v1.0.0",
+  "repo": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
+  "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0",
   "adapter": {
     "name": "tanstack",
     "operations": ["fetch", "copy"],
@@ -11,15 +11,23 @@
     "managed_files": ["AGENTS.md"]
   },
   "delivery_status": "pilot-ready",
-  "decision_status": "curated",
-  "curation": {"status": "pilot-ready", "evidence": "curation/tanstack-admin.md"},
+  "decision_status": "default",
+  "curation": { "status": "pilot-ready", "evidence": "curation/tanstack-admin.md" },
   "provides": {
     "surfaces": ["web-admin"],
     "capabilities": []
   },
-      "tech_tags": ["tanstack"],
-      "technology": {
-        "framework": ["tanstack"]
-      },
-  "included_features": ["crud", "auth"]
+  "tech_tags": ["tanstack"],
+  "technology": {
+    "framework": ["tanstack"]
+  },
+  "included_features": ["crud", "auth"],
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "legacy_id": "tanstack-shadcn-admin-dashboard",
+    "historical_decision_status": "default",
+    "historical_delivery_status": "curated",
+    "migration_reason": "repo+pin restored from legacy tanstack-admin; delivery pilot-ready until a v1 pilot runs against the restored pin"
+  }
 }

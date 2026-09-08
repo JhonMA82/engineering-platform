@@ -12,15 +12,22 @@
   },
   "delivery_status": "pilot-ready",
   "decision_status": "default",
-  "curation": {"status": "pilot-ready", "evidence": "curation/speedpy.md"},
+  "curation": { "status": "pilot-ready", "evidence": "curation/speedpy.md" },
   "provides": {
     "surfaces": ["api"],
     "capabilities": ["background-processing"]
   },
-      "tech_tags": ["python", "django"],
-      "technology": {
-        "framework": ["django"],
-        "language": ["python"]
-      },
-  "included_features": ["excel", "reporting", "background-jobs"]
+  "tech_tags": ["python", "django"],
+  "technology": {
+    "framework": ["django"],
+    "language": ["python"]
+  },
+      "included_features": ["excel", "reporting", "background-jobs"],
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "historical_decision_status": "default",
+    "historical_delivery_status": "curated",
+    "migration_reason": "Fase 9 migration; delivery pilot-ready until a materialization pilot runs (H3)"
+  }
 }
