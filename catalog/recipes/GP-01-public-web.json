@@ -1,0 +1,19 @@
+{
+  "id": "GP-01",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Public web recipe: single public website scope.",
+  "provides": {
+    "surfaces": ["public-web"],
+    "capabilities": ["anonymous-public-access"]
+  },
+  "primary_boilerplates": ["stardrive-public-web"],
+  "allowed_surface_composition": [["public-web"]],
+  "database_policy": {
+    "default_profile": "sqlite-local",
+    "allowed_profiles": ["sqlite-local", "postgresql-managed"],
+    "shared_backend": false
+  },
+  "tech_tags": ["astro"],
+  "quality_gates": ["lighthouse-performance>=90", "a11y-smoke"]
+}

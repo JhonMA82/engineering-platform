@@ -1,0 +1,4 @@
+{
+  "id": "shared-backend",
+  "description": "Multiple clients consume the same API over shared business data."
+}

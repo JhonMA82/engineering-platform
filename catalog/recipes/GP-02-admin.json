@@ -1,0 +1,19 @@
+{
+  "id": "GP-02",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Admin application recipe: authenticated backoffice only.",
+  "provides": {
+    "surfaces": ["web-admin"],
+    "capabilities": []
+  },
+  "primary_boilerplates": ["tanstack-admin"],
+  "allowed_surface_composition": [["web-admin"]],
+  "database_policy": {
+    "default_profile": "postgresql-managed",
+    "allowed_profiles": ["sqlite-local", "postgresql-managed"],
+    "shared_backend": false
+  },
+  "tech_tags": ["tanstack"],
+  "quality_gates": ["typecheck", "auth-smoke"]
+}

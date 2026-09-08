@@ -1,0 +1,21 @@
+{
+  "id": "speedpy",
+  "repo": "https://github.com/speedpy/speedpy",
+  "pin": "3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9",
+  "adapter": {
+    "name": "speedpy",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [".claude"],
+    "setup": [{ "run": ["uv", "sync", "--frozen"] }],
+    "checks": [{ "run": ["uv", "run", "python", "manage.py", "check"] }],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "curated",
+  "decision_status": "default",
+  "provides": {
+    "surfaces": ["api"],
+    "capabilities": ["background-processing"]
+  },
+  "tech_tags": ["python", "django"],
+  "included_features": ["excel", "reporting", "background-jobs"]
+}

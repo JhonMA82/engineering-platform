@@ -1,0 +1,4 @@
+{
+  "id": "background-processing",
+  "description": "Work is executed asynchronously by a worker topology (queue plus worker processes) instead of the request path."
+}

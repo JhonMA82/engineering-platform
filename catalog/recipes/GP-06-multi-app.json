@@ -1,0 +1,41 @@
+{
+  "id": "GP-06",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Multi-app recipe: composed clients sharing one backend.",
+  "provides": {
+    "surfaces": ["public-web", "web-admin", "public-intake", "api", "mobile-native"],
+    "capabilities": [
+      "shared-backend",
+      "anonymous-public-access",
+      "realtime",
+      "offline-operation",
+      "local-filesystem"
+    ]
+  },
+  "primary_boilerplates": [
+    "stardrive-public-web",
+    "tanstack-admin",
+    "hono-api",
+    "tanstack-transactional-pwa"
+  ],
+  "allowed_surface_composition": [
+    ["public-web", "web-admin"],
+    ["web-admin", "public-intake"],
+    ["web-admin", "public-intake", "api"],
+    ["web-admin", "mobile-native", "api"],
+    ["public-web", "api"],
+    ["public-intake", "api"],
+    ["api", "mobile-native"],
+    ["public-web", "web-admin", "api"],
+    ["public-web", "mobile-native", "api"],
+    ["web-admin", "api"]
+  ],
+  "database_policy": {
+    "default_profile": "postgresql-managed",
+    "allowed_profiles": ["postgresql-managed"],
+    "shared_backend": true
+  },
+  "tech_tags": ["astro", "tanstack", "hono"],
+  "quality_gates": ["contract-test", "typecheck", "auth-smoke"]
+}

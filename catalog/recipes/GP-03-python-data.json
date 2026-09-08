@@ -1,0 +1,19 @@
+{
+  "id": "GP-03",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Python/Data application recipe: Django-based reporting and document jobs behind one API.",
+  "provides": {
+    "surfaces": ["api"],
+    "capabilities": ["background-processing"]
+  },
+  "primary_boilerplates": ["speedpy"],
+  "allowed_surface_composition": [["api"]],
+  "database_policy": {
+    "default_profile": "postgresql-managed",
+    "allowed_profiles": ["postgresql-managed", "sqlite-local"],
+    "shared_backend": false
+  },
+  "tech_tags": ["python", "django"],
+  "quality_gates": ["test", "migration", "security"]
+}

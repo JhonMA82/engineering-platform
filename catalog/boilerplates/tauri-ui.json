@@ -1,0 +1,20 @@
+{
+  "id": "tauri-ui",
+  "repo": "https://github.com/agmmnn/tauri-ui",
+  "pin": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea",
+  "adapter": {
+    "name": "tauri",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [],
+    "setup": [{ "run": ["bun", "install", "--frozen-lockfile"] }],
+    "checks": [{ "run": ["bun", "run", "build"] }],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "curated",
+  "decision_status": "default",
+  "provides": {
+    "surfaces": ["desktop"],
+    "capabilities": ["offline-operation"]
+  },
+  "tech_tags": ["tauri", "rust", "react", "typescript"]
+}

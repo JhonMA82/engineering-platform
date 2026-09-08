@@ -1,0 +1,6 @@
+{
+  "id": "sqlite-local",
+  "engine": "sqlite",
+  "managed": false,
+  "description": "Local SQLite for single-node or small-scope persistence."
+}

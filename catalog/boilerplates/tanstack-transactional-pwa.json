@@ -1,0 +1,21 @@
+{
+  "id": "tanstack-transactional-pwa",
+  "repo": "https://github.com/JhonMA82/tanstack-transactional-pwa",
+  "pin": "v1.0.0",
+  "adapter": {
+    "name": "tanstack",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [],
+    "setup": [],
+    "checks": [],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "stable",
+  "decision_status": "curated",
+  "provides": {
+    "surfaces": ["public-web", "public-intake", "mobile-native"],
+    "capabilities": ["offline-operation", "anonymous-public-access"]
+  },
+  "tech_tags": ["tanstack"],
+  "included_features": ["offline-sync", "installable-pwa"]
+}

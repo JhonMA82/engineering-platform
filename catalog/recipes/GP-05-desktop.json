@@ -1,0 +1,19 @@
+{
+  "id": "GP-05",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Desktop application recipe: installed local tool over a local database.",
+  "provides": {
+    "surfaces": ["desktop"],
+    "capabilities": ["offline-operation"]
+  },
+  "primary_boilerplates": ["tauri-ui"],
+  "allowed_surface_composition": [["desktop"]],
+  "database_policy": {
+    "default_profile": "sqlite-local",
+    "allowed_profiles": ["sqlite-local"],
+    "shared_backend": false
+  },
+  "tech_tags": ["tauri", "rust", "react"],
+  "quality_gates": ["typecheck", "test", "build", "security"]
+}

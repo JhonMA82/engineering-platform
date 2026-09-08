@@ -1,0 +1,20 @@
+{
+  "id": "ignite",
+  "repo": "https://github.com/infinitered/ignite",
+  "pin": "e829d2f922c5568a59a77bfb6232aeb500be3f13",
+  "adapter": {
+    "name": "ignite",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [],
+    "setup": [],
+    "checks": [],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "curated",
+  "decision_status": "default",
+  "provides": {
+    "surfaces": ["mobile-native"],
+    "capabilities": []
+  },
+  "tech_tags": ["react-native", "expo", "typescript"]
+}

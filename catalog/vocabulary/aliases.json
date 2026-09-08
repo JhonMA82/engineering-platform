@@ -1,0 +1,18 @@
+{
+  "aliases": {
+    "panel": "web-admin",
+    "terminal app": "tui",
+    "sin internet": "offline-operation",
+    "app de campo": "mobile-native",
+    "desktop app": "desktop",
+    "kiosk": "public-intake",
+    "landing": "public-web",
+    "mobile app": "mobile-native"
+  },
+  "notes": {
+    "desktop app": "device-scope note: an installed desktop tool is the desktop surface, not a hosted web view",
+    "kiosk": "device-scope note: a kiosk is an anonymous intake flow on a shared device, hence the public-intake surface",
+    "landing": "site-scope note: landing is product scope over the public-web surface, not a surface of its own",
+    "mobile app": "device-scope note: a native mobile app is the mobile-native surface; a PWA stays a web surface decision"
+  }
+}

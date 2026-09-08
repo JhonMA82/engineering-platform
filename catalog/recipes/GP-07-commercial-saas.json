@@ -1,0 +1,19 @@
+{
+  "id": "GP-07",
+  "version": "1.0.0",
+  "status": "active",
+  "description": "Commercial SaaS recipe: single React/Cloudflare-first SaaS foundation with marketing site and API, not a composed backoffice.",
+  "provides": {
+    "surfaces": ["public-web", "api"],
+    "capabilities": ["shared-backend", "anonymous-public-access"]
+  },
+  "primary_boilerplates": ["react-starter-kit"],
+  "allowed_surface_composition": [["public-web"], ["api"], ["public-web", "api"]],
+  "database_policy": {
+    "default_profile": "postgresql-managed",
+    "allowed_profiles": ["postgresql-managed"],
+    "shared_backend": true
+  },
+  "tech_tags": ["react", "cloudflare", "saas"],
+  "quality_gates": ["typecheck", "test", "build", "security", "billing-sandbox"]
+}

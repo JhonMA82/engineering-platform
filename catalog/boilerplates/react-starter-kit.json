@@ -1,0 +1,21 @@
+{
+  "id": "react-starter-kit",
+  "repo": "https://github.com/kriasoft/react-starter-kit",
+  "pin": "0aa7603435f16159ad0b8fef68fb7f6280be7ca1",
+  "adapter": {
+    "name": "react-starter-kit",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [],
+    "setup": [{ "run": ["bun", "install", "--frozen-lockfile"] }],
+    "checks": [{ "run": ["bun", "run", "build"] }],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "curated",
+  "decision_status": "specialized",
+  "provides": {
+    "surfaces": ["public-web", "api"],
+    "capabilities": ["shared-backend", "anonymous-public-access"]
+  },
+  "tech_tags": ["react", "cloudflare", "saas", "typescript"],
+  "included_features": ["billing", "organizations", "auth"]
+}

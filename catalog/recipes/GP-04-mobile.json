@@ -1,0 +1,19 @@
+{
+  "id": "GP-04",
+  "version": "1.0.0",
+  "status": "stable",
+  "description": "Mobile application recipe: native field client sharing one backend API.",
+  "provides": {
+    "surfaces": ["mobile-native", "api"],
+    "capabilities": ["shared-backend"]
+  },
+  "primary_boilerplates": ["ignite", "hono-api"],
+  "allowed_surface_composition": [["mobile-native"], ["mobile-native", "api"]],
+  "database_policy": {
+    "default_profile": "postgresql-managed",
+    "allowed_profiles": ["postgresql-managed"],
+    "shared_backend": true
+  },
+  "tech_tags": ["react-native", "expo", "hono"],
+  "quality_gates": ["typecheck", "test", "build", "security"]
+}

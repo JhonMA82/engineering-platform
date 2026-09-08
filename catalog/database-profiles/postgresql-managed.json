@@ -1,0 +1,6 @@
+{
+  "id": "postgresql-managed",
+  "engine": "postgres",
+  "managed": true,
+  "description": "Managed Postgres for shared multi-user backends."
+}

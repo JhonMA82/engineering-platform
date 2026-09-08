@@ -1,0 +1,4 @@
+{
+  "id": "local-filesystem",
+  "description": "Product reads or writes the local filesystem directly."
+}
