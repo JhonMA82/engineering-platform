@@ -54,7 +54,7 @@ func evolveOverlay(t *testing.T) string {
 	entries := map[string]string{
 		"tanstack-admin": fmt.Sprintf(`{
           "id": "tanstack-admin",
-          "repo": "https://github.com/JhonMA82/tanstack-admin",
+          "repo": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
           "pin": %q,
           "adapter": {"name": "tanstack", "operations": ["fetch", "copy"], "managed_files": ["AGENTS.md"]},
           "source": {"type": "local", "path": %q},
@@ -66,7 +66,7 @@ func evolveOverlay(t *testing.T) string {
         }`, webPin, webSrc),
 		"hono-api": fmt.Sprintf(`{
           "id": "hono-api",
-          "repo": "https://github.com/JhonMA82/hono-api",
+          "repo": "https://github.com/JhonMA82/api-starter",
           "pin": %q,
           "adapter": {"name": "hono", "operations": ["fetch", "copy"], "managed_files": ["AGENTS.md"]},
           "source": {"type": "local", "path": %q},

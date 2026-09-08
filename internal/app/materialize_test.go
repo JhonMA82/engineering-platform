@@ -47,7 +47,7 @@ func TestEndToEndAdminOnlyOffline(t *testing.T) {
 	}
 	overlayBoilerplate := fmt.Sprintf(`{
       "id": "tanstack-admin",
-      "repo": "https://github.com/JhonMA82/tanstack-admin",
+      "repo": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
       "pin": %q,
       "adapter": {"name": "tanstack", "operations": ["fetch", "copy"], "managed_files": ["AGENTS.md"]},
       "source": {"type": "local", "path": %q},

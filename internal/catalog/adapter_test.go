@@ -19,6 +19,11 @@ func TestBaseCatalogAdaptersAreObjects(t *testing.T) {
 		t.Fatal("no boilerplates in base catalog")
 	}
 	for _, b := range cat.Boilerplates {
+		if b.DeliveryStatus == "catalog-only" {
+			// Catalog knowledge, not a materializable foundation: no
+			// adapter is declared and none may be invented (§5.2-5.3).
+			continue
+		}
 		if b.AdapterSpec == nil {
 			t.Errorf("%s: expected adapter object, got legacy string", b.ID)
 		}

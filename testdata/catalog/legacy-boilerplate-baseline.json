@@ -1,0 +1,63 @@
+{
+  "$comment": "Legacy migration baseline (fix-doc §10). Historical identity minimum for the 11 legacy boilerplates. NEVER loaded by the runtime: catalog.Load only reads catalog/ subdirectories. Consumed solely by internal/catalog/legacy_migration_test.go so future rewrites cannot infer a repository URL from the catalog id or invent a release tag. Tombstones let a future migration explicitly retire an id with a reason instead of silently dropping it.",
+  "legacy_catalog_version": "2.1.0",
+  "legacy_source": "JhonMA82/engineering-platform-legacy/platform/boilerplates.json",
+  "entries": [
+    {
+      "id": "stardrive",
+      "repo": "https://github.com/peltmonger/stardrive",
+      "pin": "5c449810b763140ac72133ff4ae63d8497cce77a"
+    },
+    {
+      "id": "tanstack-admin",
+      "repo": "https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard",
+      "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0"
+    },
+    {
+      "id": "next-admin",
+      "repo": "https://github.com/arhamkhnz/next-shadcn-admin-dashboard",
+      "pin": "15e0a081bc1acad2b47adc638471b6e67fa36f10"
+    },
+    {
+      "id": "ignite",
+      "repo": "https://github.com/infinitered/ignite",
+      "pin": "e829d2f922c5568a59a77bfb6232aeb500be3f13"
+    },
+    {
+      "id": "tauri-ui",
+      "repo": "https://github.com/agmmnn/tauri-ui",
+      "pin": "8eb86d894c19b6df04ff883ab28b412b1e5f23ea"
+    },
+    {
+      "id": "speedpy",
+      "repo": "https://github.com/speedpy/speedpy",
+      "pin": "3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9"
+    },
+    {
+      "id": "fastapi",
+      "repo": "https://github.com/fastapi/full-stack-fastapi-template",
+      "pin": null
+    },
+    {
+      "id": "react-starter-kit",
+      "repo": "https://github.com/kriasoft/react-starter-kit",
+      "pin": "0aa7603435f16159ad0b8fef68fb7f6280be7ca1"
+    },
+    {
+      "id": "goship",
+      "repo": "https://github.com/leomorpho/goship",
+      "pin": null
+    },
+    {
+      "id": "hono-api",
+      "repo": "https://github.com/JhonMA82/api-starter",
+      "pin": "360eb274cc5936fee5aab88eb8bd94977e95dfc9"
+    },
+    {
+      "id": "tanstack-transactional-pwa",
+      "repo": "https://github.com/JhonMA82/tanstack-transactional-pwa",
+      "pin": "f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c"
+    }
+  ],
+  "tombstones": []
+}
