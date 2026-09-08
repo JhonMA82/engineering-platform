@@ -1,17 +1,69 @@
 name: ci
 
+# Fast deterministic CI (§6.1–§6.4): format, vet, tests, binary build,
+# explicit catalog validation and cross-compilation checks. Everything here
+# is offline and hermetic.
+#
+# Upstream pilots (real boilerplate checkouts, setup commands, network)
+# live in pilots.yml and never gate this workflow: a transient GitHub or
+# network failure must not turn unit tests red (§6.8).
+
 on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.27"
+      - name: format (gofmt must report nothing)
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "unformatted files:"
+            echo "$out"
+            exit 1
+          fi
       - run: go vet ./...
       - run: go test ./...
       - run: go build ./cmd/eng
+      - name: catalog validation (explicit application-service gate)
+        run: go run ./cmd/eng catalog validate
+
+  build-matrix:
+    # Cross-compilation check for the release targets (§6.4). Binaries are
+    # built, not executed: only the linux/amd64 runner is native here.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.27"
+      - name: cross-compile eng (${{ matrix.goos }}/${{ matrix.goarch }})
+        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build ./cmd/eng

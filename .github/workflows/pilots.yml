@@ -1,18 +1,27 @@
 name: pilots
 
-# Offline materialization pilots (§53): Golden Path slices materialized with
+# Upstream pilots (§6.8, §53): Golden Path slices materialized with
 # local fixture sources only. No network, no real upstreams — E2E against
-# real upstreams stays separate per §33.
+# real upstreams stays separate per §33. This workflow complements ci.yml
+# (fast deterministic gates) and never blocks it: pilot failures are
+# investigated as curation/adapter issues, not as unit-test regressions.
 on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   pilots:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.27"
       - run: go build ./...

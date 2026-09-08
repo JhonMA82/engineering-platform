@@ -1,0 +1,44 @@
+name: release
+
+# Release artifacts for tags v* (§6.5): matrix binaries plus sha256
+# checksums as release assets. Deliberately plain `go build` + `sha256sum`
+# (no goreleaser, no Homebrew/AUR): every step stays auditable in this file.
+# See docs/guides/release.md for the tagging runbook.
+#
+# Fast deterministic CI stays in ci.yml; upstream pilots stay in pilots.yml.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.27"
+      - name: build release matrix
+        run: |
+          mkdir -p dist
+          VERSION="${GITHUB_REF_NAME#v}"
+          COMMIT="$(git rev-parse HEAD)"
+          BUILD_DATE="$(date -u +%Y-%m-%d)"
+          PKG="github.com/jhonma82/engineering-platform/internal/version"
+          LDFLAGS="-X $PKG.CoreVersion=$VERSION -X $PKG.Commit=$COMMIT -X $PKG.BuildDate=$BUILD_DATE"
+          GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/eng-linux-amd64 ./cmd/eng
+          GOOS=linux GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/eng-linux-arm64 ./cmd/eng
+          GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/eng-darwin-arm64 ./cmd/eng
+          GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/eng-windows-amd64.exe ./cmd/eng
+      - name: checksums
+        run: |
+          (cd dist && sha256sum eng-* > checksums.txt)
+          cat dist/checksums.txt
+      - name: publish release assets
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2, pinned 2026-09-08
+        with:
+          files: dist/*

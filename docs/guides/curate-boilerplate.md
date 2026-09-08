@@ -42,6 +42,22 @@ Write `catalog/boilerplates/<id>.json`:
 - `pin`: the reviewed commit. Verify it exists before writing: advertised
   HEAD via `git ls-remote <repo> HEAD`, or the commits API for a frozen
   non-HEAD pin (record which method in the stub). Never float a pin.
+
+### Pin policy (H6 — immutable pins)
+
+Maximum reproducibility means commit SHAs, not mutable refs:
+
+- Prefer a full commit SHA as `pin` (kind `sha`).
+- A tag may be used only with an `expected_sha` recorded alongside when the
+  SHA is verifiable offline from existing evidence (pilot log, prior
+  `git ls-remote` output quoted in the migration notes). Never invent a
+  SHA: an unverifiable tag stays kind `tag` and is recorded in
+  `docs/decisions/migration-notes.md` as **re-verify-on-pilot** — the next
+  real pilot resolves the tag once, quotes the SHA, and the entry is
+  re-pinned to it.
+- Per-entry pin kinds live in the migration-notes pin table (§H6 pins).
+- CI (`pilots.yml`) materializes through these pins; a moved tag without a
+  recorded SHA is a release blocker, not a silent upgrade.
 - `decision_status` / `delivery_status`: keep the legacy values when they
   are inside the eligible sets (decision:
   curated/default/alternative/specialized/reference; delivery:

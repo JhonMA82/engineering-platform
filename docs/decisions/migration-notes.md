@@ -193,3 +193,24 @@ project-intent updates here. Behavior changes: `eng version` output
 format; catalogs with incompatible min_core/max_core/schema now refuse to
 load; typed `target=value` reason strings alongside unchanged legacy
 strings.
+
+## Release hardening H6 pins (2026-09-08)
+
+Per-entry pin kinds (§6.6). No SHA is invented: tag pins whose commit was
+never quoted by a pilot log or a recorded `git ls-remote` run stay kind
+`tag` and are marked **re-verify-on-pilot** — the next real pilot resolves
+the tag once, quotes the SHA, and the entry is re-pinned to it.
+
+| Entry | Pin | Kind | Verification |
+| --- | --- | --- | --- |
+| ignite | `e829d2f922c5568a59a77bfb6232aeb500be3f13` | sha | advertised upstream HEAD at migration |
+| tauri-ui | `8eb86d894c19b6df04ff883ab28b412b1e5f23ea` | sha | advertised upstream HEAD at migration |
+| speedpy | `3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9` | sha | commits API (frozen non-HEAD snapshot) |
+| react-starter-kit | `0aa7603435f16159ad0b8fef68fb7f6280be7ca1` | sha | advertised upstream HEAD at migration |
+| tanstack-admin | `v1.0.0` | tag | **re-verify-on-pilot** (first-party tag, SHA never quoted) |
+| hono-api | `v1.0.0` | tag | **re-verify-on-pilot** (first-party tag, SHA never quoted) |
+| stardrive-public-web | `v1.0.0` | tag | **re-verify-on-pilot** (first-party tag, SHA never quoted) |
+| tanstack-transactional-pwa | `v1.0.0` | tag | **re-verify-on-pilot** (first-party tag, SHA never quoted) |
+
+Pin policy (mutable refs, expected SHAs, pilot re-pinning) is documented in
+`docs/guides/curate-boilerplate.md` §4 pin policy.
