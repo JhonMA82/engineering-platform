@@ -1,0 +1,9 @@
+{
+  "name": "eng-pi-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conversational adapter: Pi discovery for Engineering Platform (produces ProjectIntent, never recipes).",
+  "dependencies": {
+    "@juicesharp/rpiv-ask-user-question": "*"
+  }
+}
