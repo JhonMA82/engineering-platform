@@ -23,6 +23,11 @@ type routingCase struct {
 	} `json:"expect"`
 }
 
+// minRoutingFixtures is the §6.3 regression floor: the routing dataset must
+// keep proving every documented scenario on every run. Dropping fixtures
+// silently weakens the resolver contract, so the suite fails closed.
+const minRoutingFixtures = 40
+
 func loadRoutingCases(t *testing.T) []routingCase {
 	t.Helper()
 	files, err := filepath.Glob("../../testdata/routing/*.json")
@@ -53,8 +58,8 @@ func TestRoutingScenarios(t *testing.T) {
 		t.Fatalf("catalog invalid: %v", err)
 	}
 	cases := loadRoutingCases(t)
-	if len(cases) < 15 {
-		t.Fatalf("expected at least 15 routing scenarios, got %d", len(cases))
+	if len(cases) < minRoutingFixtures {
+		t.Fatalf("expected at least %d routing scenarios, got %d", minRoutingFixtures, len(cases))
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
