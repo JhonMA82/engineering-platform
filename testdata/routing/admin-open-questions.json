@@ -1,0 +1,19 @@
+{
+  "name": "admin-open-questions",
+  "intent": {
+    "schema_version": 1,
+    "name": "backoffice with product unknowns",
+    "problem": "operators manage records",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "open_product_questions": [
+      "define approval roles for record publishing",
+      "define cancellation behavior for in-flight edits"
+    ]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-02",
+    "must_include_reasons": ["covers required surface web-admin"],
+    "must_not_select": ["GP-06"]
+  }
+}

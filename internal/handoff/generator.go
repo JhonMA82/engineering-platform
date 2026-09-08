@@ -18,14 +18,19 @@ import (
 	"github.com/jhonma82/engineering-platform/internal/planner"
 )
 
-// Handoff status and ownership constants.
+// Handoff status, ownership and implementation-mode constants. The platform
+// never sets implementation_mode=sdd: Gentle decides after reading the
+// handoff (see GENTLE.md).
 const (
-	StatusReadyForImplementation = "ready_for_implementation"
-	NextOwnerGentle              = "gentle-ai"
+	StatusReadyForImplementation    = "ready_for_implementation"
+	NextOwnerGentle                 = "gentle-ai"
+	ImplementationModeGentleDecides = "gentle-decides"
 )
 
 // LockedDecisions are the decisions Gentle normally does not rediscover.
-var LockedDecisions = []string{"architecture", "surface-topology", "selected-foundations"}
+// database-profile is locked: the composer already bound the recipe policy
+// to a curated profile, so Gentle must not swap storage silently.
+var LockedDecisions = []string{"architecture", "surface-topology", "selected-foundations", "database-profile"}
 
 // Input carries everything generation may render. Intent and decision
 // documents are optional: when absent, intent/decision copies are skipped
@@ -44,13 +49,21 @@ type Requirement struct {
 }
 
 // Handoff declares the formal ownership transfer to Gentle AI.
+// Requirements/OpenQuestions are the historic field names (product
+// requirements and routing-ambiguity questions); ProductRequirements and
+// OpenProductQuestions are the §5.3 contract names carrying the same product
+// content. ImplementationMode is always "gentle-decides": the platform
+// never prescribes direct-build vs SDD.
 type Handoff struct {
-	SchemaVersion int           `json:"schema_version"`
-	Status        string        `json:"status"`
-	NextOwner     string        `json:"next_owner"`
-	Locked        []string      `json:"locked"`
-	Requirements  []Requirement `json:"requirements"`
-	OpenQuestions []string      `json:"open_questions"`
+	SchemaVersion        int           `json:"schema_version"`
+	Status               string        `json:"status"`
+	NextOwner            string        `json:"next_owner"`
+	Locked               []string      `json:"locked"`
+	Requirements         []Requirement `json:"requirements"`
+	OpenQuestions        []string      `json:"open_questions"`
+	ProductRequirements  []Requirement `json:"product_requirements"`
+	OpenProductQuestions []string      `json:"open_product_questions"`
+	ImplementationMode   string        `json:"implementation_mode"`
 }
 
 // File is one rendered artifact: a project-relative slash path, its
@@ -184,27 +197,29 @@ type componentView struct {
 
 // briefView is the template model shared by every markdown document.
 type briefView struct {
-	Project         string
-	Recipe          string
-	RecipeVersion   string
-	DatabaseProfile string
-	PlanFingerprint string
-	CatalogVersion  string
-	Components      []componentView
-	Relationships   []string
-	Problem         string
-	ProductReqs     []Requirement
-	ArchReqs        []Requirement
-	Constraints     []string
-	PlannedLater    []string
-	Excluded        []string
-	OpenQuestions   []string
-	Checks          []string
-	HasIntent       bool
-	SingleSurface   bool
-	SelectedRecipe  string
-	Confidence      string
-	Handoff         Handoff
+	Project          string
+	Recipe           string
+	RecipeVersion    string
+	DatabaseProfile  string
+	PlanFingerprint  string
+	CatalogVersion   string
+	Components       []componentView
+	Relationships    []string
+	Problem          string
+	ProductReqs      []Requirement
+	ArchReqs         []Requirement
+	Constraints      []string
+	PlannedLater     []string
+	Excluded         []string
+	OpenQuestions    []string
+	ProductQuestions []string
+	RoutingQuestions []string
+	Checks           []string
+	HasIntent        bool
+	SingleSurface    bool
+	SelectedRecipe   string
+	Confidence       string
+	Handoff          Handoff
 }
 
 func buildView(in Input, intent *domain.ProjectIntent, decision *domain.ArchitectureDecision) briefView {
@@ -256,6 +271,7 @@ func buildView(in Input, intent *domain.ProjectIntent, decision *domain.Architec
 		}
 		view.PlannedLater = append([]string{}, intent.Scope.PlannedLater...)
 		view.Excluded = append([]string{}, intent.Scope.ExplicitlyExcluded...)
+		view.ProductQuestions = append([]string{}, intent.OpenProductQuestions...)
 	}
 	if decision != nil && decision.Selected != nil {
 		view.SelectedRecipe = decision.Selected.Recipe
@@ -270,16 +286,21 @@ func buildView(in Input, intent *domain.ProjectIntent, decision *domain.Architec
 			if d.Reason != "" {
 				q += ": " + d.Reason
 			}
-			view.OpenQuestions = append(view.OpenQuestions, q)
+			view.RoutingQuestions = append(view.RoutingQuestions, q)
 		}
 	}
+	// OpenQuestions keeps the historic routing-ambiguity content; product
+	// questions travel separately and never affect routing.
 	handoff := Handoff{
-		SchemaVersion: 1,
-		Status:        StatusReadyForImplementation,
-		NextOwner:     NextOwnerGentle,
-		Locked:        append([]string{}, LockedDecisions...),
-		Requirements:  append([]Requirement{}, view.ProductReqs...),
-		OpenQuestions: append([]string{}, view.OpenQuestions...),
+		SchemaVersion:        1,
+		Status:               StatusReadyForImplementation,
+		NextOwner:            NextOwnerGentle,
+		Locked:               append([]string{}, LockedDecisions...),
+		Requirements:         append([]Requirement{}, view.ProductReqs...),
+		OpenQuestions:        append([]string{}, view.RoutingQuestions...),
+		ProductRequirements:  append([]Requirement{}, view.ProductReqs...),
+		OpenProductQuestions: append([]string{}, view.ProductQuestions...),
+		ImplementationMode:   ImplementationModeGentleDecides,
 	}
 	if handoff.Requirements == nil {
 		handoff.Requirements = []Requirement{}
@@ -287,6 +308,13 @@ func buildView(in Input, intent *domain.ProjectIntent, decision *domain.Architec
 	if handoff.OpenQuestions == nil {
 		handoff.OpenQuestions = []string{}
 	}
+	if handoff.ProductRequirements == nil {
+		handoff.ProductRequirements = []Requirement{}
+	}
+	if handoff.OpenProductQuestions == nil {
+		handoff.OpenProductQuestions = []string{}
+	}
+	view.OpenQuestions = append([]string{}, view.RoutingQuestions...)
 	view.Handoff = handoff
 	return view
 }
@@ -354,7 +382,7 @@ Recipe {{.Recipe}}{{if .RecipeVersion}} {{.RecipeVersion}}{{end}} · database pr
 - {{.Surface}} → {{.Destination}} ({{.Boilerplate}}@{{.Pin}})
 {{end}}
 {{if .ProductReqs}}
-## Product requirements (pending — Gentle implements)
+## Pending product implementation
 
 {{range .ProductReqs}}
 - {{.ID}}{{if .Description}}: {{.Description}}{{end}}
@@ -370,12 +398,23 @@ Recipe {{.Recipe}}{{if .RecipeVersion}} {{.RecipeVersion}}{{end}} · database pr
 ## Selected foundations
 
 {{range .Components}}
-- {{.Destination}} serves {{.Surface}} via {{.Boilerplate}}@{{.Pin}}{{if .ProvidedFeatures}} (already provides: {{join .ProvidedFeatures ", "}}){{end}}
+- {{.Destination}} serves {{.Surface}} via {{.Boilerplate}}@{{.Pin}}
 {{end}}
 
 Remaining product work is Gentle's: foundations cover structure, not features.
+{{range .Components}}{{if .ProvidedFeatures}}
+## Already provided by foundation — {{.Destination}}
+
+{{range .ProvidedFeatures}}
+- {{.}}
+{{end}}
+{{end}}{{end}}
 {{if .Constraints}}
-## Technical constraints (locked)
+## Locked architecture decisions
+
+Architecture, surface topology, selected foundations, database profile and the
+technical constraints below are locked (see .engineering/handoff.json). Reopen
+them only on a concrete contradiction.
 
 {{range .Constraints}}
 - {{.}}
@@ -402,10 +441,21 @@ Remaining product work is Gentle's: foundations cover structure, not features.
 - {{.}}
 {{end}}
 {{end}}
-{{if .OpenQuestions}}
+{{if .ProductQuestions}}
 ## Open product questions
 
-{{range .OpenQuestions}}
+These are product/domain unknowns. They never affected routing and must not
+reopen architecture: answer them by direct implementation or an SDD session
+focused on product behavior (see GENTLE.md).
+
+{{range .ProductQuestions}}
+- {{.}}
+{{end}}
+{{end}}
+{{if .RoutingQuestions}}
+## Unresolved routing questions
+
+{{range .RoutingQuestions}}
 - {{.}}
 {{end}}
 {{end}}
@@ -460,14 +510,36 @@ Plan fingerprint {{.PlanFingerprint}}.
 `,
 	"gentle": `# GENTLE.md — taking ownership of {{.Project}}
 
-1. Read .engineering/implementation-brief.md.
-2. Read AGENTS.md (root router).
-3. Consult ARCHITECTURE.md and .engineering/project-map.json for routes.
-4. Read the surface AGENTS.md before modifying that surface.
-5. Do not ask the owner to repeat recorded information.
+You are taking ownership of a project generated by Engineering Platform.
 
-Do not rediscover the selected architecture: it is locked in
-.engineering/handoff.json (status {{.Handoff.Status}}, next owner {{.Handoff.NextOwner}}).
+Do not rediscover or replace the selected architecture unless a concrete
+contradiction is found.
+
+Read:
+1. .engineering/implementation-brief.md
+2. AGENTS.md
+3. ARCHITECTURE.md
+4. .engineering/project-map.json
+5. the AGENTS.md of the Surface you will modify
+
+Then decide:
+
+A. Direct implementation
+   Use this path when the product requirements are sufficiently defined.
+
+B. SDD session
+   Use this path only when important product/domain rules remain undefined.
+
+An SDD session must focus on product behavior, workflows, rules, permissions,
+edge cases and domain decisions.
+
+Do not ask the user to repeat information already present in the handoff.
+Do not reopen framework, database, boilerplate or topology choices unless a
+real contradiction is discovered.
+
+Handoff state: status {{.Handoff.Status}}, next owner {{.Handoff.NextOwner}},
+implementation mode {{.Handoff.ImplementationMode}} (you decide: direct
+implementation or SDD session — the platform never prescribes it).
 `,
 	"surface": `# {{.Surface}} surface — {{.Destination}}
 

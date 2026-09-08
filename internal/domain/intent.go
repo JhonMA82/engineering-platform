@@ -135,6 +135,10 @@ type ScopeIntent struct {
 
 // ProjectIntent represents what the product needs, not how it is built.
 // There is intentionally no project_type field: routing derives the recipe.
+// OpenProductQuestions carry product/domain unknowns (roles, fields,
+// cancellation behavior, audit rules) that must reach Gentle without
+// affecting routing: the resolver never reads them, and the handoff
+// forwards them untouched.
 type ProjectIntent struct {
 	SchemaVersion            int                       `json:"schema_version"`
 	Name                     string                    `json:"name"`
@@ -146,6 +150,7 @@ type ProjectIntent struct {
 	Ops                      OperationalIntent         `json:"ops,omitempty"`
 	TechnicalConstraints     []TechnicalConstraint     `json:"technical_constraints,omitempty"`
 	Preferences              []Preference              `json:"preferences,omitempty"`
+	OpenProductQuestions     []string                  `json:"open_product_questions,omitempty"`
 	Scope                    ScopeIntent               `json:"scope,omitempty"`
 	Notes                    []string                  `json:"notes,omitempty"`
 }
@@ -282,6 +287,11 @@ func (p ProjectIntent) Validate() error {
 	for _, pr := range p.Preferences {
 		if !validPreferenceKinds[pr.Kind] {
 			return Validation(fmt.Sprintf("unknown preference kind %q", pr.Kind))
+		}
+	}
+	for _, q := range p.OpenProductQuestions {
+		if strings.TrimSpace(q) == "" {
+			return Validation("open product question must not be blank")
 		}
 	}
 	_ = planned
