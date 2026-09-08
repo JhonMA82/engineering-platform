@@ -9,7 +9,8 @@ ProjectIntent → Catalog → Resolver → ArchitectureDecision
 It covers routing for **Public Web (GP-01), Admin (GP-02), Python/Data (GP-03),
 Mobile (GP-04), Desktop (GP-05), Multi-App (GP-06) and Commercial SaaS (GP-07)**
 with hard constraints, scoring, confidence, rejected reasons, ambiguous
-cases and architectural catalog-gap cases (41 routing scenarios).
+cases and architectural catalog-gap cases (46 routing scenarios,
+floor-guarded at 40).
 
 Out of scope for M1: materializer, composer, planner, handoff, Pi integration.
 
@@ -84,7 +85,11 @@ materialize → doctor; `--dry-run` prints the plan with zero writes):
 ```
 
 Runbook: `docs/guides/new-project.md`. Safety and pin policy:
-`docs/architecture/materialization.md`.
+`docs/architecture/materialization.md`. Gentle ownership transfer:
+`docs/architecture/handoff.md` (`GENTLE.md` Direct vs SDD decision,
+`handoff.json` with `open_product_questions` and `gentle-decides` mode,
+locked `database-profile`). Release process: `docs/guides/release.md`
+(CI gates, build matrix, `v*` tags → binaries + `checksums.txt`).
 
 ## Commands
 

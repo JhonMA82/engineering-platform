@@ -50,10 +50,16 @@ own one phase.
   (margin < 12) with open dimensions resolves `ambiguous` instead of
   guessing.
 
-Behavior is specified by `testdata/routing/` (45 scenarios asserted by
-`resolver_test.go`): resolved selections with reason assertions, ambiguous
-dimensions, catalog-gap (including `database-profile`), unsupported and
-invalid cases. Typed-constraint unit coverage lives in
-`typed_constraints_test.go` (in-memory catalog: TanStack vs Next,
+Behavior is specified by `testdata/routing/` (46 scenarios asserted by
+`resolver_test.go`, floor-guarded by `minRoutingFixtures = 40`): resolved
+selections with reason assertions, ambiguous dimensions, catalog-gap
+(including `database-profile`), unsupported and invalid cases. Typed-constraint
+unit coverage lives in `typed_constraints_test.go` (in-memory catalog: TanStack vs Next,
 prefer-ranking, database gap); legacy untyped fixtures are untouched and
 pin the backward-compat rule.
+
+`open_product_questions[]` on the intent is routing-invisible by
+construction: no R-phase reads it (`TestOpenProductQuestionsDoNotAffectRouting`
+asserts identical decisions with and without questions). It exists so product
+unknowns reach Gentle through the handoff without polluting architecture —
+see `docs/architecture/handoff.md`.
