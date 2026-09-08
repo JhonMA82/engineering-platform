@@ -15,4 +15,8 @@
   exists): the legacy profile documents Celery plus Redis async tasks and a
   Docker mode with PostgreSQL/Redis/Celery — a worker topology, not just
   request handling. That is what GP-03 routes on.
-- Decision/delivery: default / curated (unchanged from legacy).
+- Pilot: not run — install, typecheck, lint, test and build were not run
+  from the pinned snapshot in legacy or v1.
+- Decision/delivery: default / pilot-ready (downgraded from curated under
+  H3: curated requires a Pilot success record, which does not exist — see
+  docs/decisions/migration-notes.md).

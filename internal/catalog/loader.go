@@ -71,6 +71,13 @@ func resolveBaseDir() string {
 	return "catalog"
 }
 
+// BaseDir reports the resolved in-repo catalog directory so CLI commands
+// can resolve catalog-relative references (curation evidence) against the
+// same tree Load reads.
+func BaseDir() string {
+	return resolveBaseDir()
+}
+
 type metadataFile struct {
 	CatalogVersion string `json:"catalog_version"`
 	MinCoreVersion string `json:"min_core_version"`

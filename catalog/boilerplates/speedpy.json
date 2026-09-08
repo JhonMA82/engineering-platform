@@ -10,8 +10,9 @@
     "checks": [{ "run": ["uv", "run", "python", "manage.py", "check"] }],
     "managed_files": ["AGENTS.md"]
   },
-  "delivery_status": "curated",
+  "delivery_status": "pilot-ready",
   "decision_status": "default",
+  "curation": {"status": "pilot-ready", "evidence": "curation/speedpy.md"},
   "provides": {
     "surfaces": ["api"],
     "capabilities": ["background-processing"]

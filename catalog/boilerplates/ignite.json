@@ -4,14 +4,16 @@
   "pin": "e829d2f922c5568a59a77bfb6232aeb500be3f13",
   "adapter": {
     "name": "ignite",
-    "operations": ["fetch", "copy"],
+    "operations": ["generate"],
+    "generate": {"run": ["npx", "ignite-cli@11.5.0", "new", "{name}", "--yes"], "output": "{name}"},
     "prune_paths": [],
     "setup": [],
     "checks": [],
     "managed_files": ["AGENTS.md"]
   },
-  "delivery_status": "curated",
+  "delivery_status": "pilot-ready",
   "decision_status": "default",
+  "curation": {"status": "pilot-ready", "evidence": "curation/ignite.md"},
   "provides": {
     "surfaces": ["mobile-native"],
     "capabilities": []

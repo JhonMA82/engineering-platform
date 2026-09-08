@@ -8,9 +8,11 @@ import (
 
 // Catalog-driven operation vocabulary (§71). An adapter combines these
 // generic operations; adding a boilerplate that uses them needs no core
-// release.
+// release. "generate" covers generator CLIs that produce their own output
+// directory (H4) instead of shipping a copyable tree.
 var validAdapterOperations = map[string]bool{
 	"fetch": true, "copy": true, "prune": true, "template": true, "compose": true,
+	"generate": true,
 }
 
 // AdapterCommand is one curated executable declaration. It is always argv,
@@ -74,6 +76,63 @@ func (c AdapterCommand) Validate() error {
 	return nil
 }
 
+// GenerateSpec is the declarative form of the generic "generate"
+// operation (H4). Some foundations are not copyable trees but generator
+// CLIs that scaffold a fresh directory (e.g. `<cli> new <App>`).
+// Run is argv-only — never a shell string — and Output is the relative
+// path the command must produce inside its working directory. The literal
+// placeholder "{name}" in Run args or Output is substituted with the
+// destination basename (see materializer); every other byte is literal.
+type GenerateSpec struct {
+	Run    AdapterCommand `json:"run"`
+	Output string         `json:"output"`
+}
+
+// UnmarshalJSON accepts {run, output} where run is any AdapterCommand
+// shape (argv array or {run|command+args} object).
+func (g *GenerateSpec) UnmarshalJSON(raw []byte) error {
+	var obj struct {
+		Run    json.RawMessage `json:"run"`
+		Output string          `json:"output"`
+	}
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return fmt.Errorf("generate spec must be an object with run and output: %s", trimJSON(raw))
+	}
+	if len(obj.Run) == 0 {
+		return fmt.Errorf("generate spec requires run (argv array or {run|command+args} object)")
+	}
+	var run AdapterCommand
+	if err := json.Unmarshal(obj.Run, &run); err != nil {
+		return fmt.Errorf("generate run: %v", err)
+	}
+	g.Run = run
+	g.Output = obj.Output
+	return nil
+}
+
+// Validate checks the argv shape structurally and confines the output to
+// a clean relative path. Shell/metacharacter rejection runs at execution
+// (materializer) and pre-validation, mirroring setup/checks.
+func (g GenerateSpec) Validate() error {
+	if err := g.Run.Validate(); err != nil {
+		return err
+	}
+	if err := checkRelativePath("generate output", g.Output); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Curation is the formal curation link (§3.1). Status reuses the delivery
+// status vocabulary — there is a single status axis, so a set status must
+// equal the boilerplate delivery_status (checked by catalog validation).
+// Evidence is a relative path confined to the catalog directory
+// (e.g. "curation/tanstack-admin.md").
+type Curation struct {
+	Status   string `json:"status,omitempty"`
+	Evidence string `json:"evidence,omitempty"`
+}
+
 // AdapterSpec is the declarative object form of a boilerplate adapter. The
 // legacy plain-string form (adapter name only) remains valid and yields a
 // nil spec with default fetch+copy semantics.
@@ -84,6 +143,7 @@ type AdapterSpec struct {
 	Setup        []AdapterCommand `json:"setup,omitempty"`
 	Checks       []AdapterCommand `json:"checks,omitempty"`
 	ManagedFiles []string         `json:"managed_files,omitempty"`
+	Generate     *GenerateSpec    `json:"generate,omitempty"`
 }
 
 // Validate enforces the operation vocabulary, relative safe paths and
@@ -116,6 +176,23 @@ func (s AdapterSpec) Validate() error {
 	}
 	for _, cmd := range s.Checks {
 		if err := cmd.Validate(); err != nil {
+			return err
+		}
+	}
+	hasGenerate := false
+	for _, op := range s.Operations {
+		if op == "generate" {
+			hasGenerate = true
+		}
+	}
+	if hasGenerate && s.Generate == nil {
+		return Validation("adapter declares generate operation but no generate spec")
+	}
+	if s.Generate != nil {
+		if !hasGenerate {
+			return Validation("adapter declares a generate spec but operations lacks generate")
+		}
+		if err := s.Generate.Validate(); err != nil {
 			return err
 		}
 	}
@@ -218,6 +295,7 @@ type Boilerplate struct {
 	Source           SourceSpec   `json:"-"`
 	DeliveryStatus   string       `json:"delivery_status,omitempty"`
 	DecisionStatus   string       `json:"decision_status,omitempty"`
+	Curation         Curation     `json:"curation,omitempty"`
 	Provides         Provides     `json:"provides,omitempty"`
 	TechTags         []string     `json:"tech_tags,omitempty"`
 	Technology       Technology   `json:"technology,omitempty"`
@@ -235,6 +313,7 @@ type boilerplateWire struct {
 	Source           *SourceSpec     `json:"source"`
 	DeliveryStatus   string          `json:"delivery_status"`
 	DecisionStatus   string          `json:"decision_status"`
+	Curation         *Curation       `json:"curation,omitempty"`
 	Provides         Provides        `json:"provides"`
 	TechTags         []string        `json:"tech_tags"`
 	Technology       Technology      `json:"technology"`
@@ -256,6 +335,9 @@ func (b *Boilerplate) UnmarshalJSON(raw []byte) error {
 	b.Pin = w.Pin
 	b.DeliveryStatus = w.DeliveryStatus
 	b.DecisionStatus = w.DecisionStatus
+	if w.Curation != nil {
+		b.Curation = *w.Curation
+	}
 	b.Provides = w.Provides
 	b.TechTags = w.TechTags
 	b.Technology = w.Technology
@@ -300,6 +382,9 @@ func (b Boilerplate) MarshalJSON() ([]byte, error) {
 		Technology:       b.Technology,
 		IncludedFeatures: b.IncludedFeatures,
 		UpdateStrategy:   b.UpdateStrategy,
+	}
+	if b.Curation != (Curation{}) {
+		w.Curation = &b.Curation
 	}
 	if b.AdapterSpec != nil {
 		raw, err := json.Marshal(b.AdapterSpec)

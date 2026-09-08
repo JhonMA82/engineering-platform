@@ -12,6 +12,7 @@
   },
   "delivery_status": "curated",
   "decision_status": "default",
+  "curation": {"status": "curated", "evidence": "curation/tauri-ui.md"},
   "provides": {
     "surfaces": ["desktop"],
     "capabilities": ["offline-operation"]

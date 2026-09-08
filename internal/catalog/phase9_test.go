@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jhonma82/engineering-platform/internal/catalog"
@@ -90,6 +91,19 @@ func TestPhase9BoilerplateContracts(t *testing.T) {
 			}
 			if len(raw) == 0 {
 				t.Fatal("curation evidence stub is empty")
+			}
+			// H3 formal link: the boilerplate JSON must reference the
+			// same stub the contract reads, so evidence is linked by
+			// contract, not by filename convention.
+			if strings.TrimSpace(bp.Curation.Evidence) == "" {
+				t.Fatal("boilerplate declares no curation evidence link")
+			}
+			linked := filepath.Join(root, "catalog", filepath.FromSlash(bp.Curation.Evidence))
+			if linked != stub {
+				t.Fatalf("curation evidence link = %q, want %q", bp.Curation.Evidence, "curation/"+tt.id+".md")
+			}
+			if got := strings.TrimSpace(bp.Curation.Status); got != bp.DeliveryStatus {
+				t.Fatalf("curation.status = %q, want delivery_status %q (single axis)", got, bp.DeliveryStatus)
 			}
 		})
 	}

@@ -10,8 +10,9 @@
     "checks": [{ "run": ["bun", "run", "build"] }],
     "managed_files": ["AGENTS.md"]
   },
-  "delivery_status": "curated",
+  "delivery_status": "pilot-ready",
   "decision_status": "specialized",
+  "curation": {"status": "pilot-ready", "evidence": "curation/react-starter-kit.md"},
   "provides": {
     "surfaces": ["public-web", "api"],
     "capabilities": ["shared-backend", "anonymous-public-access"]

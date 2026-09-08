@@ -10,8 +10,9 @@
     "checks": [],
     "managed_files": ["AGENTS.md"]
   },
-  "delivery_status": "stable",
+  "delivery_status": "pilot-ready",
   "decision_status": "curated",
+  "curation": {"status": "pilot-ready", "evidence": "curation/stardrive-public-web.md"},
   "provides": {
     "surfaces": ["public-web"],
     "capabilities": ["anonymous-public-access"]

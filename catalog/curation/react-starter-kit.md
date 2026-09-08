@@ -15,7 +15,12 @@
   tenant isolation, billing sandbox, migrations, rollback, deployment and
   observability remain unverified; Cloudflare Workers, Neon, Bun and
   provider-specific integrations require project-level acceptance.
-- Decision/delivery: specialized / curated (unchanged from legacy).
+- Pilot: not run — no pilot was executed in legacy or v1; tenant
+  isolation, billing sandbox, migrations and observability remain
+  unverified.
+- Decision/delivery: specialized / pilot-ready (downgraded from curated
+  under H3: curated requires a Pilot success record, which does not
+  exist — see docs/decisions/migration-notes.md).
   Specialized keeps the foundation eligible while preventing it from winning
   generic intents on simplicity alone — GP-07 is selected by explicit
   commercial-SaaS signals (React/Cloudflare stack, SaaS composition).

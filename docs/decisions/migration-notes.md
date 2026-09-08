@@ -18,15 +18,17 @@ frozen non-HEAD pin (speedpy).
 - Source: legacy `ignite` (default/curated, tier B, category mobile).
 - Pin `e829d2f922c5568a59a77bfb6232aeb500be3f13` (`master`): verified — it is
   the advertised upstream HEAD, so the reviewed snapshot is current, not stale.
-- Status kept: default / curated. Provides `mobile-native`; tags
+- Status H3-updated: default / pilot-ready (downgraded from curated: no
+  materialization pilot was ever executed for this foundation — see H3+H4
+  below). Provides `mobile-native`; tags
   `react-native, expo, typescript`.
 - Evidence: `catalog/curation/ignite.md` (legacy `curation/ignite/`
   reviewed 2026-09-01; gap carried over: generated project needs the
   Engineering AGENTS.md overlay).
-- Known adapter gap (documented, not blocking routing): legacy materializes
-  via a generator command (`ignite-cli@11.5.0`), but the v1 adapter vocabulary
-  is fetch/copy/prune/template/compose, so the v1 adapter records a fetch+copy
-  placeholder. Generator-based materialization is future materializer work.
+- Adapter H4-updated: the generic `generate` operation runs the pinned
+  generator (`npx ignite-cli@11.5.0 new {name} --yes`); the old fetch+copy
+  placeholder is gone. No `if ignite` in core — see
+  `docs/decisions/ignite-materialization.md`.
 
 ### tauri-ui → `catalog/boilerplates/tauri-ui.json` · GP-05
 
@@ -51,7 +53,8 @@ frozen non-HEAD pin (speedpy).
 - Pin `3fbf725d8e9cf6b8aadb3aeaf1db2822522282b9` (`main`): verified to exist
   via the commits API, but it is NOT the current upstream tip — an honest
   freeze of the reviewed snapshot. Re-pin only after re-review.
-- Status kept: default / curated. Provides `api` + `background-processing`,
+- Status H3-updated: default / pilot-ready (downgraded from curated: the
+  frozen pin was never piloted — see H3+H4 below). Provides `api` + `background-processing`,
   tags `python, django`; adapter mirrors the legacy overlay adapter
   (`uv sync`, `manage.py check`, prune `.claude`).
 - Why the new `background-processing` capability exists: the legacy profile
@@ -69,7 +72,8 @@ frozen non-HEAD pin (speedpy).
   category saas-edge).
 - Pin `0aa7603435f16159ad0b8fef68fb7f6280be7ca1` (`main`): verified
   advertised HEAD.
-- Status kept: specialized / curated. Provides `public-web, api` +
+- Status H3-updated: specialized / pilot-ready (downgraded from curated:
+  no pilot ever executed — see H3+H4 below). Provides `public-web, api` +
   `shared-backend, anonymous-public-access`; tags `react, cloudflare, saas`.
 - Why GP-07 exists although GP-06 already composes public-web stacks
   (checked, not assumed): GP-06 composes separate foundations
@@ -120,6 +124,42 @@ each surface is covered somewhere, no recipe composes both).
   `sqlite-local` (GP-05 legacy lists `turso-sync` as allowed, but no Turso
   profile exists in the v1 catalog yet). Adding provider profiles is a
   separate catalog slice.
+
+## Release hardening H3+H4 (2026-09-08)
+
+H3 (curation enforcement): every boilerplate now declares a formal
+`curation: {status, evidence}` link (status reuses the delivery
+vocabulary — single axis); `eng catalog validate` enforces per-status
+evidence bars and safe evidence paths (no `..`, absolute paths, symlink
+escapes), with curated/released/stable requiring a `Pilot:` success
+record in the stub. Honest downgrades (reason: no pilot ever executed,
+never fake evidence):
+
+- `ignite`: curated → pilot-ready.
+- `react-starter-kit`: curated → pilot-ready.
+- `speedpy`: curated → pilot-ready.
+- `hono-api`: stable → pilot-ready (new stub `catalog/curation/hono-api.md`;
+  license unverified, pin `v1.0.0` unreachable — upstream repo not publicly
+  reachable — no setup/checks, no pilot).
+- `stardrive-public-web`: stable → pilot-ready (new stub; same gaps as hono-api).
+- `tanstack-admin`: stable → pilot-ready (new stub; same gaps as hono-api).
+- `tanstack-transactional-pwa`: stable → pilot-ready (new stub; license
+  unverified, repo reachable but no `v1.0.0` tag advertised, no
+  setup/checks, no pilot).
+- `tauri-ui`: stays curated — the only entry with a Pilot success record
+  (legacy full pilot 2026-09-04, recorded in `catalog/curation/tauri-ui.md`).
+
+H4 (Ignite materialization): Ignite is not a starter repo — projects are
+scaffolded by `ignite-cli new` (researched from the pinned CLI source +
+npm metadata; verdict in `docs/decisions/ignite-materialization.md`).
+Genuinely unrepresentable with fetch/copy, so the engine gained ONE
+generic `generate` op (argv-only, controlled cwd, validated output,
+staging cleanup, exit capture; offline engine test + network-gated pilot
+`TestPilotIgniteGeneration`, skipped without `ENG_UPSTREAM_PILOTS=1`).
+No boilerplate special-casing in core (guarded by
+`TestNoBoilerplateSpecialCases`). The ignite adapter declares honest
+empty setup/checks until the network pilot confirms post-generation
+behavior — follow-up recorded in the decision doc, not guessed here.
 
 ## Release hardening H1+H2 (2026-09-08)
 

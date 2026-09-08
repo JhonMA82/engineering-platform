@@ -17,10 +17,15 @@ seed-fork / reference-only), materializer type (git-copy vs
 command-generator), destination, setup/checks, prune paths, requirements.
 Map to the v1 adapter object (`{name, operations, prune_paths, setup,
 checks, managed_files}`); the v1 operation vocabulary is
-fetch/copy/prune/template/compose. A `command-generator` legacy adapter has
-no v1 equivalent yet — record a fetch+copy placeholder and document the gap
-in the curation stub and `docs/decisions/migration-notes.md` (as done for
-ignite), do not invent semantics.
+fetch/copy/prune/template/compose/generate. A `command-generator` legacy
+adapter (a CLI that scaffolds its own output directory, e.g. `ignite-cli
+new`) maps to the generic `generate` operation (`{run: argv, output:
+relative-path}` with `{name}` substitution — see
+`docs/decisions/ignite-materialization.md` and
+`docs/architecture/materialization.md`); only use a fetch+copy placeholder
+for a generator if the generator command cannot be expressed as argv, and
+then document the gap in the curation stub and
+`docs/decisions/migration-notes.md`.
 
 ## 3. Read the evidence
 
@@ -50,6 +55,31 @@ Write `catalog/boilerplates/<id>.json`:
 - `tech_tags`: stack signals used by must-use matching.
 - `adapter`: object form with argv `setup`/`checks` mirroring the piloted
   legacy commands.
+- `curation`: formal evidence link — `{"status": "<delivery_status>",
+  "evidence": "curation/<id>.md"}`. The status reuses the delivery
+  vocabulary (single axis: a set `curation.status` must equal
+  `delivery_status`); the evidence path must be a clean relative slash
+  path confined to the catalog (no `..`, no absolute paths, no symlink
+  escapes) pointing at a real file.
+
+## 4b. Curation enforcement rules (H3 — `eng catalog validate` enforces)
+
+| `delivery_status` | Evidence requirement |
+|---|---|
+| `catalog-only` | Evidence optional (a declared link must still resolve). Not
+  selectable for normal materialization. |
+| `pilot-ready` | Link required; the file must exist, be non-empty, and address
+  the license (even if only to record "unverified" as an explicit gap).
+  License checked, repository checked, pin defined, adapter present. |
+| `curated` / `released` (`stable` enforces the same bar) | All of the
+  above, plus a `Pilot:` line in the stub recording the successful pilot.
+  `released` without pilot evidence is invalid. |
+
+Rules: downgrade on doubt, never upgrade — an entry without a Pilot
+success record is at most `pilot-ready`, and the reason goes in
+`docs/decisions/migration-notes.md`. Never fake evidence to keep a
+status. Adding evidence is a data-only operation (new stub +
+`curation` link in the entry JSON); it needs no core changes.
 
 Add any genuinely new surface or capability first (`catalog/surfaces/`,
 `catalog/capabilities/`), with aliases in `catalog/vocabulary/aliases.json`

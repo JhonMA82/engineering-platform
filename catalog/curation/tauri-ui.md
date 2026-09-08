@@ -18,4 +18,7 @@
   (registry fetches at generation time).
 - The v1 `offline-operation` capability claim means offline-by-architecture
   (bundled assets plus local SQLite), not a data-sync layer.
+- Pilot: 2026-09-04 full pilot passed (bun install, template build and
+  generated-app `tsc -b && vite build` green; Rust layer and real
+  installers not exercised — see caveats above).
 - Decision/delivery: default / curated (unchanged from legacy).
