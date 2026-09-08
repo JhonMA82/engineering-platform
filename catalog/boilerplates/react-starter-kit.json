@@ -16,6 +16,11 @@
     "surfaces": ["public-web", "api"],
     "capabilities": ["shared-backend", "anonymous-public-access"]
   },
-  "tech_tags": ["react", "cloudflare", "saas", "typescript"],
+      "tech_tags": ["react", "cloudflare", "saas", "typescript"],
+      "technology": {
+        "framework": ["react"],
+        "language": ["typescript"],
+        "runtime": ["bun"]
+      },
   "included_features": ["billing", "organizations", "auth"]
 }

@@ -12,7 +12,13 @@ own one phase.
   technology is selected here.
 - R3 `SplitRequirements` (`requirements.go`): product vs architecture
   (required/possible) vs must-use/must-not-use vs preferences. Product
-  features can never become hard constraints by construction.
+  features can never become hard constraints by construction. Technical
+  constraints split into channels: legacy untyped values, explicit-target
+  framework/language/runtime/provider constraints, database must-use /
+  prefer / must-not-use values, and prefer/avoid constraints (any
+  non-database target), which join `preferences` and stay ranking-only.
+  Deployment targets have no catalog metadata and are recorded, not
+  evaluated.
 - R4 `Derive` (`derive.go`): visible rules turning intent signals into
   canonical requirements — anonymous access → `anonymous-public-access`,
   admin plus mobile sharing data (or several clients on one api) →
@@ -22,18 +28,32 @@ own one phase.
 - R5 `Candidates`: every active recipe, never a project_type assumption.
 - R6 `ApplyConstraints` (`constraints.go`): required surfaces, composition
   subset check, required refs, derived requirements, must-use/must-not-use
-  tech matching (case-insensitive substring either way).
+  tech matching (case-insensitive substring either way). Untyped values
+  match recipe `tech_tags` (pre-H2 rule, pinned by fixtures); typed
+  framework/language/runtime/provider constraints match the catalog
+  technology metadata for that target (`compatible with must-use
+  <target>=<value>`). must-use database values eliminate only recipes
+  whose policy offers no matching profile — a value with no curated
+  profile anywhere is left for R7. prefer/avoid never eliminate.
 - R7 `DiagnoseGap` (`gaps.go`): required work covered by NO active recipe
   becomes `catalog-gap` with research criteria; covered-but-eliminated
-  becomes `unsupported`.
+  becomes `unsupported`. A must-use database value with no curated profile
+  is a `database-profile` gap even when recipes are eligible
+  (`DiagnoseDatabaseGap`, checked before winner selection) — see
+  `docs/concepts/technical-constraints.md`.
 - R8 `ScoreAll` (`scoring.go`): weights surface 35, arch capabilities 20,
   data 15, ops 10, curation 8, simplicity 7, preference 5, product-feature
-  bonus ≤3.
+  bonus ≤3. `prefer`/`avoid` from `preferences[]` and from prefer/avoid
+  technical constraints score identically against recipe tech tags.
 - R9/R10 confidence plus `Unresolved` (`confidence.go`, `questions.go`):
   possible-strength refs always surface neutral dimensions; a close call
   (margin < 12) with open dimensions resolves `ambiguous` instead of
   guessing.
 
-Behavior is specified by `testdata/routing/` (41 scenarios asserted by
+Behavior is specified by `testdata/routing/` (45 scenarios asserted by
 `resolver_test.go`): resolved selections with reason assertions, ambiguous
-dimensions, catalog-gap, unsupported and invalid cases.
+dimensions, catalog-gap (including `database-profile`), unsupported and
+invalid cases. Typed-constraint unit coverage lives in
+`typed_constraints_test.go` (in-memory catalog: TanStack vs Next,
+prefer-ranking, database gap); legacy untyped fixtures are untouched and
+pin the backward-compat rule.

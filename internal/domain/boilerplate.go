@@ -181,6 +181,32 @@ func (s SourceSpec) Validate(repo string) error {
 	return nil
 }
 
+// Technology is the catalog-known technical metadata of a boilerplate,
+// keyed by constraint target (§2.5). Values are honest catalog data: only
+// list what the curation evidence or the boilerplate contract supports;
+// unknown languages or runtimes are omitted, never invented.
+type Technology struct {
+	Framework []string `json:"framework,omitempty"`
+	Language  []string `json:"language,omitempty"`
+	Runtime   []string `json:"runtime,omitempty"`
+}
+
+// Values returns the declared values for a constraint target, or nil for
+// targets without boilerplate-level metadata (database, deployment,
+// provider resolve through profiles, deployment knowledge and the
+// boilerplate identity respectively).
+func (t Technology) Values(target string) []string {
+	switch target {
+	case "framework":
+		return t.Framework
+	case "language":
+		return t.Language
+	case "runtime":
+		return t.Runtime
+	}
+	return nil
+}
+
 // Boilerplate is a foundation, not a feature bundle. Feature coverage only
 // feeds a small scoring tie-breaker, never eligibility.
 type Boilerplate struct {
@@ -194,6 +220,7 @@ type Boilerplate struct {
 	DecisionStatus   string       `json:"decision_status,omitempty"`
 	Provides         Provides     `json:"provides,omitempty"`
 	TechTags         []string     `json:"tech_tags,omitempty"`
+	Technology       Technology   `json:"technology,omitempty"`
 	IncludedFeatures []string     `json:"included_features,omitempty"`
 	UpdateStrategy   string       `json:"update_strategy,omitempty"`
 }
@@ -210,6 +237,7 @@ type boilerplateWire struct {
 	DecisionStatus   string          `json:"decision_status"`
 	Provides         Provides        `json:"provides"`
 	TechTags         []string        `json:"tech_tags"`
+	Technology       Technology      `json:"technology"`
 	IncludedFeatures []string        `json:"included_features"`
 	UpdateStrategy   string          `json:"update_strategy"`
 }
@@ -230,6 +258,7 @@ func (b *Boilerplate) UnmarshalJSON(raw []byte) error {
 	b.DecisionStatus = w.DecisionStatus
 	b.Provides = w.Provides
 	b.TechTags = w.TechTags
+	b.Technology = w.Technology
 	b.IncludedFeatures = w.IncludedFeatures
 	b.UpdateStrategy = w.UpdateStrategy
 	b.AdapterSpec = nil
@@ -268,6 +297,7 @@ func (b Boilerplate) MarshalJSON() ([]byte, error) {
 		DecisionStatus:   b.DecisionStatus,
 		Provides:         b.Provides,
 		TechTags:         b.TechTags,
+		Technology:       b.Technology,
 		IncludedFeatures: b.IncludedFeatures,
 		UpdateStrategy:   b.UpdateStrategy,
 	}

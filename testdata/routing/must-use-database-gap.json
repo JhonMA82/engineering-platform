@@ -1,0 +1,14 @@
+{
+  "name": "must-use-database-gap",
+  "intent": {
+    "schema_version": 1,
+    "name": "turso backoffice",
+    "problem": "backoffice constrained to a database with no curated profile",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [{ "target": "database", "kind": "must-use", "value": "turso" }]
+  },
+  "expect": {
+    "status": "catalog-gap",
+    "must_include_reasons": ["database-profile=turso"]
+  }
+}

@@ -18,6 +18,10 @@ the user must never pre-select the architecture.
 - `product_requirements[]`: what the product must do. Never eligibility, only
   a small scoring tie-break — a missing PDF feature never disqualifies a
   foundation.
-- `technical_constraints[]` (`must-use` / `must-not-use` …): explicit user
-  decisions, preserved verbatim and enforced as hard constraints.
+- `technical_constraints[]` (`must-use` / `must-not-use` / `prefer` /
+  `avoid`, each with a `target`: `framework`, `language`, `runtime`,
+  `database`, `deployment` or `provider`): explicit user decisions,
+  preserved verbatim and enforced as hard constraints (`must-use` /
+  `must-not-use`) or ranking signals (`prefer` / `avoid`). Full contract:
+  `docs/concepts/technical-constraints.md`.
 - `preferences[]` (`prefer` / `avoid`): ranking influence only.

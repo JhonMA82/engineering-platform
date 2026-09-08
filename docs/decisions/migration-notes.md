@@ -120,3 +120,36 @@ each surface is covered somewhere, no recipe composes both).
   `sqlite-local` (GP-05 legacy lists `turso-sync` as allowed, but no Turso
   profile exists in the v1 catalog yet). Adding provider profiles is a
   separate catalog slice.
+
+## Release hardening H1+H2 (2026-09-08)
+
+H1 (Core↔Catalog compatibility): single canonical `internal/version`
+package (`CoreVersion="dev"`, stampable `Commit`/`BuildDate` via the
+Makefile `release` target ldflags); `app.CoreVersion` and `eng version`
+delegate to it. `eng version` prints the §1.3 report
+(Core/Catalog/Catalog schema/Commit/Build date). Catalog load enforces a
+real semver gate (`catalog requires core >= X, running core is Y`),
+`unsupported catalog schema version: N`, and optional `max_core_version`
+(`catalog requires core <= X, running core is Y`); no third-party semver
+lib. The `dev` line bypasses the bounds so working-tree builds keep
+loading the in-tree catalog.
+
+H2 (typed technical constraints): `TechnicalConstraint{Target, Kind,
+Value}` with targets framework|language|runtime|database|deployment|
+provider (unknown target → validation error listing them). Kinds keep the
+existing vocabulary plus prefer|avoid (ranking-only, even inside
+technical_constraints). Missing target preserves the pre-H2 rule exactly
+(value matches recipe tech_tags) — all pre-existing routing fixtures pass
+without edits. Boilerplates gained honest `technology` metadata (unknown
+languages/runtimes omitted, never invented); database profiles gained
+`engine`/`provider`/`supports`. No Turso profile added (contract first,
+profiles later — consistent with the skipped `turso-libsql`/`turso-sync`
+note above). Resolver filters typed constraints catalog-driven (no brand
+literals in Go); must-use database with no curated profile → `catalog-gap`
+`{kind: database-profile, value}`; prefer database falls back with the
+deviation in `Composition.DatabaseNote`. Docs:
+`docs/concepts/technical-constraints.md` (new), routing/composition/
+project-intent updates here. Behavior changes: `eng version` output
+format; catalogs with incompatible min_core/max_core/schema now refuse to
+load; typed `target=value` reason strings alongside unchanged legacy
+strings.

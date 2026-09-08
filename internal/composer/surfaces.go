@@ -19,6 +19,17 @@ const (
 	prefixDerived         = "covers derived requirement "
 	prefixMustUse         = "compatible with must-use tech "
 	prefixMustNotUse      = "excluded by must-not-use tech "
+	// Typed reason channels carry target=value pairs, e.g.
+	// "compatible with must-use framework=tanstack". The legacy
+	// tech-only prefixes above are matched first so untyped constraints
+	// keep their exact pre-H2 recovery.
+	prefixMustUseTyped    = "compatible with must-use "
+	prefixMustNotUseTyped = "excluded by must-not-use "
+	// Database reason channels feed profile selection: must-use values
+	// constrain the choice, preferences explain fallbacks.
+	prefixDatabaseMustUse = "compatible with must-use database="
+	prefixDatabasePrefer  = "database preference: "
+	prefixDatabaseAvoid   = "database avoidance noted: must-not-use database="
 )
 
 // decisionReasons returns the winner reasons plus the selected candidate
@@ -125,16 +136,145 @@ func RequiredCapabilities(decision domain.ArchitectureDecision, idx catalog.Inde
 	return out
 }
 
+// TechConstraint is a recovered technology constraint: an untyped legacy
+// value (Target "") or an explicit target=value pair. Recovery parses the
+// decision reason strings so the decision stays the single source of truth
+// for composition.
+type TechConstraint struct {
+	Target string
+	Value  string
+}
+
 // MustUseTech recovers explicit must-use technology values from winner
-// reasons, in stable order.
+// reasons, in stable order. Both legacy ("tech V") and typed ("T=V")
+// forms contribute their values.
 func MustUseTech(decision domain.ArchitectureDecision) []string {
-	return collectPrefixed(decisionReasons(decision), prefixMustUse)
+	out := collectPrefixed(decisionReasons(decision), prefixMustUse)
+	for _, c := range MustUseConstraints(decision) {
+		if c.Target != "" {
+			out = append(out, c.Value)
+		}
+	}
+	sort.Strings(out)
+	return dedupStrings(out)
 }
 
 // MustNotUseTech recovers must-not-use values recorded anywhere in the
-// candidate reasons, in stable order.
+// candidate reasons, in stable order (legacy and typed forms).
 func MustNotUseTech(decision domain.ArchitectureDecision) []string {
-	return collectPrefixed(allCandidateReasons(decision), prefixMustNotUse)
+	out := collectPrefixed(allCandidateReasons(decision), prefixMustNotUse)
+	for _, c := range MustNotUseConstraints(decision) {
+		if c.Target != "" {
+			out = append(out, c.Value)
+		}
+	}
+	sort.Strings(out)
+	return dedupStrings(out)
+}
+
+func dedupStrings(in []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, v := range in {
+		if !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// MustUseConstraints recovers typed must-use constraints (target=value)
+// plus legacy untyped values (Target "") from winner reasons.
+func MustUseConstraints(decision domain.ArchitectureDecision) []TechConstraint {
+	return collectTechConstraints(decisionReasons(decision), prefixMustUseTyped, prefixMustUse)
+}
+
+// MustNotUseConstraints recovers typed and legacy must-not-use
+// constraints recorded anywhere in the candidate reasons.
+func MustNotUseConstraints(decision domain.ArchitectureDecision) []TechConstraint {
+	return collectTechConstraints(allCandidateReasons(decision), prefixMustNotUseTyped, prefixMustNotUse)
+}
+
+// collectTechConstraints parses legacy "tech V" values first (Target "")
+// and then "T=V" pairs from the typed prefix. A typed-looking value
+// without "=" is ignored: only the resolver mints these strings.
+func collectTechConstraints(reasons []string, typedPrefix, legacyPrefix string) []TechConstraint {
+	var out []TechConstraint
+	seen := map[string]bool{}
+	add := func(target, value string) {
+		value = strings.ToLower(strings.TrimSpace(value))
+		target = strings.ToLower(strings.TrimSpace(target))
+		if value == "" || seen[target+"\x00"+value] {
+			return
+		}
+		seen[target+"\x00"+value] = true
+		out = append(out, TechConstraint{Target: target, Value: value})
+	}
+	for _, r := range reasons {
+		if rest, ok := strings.CutPrefix(r, legacyPrefix); ok {
+			add("", rest)
+			continue
+		}
+		if rest, ok := strings.CutPrefix(r, typedPrefix); ok {
+			rest = strings.TrimSpace(rest)
+			if strings.HasPrefix(rest, "tech ") {
+				continue
+			}
+			if target, value, ok := strings.Cut(rest, "="); ok {
+				add(target, value)
+			}
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Target != out[j].Target {
+			return out[i].Target < out[j].Target
+		}
+		return out[i].Value < out[j].Value
+	})
+	return out
+}
+
+// DatabaseMustUse recovers must-use database values from winner reasons.
+func DatabaseMustUse(decision domain.ArchitectureDecision) []string {
+	return collectPrefixed(decisionReasons(decision), prefixDatabaseMustUse)
+}
+
+// DatabasePreferences recovers prefer/avoid database hints ("kind=value")
+// from winner reasons, in stable order.
+func DatabasePreferences(decision domain.ArchitectureDecision) []domain.Preference {
+	var out []domain.Preference
+	seen := map[string]bool{}
+	for _, r := range decisionReasons(decision) {
+		rest, ok := strings.CutPrefix(r, prefixDatabasePrefer)
+		if !ok {
+			continue
+		}
+		kind, value, ok := strings.Cut(strings.TrimSpace(rest), "=")
+		if !ok {
+			continue
+		}
+		kind = strings.ToLower(strings.TrimSpace(kind))
+		value = strings.ToLower(strings.TrimSpace(value))
+		if (kind != "prefer" && kind != "avoid") || value == "" || seen[kind+"\x00"+value] {
+			continue
+		}
+		seen[kind+"\x00"+value] = true
+		out = append(out, domain.Preference{Kind: kind, Value: value})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Kind != out[j].Kind {
+			return out[i].Kind < out[j].Kind
+		}
+		return out[i].Value < out[j].Value
+	})
+	return out
+}
+
+// DatabaseAvoidance recovers must-not-use database values from winner
+// reasons, in stable order.
+func DatabaseAvoidance(decision domain.ArchitectureDecision) []string {
+	return collectPrefixed(decisionReasons(decision), prefixDatabaseAvoid)
 }
 
 func collectPrefixed(reasons []string, prefix string) []string {
@@ -169,9 +309,43 @@ func techMatch(tags []string, value string) bool {
 }
 
 // providerTech returns the technology signals of a boilerplate: its
-// tech tags plus its adapter name.
+// tech tags plus its adapter name (legacy untyped signal set).
 func providerTech(b domain.Boilerplate) []string {
 	return append(append([]string{}, b.TechTags...), b.Adapter)
+}
+
+// providerSignals returns the catalog technology signals of a boilerplate
+// under one constraint target: the boilerplate identity (id, adapter) for
+// provider, the technology[target] metadata plus tech_tags fallback for
+// framework/language/runtime, and the legacy tech_tags plus adapter for
+// untyped constraints (exact pre-H2 behavior).
+func providerSignals(b domain.Boilerplate, target string) []string {
+	switch target {
+	case "provider":
+		return append(append([]string{b.ID, b.Adapter}, b.TechTags...), b.Technology.Values(target)...)
+	case "framework", "language", "runtime":
+		return append(append([]string{}, b.Technology.Values(target)...), b.TechTags...)
+	default:
+		return providerTech(b)
+	}
+}
+
+// constraintMatches reports whether a recovered tech constraint is
+// satisfied by a boilerplate, using catalog signals only.
+func constraintMatches(b domain.Boilerplate, c TechConstraint) bool {
+	return techMatch(providerSignals(b, c.Target), c.Value)
+}
+
+// techEnforcedTarget reports whether a recovered constraint is enforced
+// against providers. Database targets resolve through profile selection
+// (SelectDatabaseProfileFor) and deployment targets have no catalog
+// metadata; neither may fail or steer provider compatibility.
+func techEnforcedTarget(target string) bool {
+	switch target {
+	case "", "framework", "language", "runtime", "provider":
+		return true
+	}
+	return false
 }
 
 // capabilityCoverage counts how many of the required capabilities a
@@ -206,7 +380,7 @@ func SelectProvider(surface domain.SurfaceID, recipe domain.Recipe, decision dom
 			primary[id] = i
 		}
 	}
-	mustUse := MustUseTech(decision)
+	mustUse := MustUseConstraints(decision)
 	ranked := append([]domain.Boilerplate{}, candidates...)
 	sort.SliceStable(ranked, func(i, j int) bool {
 		pi, iPrimary := primary[ranked[i].ID]
@@ -217,8 +391,8 @@ func SelectProvider(surface domain.SurfaceID, recipe domain.Recipe, decision dom
 		if iPrimary && jPrimary && pi != pj {
 			return pi < pj
 		}
-		mi := countTechMatches(providerTech(ranked[i]), mustUse)
-		mj := countTechMatches(providerTech(ranked[j]), mustUse)
+		mi := countConstraintMatches(ranked[i], mustUse)
+		mj := countConstraintMatches(ranked[j], mustUse)
 		if mi != mj {
 			return mi > mj
 		}
@@ -230,6 +404,19 @@ func SelectProvider(surface domain.SurfaceID, recipe domain.Recipe, decision dom
 		return ranked[i].ID < ranked[j].ID
 	})
 	return ranked[0], nil
+}
+
+func countConstraintMatches(b domain.Boilerplate, constraints []TechConstraint) int {
+	n := 0
+	for _, c := range constraints {
+		if !techEnforcedTarget(c.Target) {
+			continue
+		}
+		if constraintMatches(b, c) {
+			n++
+		}
+	}
+	return n
 }
 
 func countTechMatches(tags, values []string) int {

@@ -16,6 +16,10 @@
     "surfaces": ["api"],
     "capabilities": ["background-processing"]
   },
-  "tech_tags": ["python", "django"],
+      "tech_tags": ["python", "django"],
+      "technology": {
+        "framework": ["django"],
+        "language": ["python"]
+      },
   "included_features": ["excel", "reporting", "background-jobs"]
 }

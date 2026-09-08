@@ -55,6 +55,11 @@
         "type": "object",
         "required": ["kind"],
         "properties": {
+          "target": {
+        "type": "string",
+        "description": "Technical domain the constraint restricts: framework, language, runtime, database, deployment or provider. Omit only for legacy untyped constraints, which match recipe tech_tags.",
+        "enum": ["framework", "language", "runtime", "database", "deployment", "provider"]
+          },
           "kind": { "type": "string" },
           "value": { "type": "string" }
         }

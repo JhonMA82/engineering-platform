@@ -44,7 +44,24 @@ Compatibility is checked, not assumed: recipe surface coverage, allowed
 surface composition over the full component set, capability coverage by the
 union of chosen providers, database policy versus catalog profiles, tech
 compatibility between components, and explicit must-use/must-not-use
-constraints. Every failure is a typed `composition` domain error.
+constraints (legacy untyped values plus typed `target=value` pairs
+recovered from decision reasons; database/deployment targets are enforced
+by profile selection or not at all — never against providers). Every
+failure is a typed `composition` domain error.
+
+## Database profile selection
+
+`SelectDatabaseProfileFor` resolves the recipe policy while honoring
+recovered database constraints (§2.4, full contract in
+`docs/concepts/technical-constraints.md`): must-use selects the allowed
+profile identifying the value (id, engine or provider) even when it is not
+the default; must-not-use avoids that profile when an alternative exists;
+prefer selects a matching allowed profile or falls back to the default
+with the deviation explained in `Composition.DatabaseNote`; avoid picks
+any other allowed profile. Preferences never fail selection. Profiles
+declare `engine`, `provider` and `supports` (`postgresql-managed`,
+`sqlite-local`); Turso is deliberately absent — contract first, profiles
+later.
 
 ## Destination rules
 

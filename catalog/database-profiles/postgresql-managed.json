@@ -1,6 +1,8 @@
 {
   "id": "postgresql-managed",
   "engine": "postgres",
+  "provider": "managed-postgres",
+  "supports": ["shared-backend", "multi-user"],
   "managed": true,
   "description": "Managed Postgres for shared multi-user backends."
 }

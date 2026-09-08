@@ -27,6 +27,52 @@ func techMatch(tags []string, value string) bool {
 	return false
 }
 
+// typedLabel renders a typed constraint as target=value for reason
+// strings, e.g. framework=tanstack.
+func typedLabel(c domain.TechnicalConstraint) string {
+	return fmt.Sprintf("%s=%s", strings.ToLower(strings.TrimSpace(c.Target)), strings.ToLower(strings.TrimSpace(c.Value)))
+}
+
+// typedTechMatch evaluates an explicit-target constraint against the
+// catalog technology metadata for that target (see
+// catalog.Index.RecipeTechnology). No technology names are hardcoded: the
+// signals come from boilerplate technology entries and recipe tech_tags.
+func typedTechMatch(r domain.Recipe, c domain.TechnicalConstraint, idx catalog.Index) bool {
+	return techMatch(idx.RecipeTechnology(r, strings.ToLower(strings.TrimSpace(c.Target))), c.Value)
+}
+
+// recipeSatisfiesDatabase reports whether a recipe policy offers any
+// profile identifying value (id, engine or provider match against the
+// curated profiles). It answers from catalog data, never from a brand
+// allow-list in Go.
+func recipeSatisfiesDatabase(r domain.Recipe, value string, idx catalog.Index) bool {
+	for _, id := range idx.RecipeDatabaseProfiles(r) {
+		if p, ok := idx.DatabaseProfile(id); ok && p.MatchesTechnology(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// appendDeploymentNotes records deployment-target constraints on eligible
+// candidates. The catalog curates no deployment metadata yet, so per §2.3
+// these constraints are not evaluated — the note keeps the explicit user
+// decision visible instead of silently dropping it.
+func appendDeploymentNotes(e *Eligibility, n Normalized) {
+	seen := map[string]bool{}
+	for _, c := range n.Intent.TechnicalConstraints {
+		if strings.ToLower(strings.TrimSpace(c.Target)) != domain.ConstraintTargetDeployment {
+			continue
+		}
+		note := fmt.Sprintf("deployment constraint %s=%s not evaluated (no catalog deployment metadata)",
+			strings.ToLower(strings.TrimSpace(c.Kind)), strings.ToLower(strings.TrimSpace(c.Value)))
+		if !seen[note] {
+			seen[note] = true
+			e.Positive = append(e.Positive, note)
+		}
+	}
+}
+
 func providesSurface(r domain.Recipe, id domain.SurfaceID) bool {
 	for _, s := range r.Provides.Surfaces {
 		if s == id {
@@ -126,6 +172,31 @@ func ApplyConstraints(n Normalized, sp Split, derived []domain.DerivedRequiremen
 				e.Negative = append(e.Negative, fmt.Sprintf("excluded by must-not-use tech %s", mn))
 			}
 		}
+		for _, mu := range sp.TypedMustUse {
+			if !typedTechMatch(r, mu, idx) {
+				e.Eligible = false
+				e.Negative = append(e.Negative, fmt.Sprintf("incompatible with must-use %s", typedLabel(mu)))
+			}
+		}
+		for _, mn := range sp.TypedMustNotUse {
+			if typedTechMatch(r, mn, idx) {
+				e.Eligible = false
+				e.Negative = append(e.Negative, fmt.Sprintf("excluded by must-not-use %s", typedLabel(mn)))
+			}
+		}
+		for _, db := range sp.DatabaseMustUse {
+			// A database value with no curated profile anywhere is a
+			// catalog gap, not a per-recipe verdict: every candidate
+			// stays untouched on this axis so R7 can name the missing
+			// database-profile foundation.
+			if _, ok := idx.MatchDatabaseProfile(db); !ok {
+				continue
+			}
+			if !recipeSatisfiesDatabase(r, db, idx) {
+				e.Eligible = false
+				e.Negative = append(e.Negative, fmt.Sprintf("no allowed database profile satisfies must-use database=%s", db))
+			}
+		}
 		if e.Eligible {
 			for _, s := range n.RequiredSurfaces {
 				e.Positive = append(e.Positive, fmt.Sprintf("covers required surface %s", s))
@@ -139,6 +210,21 @@ func ApplyConstraints(n Normalized, sp Split, derived []domain.DerivedRequiremen
 			for _, mu := range sp.MustUse {
 				e.Positive = append(e.Positive, fmt.Sprintf("compatible with must-use tech %s", mu))
 			}
+			for _, mu := range sp.TypedMustUse {
+				e.Positive = append(e.Positive, fmt.Sprintf("compatible with must-use %s", typedLabel(mu)))
+			}
+			for _, db := range sp.DatabaseMustUse {
+				if _, ok := idx.MatchDatabaseProfile(db); ok {
+					e.Positive = append(e.Positive, fmt.Sprintf("compatible with must-use database=%s", db))
+				}
+			}
+			for _, p := range sp.DatabasePrefer {
+				e.Positive = append(e.Positive, fmt.Sprintf("database preference: %s=%s", p.Kind, strings.ToLower(strings.TrimSpace(p.Value))))
+			}
+			for _, db := range sp.DatabaseMustNotUse {
+				e.Positive = append(e.Positive, fmt.Sprintf("database avoidance noted: must-not-use database=%s", db))
+			}
+			appendDeploymentNotes(&e, n)
 		}
 		out = append(out, e)
 	}

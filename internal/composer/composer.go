@@ -37,6 +37,11 @@ type Composition struct {
 	RecipeVersion   string      `json:"recipe_version,omitempty"`
 	Components      []Component `json:"components"`
 	DatabaseProfile string      `json:"database_profile"`
+	// DatabaseNote explains a constraint-driven database deviation: a
+	// must-use/prefer/avoid selection away from the recipe default, or a
+	// fallback when the preferred value has no curated profile. Empty
+	// when the default applies without deviation.
+	DatabaseNote string `json:"database_note,omitempty"`
 }
 
 // Compose maps a resolved decision onto providers with default destinations.
@@ -65,8 +70,8 @@ func ComposeWithDestinations(decision domain.ArchitectureDecision, cat catalog.C
 
 	surfaces := RequiredSurfaces(decision, idx)
 	caps := RequiredCapabilities(decision, idx)
-	mustUse := MustUseTech(decision)
-	mustNotUse := MustNotUseTech(decision)
+	mustUse := MustUseConstraints(decision)
+	mustNotUse := MustNotUseConstraints(decision)
 
 	var components []Component
 	bySurface := map[domain.SurfaceID]domain.Boilerplate{}
@@ -113,7 +118,8 @@ func ComposeWithDestinations(decision domain.ArchitectureDecision, cat catalog.C
 	}
 	sort.Slice(components, func(i, j int) bool { return components[i].Surface < components[j].Surface })
 
-	profile, err := SelectDatabaseProfile(recipe, cat)
+	profile, note, err := SelectDatabaseProfileFor(recipe, cat,
+		DatabaseMustUse(decision), DatabaseAvoidance(decision), DatabasePreferences(decision))
 	if err != nil {
 		return Composition{}, err
 	}
@@ -122,6 +128,7 @@ func ComposeWithDestinations(decision domain.ArchitectureDecision, cat catalog.C
 		RecipeVersion:   recipe.Version,
 		Components:      components,
 		DatabaseProfile: profile,
+		DatabaseNote:    note,
 	}
 	if err := CheckCompatibility(decision, recipe, out, caps, mustUse, mustNotUse, cat); err != nil {
 		return Composition{}, err

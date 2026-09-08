@@ -16,6 +16,9 @@
     "surfaces": ["web-admin"],
     "capabilities": []
   },
-  "tech_tags": ["tanstack"],
+      "tech_tags": ["tanstack"],
+      "technology": {
+        "framework": ["tanstack"]
+      },
   "included_features": ["crud", "auth"]
 }

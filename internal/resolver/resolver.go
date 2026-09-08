@@ -44,6 +44,25 @@ func Resolve(intent domain.ProjectIntent, cat catalog.Catalog) domain.Architectu
 	if len(eligible) == 0 {
 		return decideBlocked(n, sp, derived, scored, idx)
 	}
+	// A mandatory database value with no curated profile is a catalog gap
+	// even when recipes are otherwise eligible: no foundation exists to
+	// honor the constraint, and only curation can close it (§2.4).
+	if dbMissing := DiagnoseDatabaseGap(sp, idx); len(dbMissing) > 0 {
+		reasons := make([]string, 0, len(dbMissing))
+		for _, m := range dbMissing {
+			reasons = append(reasons, "missing architectural foundation for "+m.Kind+"="+m.Ref)
+		}
+		return domain.ArchitectureDecision{
+			SchemaVersion:       1,
+			Status:              domain.StatusCatalogGap,
+			IntentFingerprint:   FingerprintNormalized(n),
+			Confidence:          domain.Confidence{Level: "low"},
+			Reasons:             reasons,
+			Candidates:          toCandidates(scored),
+			DerivedRequirements: derived,
+			MissingArchitecture: dbMissing,
+		}
+	}
 	winner := eligible[0]
 	runner := 0
 	if len(eligible) > 1 {

@@ -16,5 +16,9 @@
     "surfaces": ["mobile-native"],
     "capabilities": []
   },
-  "tech_tags": ["react-native", "expo", "typescript"]
+      "tech_tags": ["react-native", "expo", "typescript"],
+      "technology": {
+        "framework": ["react-native", "expo"],
+        "language": ["typescript"]
+      }
 }

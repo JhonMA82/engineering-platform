@@ -16,6 +16,9 @@
     "surfaces": ["public-web"],
     "capabilities": ["anonymous-public-access"]
   },
-  "tech_tags": ["astro"],
+      "tech_tags": ["astro"],
+      "technology": {
+        "framework": ["astro"]
+      },
   "included_features": ["blog", "landing", "seo"]
 }

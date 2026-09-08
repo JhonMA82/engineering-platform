@@ -16,6 +16,9 @@
     "surfaces": ["api"],
     "capabilities": ["shared-backend"]
   },
-  "tech_tags": ["hono"],
+      "tech_tags": ["hono"],
+      "technology": {
+        "framework": ["hono"]
+      },
   "included_features": ["rest", "openapi"]
 }

@@ -16,5 +16,9 @@
     "surfaces": ["desktop"],
     "capabilities": ["offline-operation"]
   },
-  "tech_tags": ["tauri", "rust", "react", "typescript"]
+      "tech_tags": ["tauri", "rust", "react", "typescript"],
+      "technology": {
+        "framework": ["tauri", "react"],
+        "language": ["typescript", "rust"]
+      }
 }

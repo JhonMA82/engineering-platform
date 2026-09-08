@@ -83,10 +83,42 @@ func (r ArchitectureRequirement) EffectiveStrength() string {
 	return r.Strength
 }
 
-// TechnicalConstraint is an explicit user decision (obligatory).
+// Constraint targets name the technical domain a constraint restricts.
+// The taxonomy stays small on purpose; unknown targets are rejected with
+// the full list (see Validate).
+const (
+	ConstraintTargetFramework  = "framework"
+	ConstraintTargetLanguage   = "language"
+	ConstraintTargetRuntime    = "runtime"
+	ConstraintTargetDatabase   = "database"
+	ConstraintTargetDeployment = "deployment"
+	ConstraintTargetProvider   = "provider"
+)
+
+// ValidConstraintTargets is the stable target vocabulary, in the order
+// shown to users by validation errors.
+var ValidConstraintTargets = []string{
+	ConstraintTargetFramework,
+	ConstraintTargetLanguage,
+	ConstraintTargetRuntime,
+	ConstraintTargetDatabase,
+	ConstraintTargetDeployment,
+	ConstraintTargetProvider,
+}
+
+// TechnicalConstraint is an explicit user decision (obligatory). Target
+// names the technical domain (framework, language, runtime, database,
+// deployment, provider); Kind is the strength vocabulary below.
+//
+// BACKWARD COMPATIBILITY: intents written before targets existed carry no
+// target. An empty Target preserves the pre-H2 matching rule exactly: the
+// value is matched against recipe tech_tags only (see resolver
+// ApplyConstraints). New intents should always set an explicit target so
+// matching is driven by the catalog technology metadata for that domain.
 type TechnicalConstraint struct {
-	Kind  string `json:"kind"`
-	Value string `json:"value,omitempty"`
+	Target string `json:"target,omitempty"`
+	Kind   string `json:"kind"`
+	Value  string `json:"value,omitempty"`
 }
 
 // Preference influences ranking but never eliminates candidates.
@@ -133,6 +165,18 @@ func (p ProjectIntent) RequiredSurfaces() []SurfaceID {
 var validConstraintKinds = map[string]bool{
 	"must-use": true, "must-not-use": true,
 	"must-run": true, "must-support": true, "must-share": true,
+	"prefer": true, "avoid": true,
+}
+
+// validConstraintTarget reports whether t is a known constraint target.
+// t must already be lowercased and trimmed.
+func validConstraintTarget(t string) bool {
+	for _, v := range ValidConstraintTargets {
+		if t == v {
+			return true
+		}
+	}
+	return false
 }
 
 var validPreferenceKinds = map[string]bool{
@@ -199,17 +243,40 @@ func (p ProjectIntent) Validate() error {
 		if !validConstraintKinds[c.Kind] {
 			return Validation(fmt.Sprintf("unknown constraint kind %q", c.Kind))
 		}
+		target := strings.ToLower(strings.TrimSpace(c.Target))
+		if target != "" && !validConstraintTarget(target) {
+			return Validation(fmt.Sprintf(
+				"unknown constraint target %q (want %s)",
+				c.Target, strings.Join(ValidConstraintTargets, "|")))
+		}
 		v := strings.ToLower(c.Value)
+		key := target + "\x00" + v
 		if c.Kind == "must-use" {
-			mustUse[v] = true
+			mustUse[key] = true
+			// An untyped value collides with any typed same-value
+			// constraint: missing target keeps the broad legacy match,
+			// so must-use X plus must-not-use * =X is contradictory.
+			if target == "" {
+				for _, t := range ValidConstraintTargets {
+					mustUse[t+"\x00"+v] = true
+				}
+			}
 		}
 		if c.Kind == "must-not-use" {
-			mustNotUse[v] = true
+			mustNotUse[key] = true
+			if target == "" {
+				for _, t := range ValidConstraintTargets {
+					mustNotUse[t+"\x00"+v] = true
+				}
+			}
 		}
 	}
-	for v := range mustUse {
-		if mustNotUse[v] {
-			return Validation(fmt.Sprintf("contradictory constraints on %q", v))
+	for k := range mustUse {
+		if mustNotUse[k] {
+			if i := strings.Index(k, "\x00"); i >= 0 {
+				k = k[i+1:]
+			}
+			return Validation(fmt.Sprintf("contradictory constraints on %q", k))
 		}
 	}
 	for _, pr := range p.Preferences {

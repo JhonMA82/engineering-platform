@@ -1,6 +1,8 @@
 {
   "id": "sqlite-local",
   "engine": "sqlite",
+  "provider": "sqlite",
+  "supports": ["local", "offline", "single-node"],
   "managed": false,
   "description": "Local SQLite for single-node or small-scope persistence."
 }

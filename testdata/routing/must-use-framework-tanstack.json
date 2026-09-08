@@ -1,0 +1,16 @@
+{
+  "name": "must-use-framework-tanstack",
+  "intent": {
+    "schema_version": 1,
+    "name": "tanstack admin",
+    "problem": "team decided on the tanstack framework for the admin",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [{ "target": "framework", "kind": "must-use", "value": "tanstack" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-02",
+    "must_include_reasons": ["must-use framework=tanstack"],
+    "must_not_select": ["GP-01"]
+  }
+}
