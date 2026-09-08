@@ -184,6 +184,15 @@ func validConstraintTarget(t string) bool {
 	return false
 }
 
+// Deployment is a known target but supports no hard constraints in v1.0.1:
+// the catalog curates no deployment metadata, so a hard deployment
+// constraint could never be evaluated. Hard kinds (must-*) with a deployment
+// target are rejected at validation; prefer/avoid remain accepted as
+// non-routing preferences.
+func isHardConstraintKind(kind string) bool {
+	return strings.HasPrefix(kind, "must-")
+}
+
 var validPreferenceKinds = map[string]bool{
 	"prefer": true, "avoid": true,
 }
@@ -253,6 +262,12 @@ func (p ProjectIntent) Validate() error {
 			return Validation(fmt.Sprintf(
 				"unknown constraint target %q (want %s)",
 				c.Target, strings.Join(ValidConstraintTargets, "|")))
+		}
+		if target == ConstraintTargetDeployment && isHardConstraintKind(c.Kind) {
+			return Validation(fmt.Sprintf(
+				"unsupported technical constraint target: deployment "+
+					"(kind %q cannot be evaluated; no catalog deployment metadata in v1.0.1; "+
+					"use prefer/avoid if the deployment wish must be recorded)", c.Kind))
 		}
 		v := strings.ToLower(c.Value)
 		key := target + "\x00" + v

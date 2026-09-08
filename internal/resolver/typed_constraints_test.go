@@ -153,6 +153,35 @@ func TestTypedPreferInfluencesRanking(t *testing.T) {
 	}
 }
 
+// TestHardDeploymentConstraintIsInvalid proves the v1.0.1 contract: a hard
+// deployment constraint is rejected at validation (invalid intent) instead
+// of being accepted and silently ignored.
+func TestHardDeploymentConstraintIsInvalid(t *testing.T) {
+	cat, err := catalog.Load("")
+	if err != nil {
+		t.Fatalf("load catalog: %v", err)
+	}
+	for _, kind := range []string{"must-use", "must-not-use"} {
+		t.Run(kind, func(t *testing.T) {
+			intent := domain.ProjectIntent{
+				SchemaVersion: 1,
+				Name:          "edge admin",
+				Surfaces:      []domain.SurfaceIntent{{Kind: "web-admin", Scope: domain.ScopeRequiredNow}},
+				TechnicalConstraints: []domain.TechnicalConstraint{
+					{Target: "deployment", Kind: kind, Value: "edge"},
+				},
+			}
+			got := Resolve(intent, cat)
+			if got.Status != domain.StatusInvalid {
+				t.Fatalf("status = %q, want invalid\n%s", got.Status, Explain(got))
+			}
+			if !strings.Contains(strings.Join(got.Reasons, "\n"), "unsupported technical constraint target: deployment") {
+				t.Fatalf("reasons lack the unsupported-target error: %v", got.Reasons)
+			}
+		})
+	}
+}
+
 // TestMustUseDatabaseMissingProfileIsCatalogGap proves §2.4: a mandatory
 // database value with no curated profile is a database-profile catalog-gap,
 // even though recipes cover the surface.

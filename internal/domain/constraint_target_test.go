@@ -13,11 +13,16 @@ func targetIntent() ProjectIntent {
 	}
 }
 
-// TestConstraintTargetValidation proves the H2 target vocabulary: the six
-// documented targets validate, unknown targets fail with the list, and the
-// legacy target-less shape still parses.
+// TestConstraintTargetValidation proves the H2 target vocabulary: the five
+// hard-supported targets validate, unknown targets fail with the list, and
+// the legacy target-less shape still parses. Deployment accepts no hard
+// constraints in v1.0.1 (see TestDeploymentHardConstraintUnsupported) so it
+// is excluded from the must-use acceptance loop.
 func TestConstraintTargetValidation(t *testing.T) {
 	for _, target := range ValidConstraintTargets {
+		if target == ConstraintTargetDeployment {
+			continue
+		}
 		t.Run("accept-"+target, func(t *testing.T) {
 			in := targetIntent()
 			in.TechnicalConstraints = []TechnicalConstraint{
@@ -52,7 +57,37 @@ func TestConstraintTargetValidation(t *testing.T) {
 	})
 }
 
-// TestConstraintPreferAvoidKinds proves prefer/avoid are accepted inside
+// TestDeploymentHardConstraintUnsupported proves the v1.0.1 contract:
+// deployment is a known target but carries no catalog metadata, so hard
+// deployment constraints (must-*) are rejected at validation instead of
+// being accepted and silently ignored. Prefer/avoid stay valid as
+// non-routing preferences.
+func TestDeploymentHardConstraintUnsupported(t *testing.T) {
+	for _, kind := range []string{"must-use", "must-not-use", "must-run", "must-support", "must-share"} {
+		t.Run(kind, func(t *testing.T) {
+			in := targetIntent()
+			in.TechnicalConstraints = []TechnicalConstraint{
+				{Target: "deployment", Kind: kind, Value: "edge"},
+			}
+			err := in.Validate()
+			if err == nil || !strings.Contains(err.Error(), "unsupported technical constraint target: deployment") {
+				t.Fatalf("expected unsupported-deployment error, got %v", err)
+			}
+		})
+	}
+	for _, kind := range []string{"prefer", "avoid"} {
+		t.Run("still-"+kind, func(t *testing.T) {
+			in := targetIntent()
+			in.TechnicalConstraints = []TechnicalConstraint{
+				{Target: "deployment", Kind: kind, Value: "edge"},
+			}
+			if err := in.Validate(); err != nil {
+				t.Fatalf("deployment %q should stay a valid preference: %v", kind, err)
+			}
+		})
+	}
+}
+
 // technical_constraints (ranking-only; eligibility is decided downstream).
 func TestConstraintPreferAvoidKinds(t *testing.T) {
 	for _, kind := range []string{"prefer", "avoid"} {
