@@ -81,7 +81,7 @@ Maximum reproducibility means commit SHAs, not mutable refs:
 ## 4b. Curation enforcement rules (H3 — `eng catalog validate` enforces)
 
 | `delivery_status` | Evidence requirement |
-|---|---|
+| --- | --- |
 | `catalog-only` | Evidence optional (a declared link must still resolve). Not
   selectable for normal materialization. |
 | `pilot-ready` | Link required; the file must exist, be non-empty, and address
