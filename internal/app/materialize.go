@@ -9,11 +9,13 @@ import (
 	"github.com/jhonma82/engineering-platform/internal/materializer"
 	"github.com/jhonma82/engineering-platform/internal/planner"
 	"github.com/jhonma82/engineering-platform/internal/project"
+	"github.com/jhonma82/engineering-platform/internal/version"
 )
 
-// CoreVersion is the eng binary release line reported in provenance. The
-// CLI prints the same value so version has a single source.
-const CoreVersion = "0.1.0"
+// CoreVersion delegates to the canonical release line in internal/version
+// so provenance stamps whatever the binary was built with (see package
+// version; release builds stamp it via ldflags).
+var CoreVersion = version.CoreVersion
 
 // MaterializeProject loads a plan document and materializes it into
 // outputDir without re-resolving architecture. Intent and decision

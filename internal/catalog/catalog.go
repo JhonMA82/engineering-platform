@@ -8,6 +8,7 @@ import "github.com/jhonma82/engineering-platform/internal/domain"
 type Catalog struct {
 	CatalogVersion   string
 	MinCoreVersion   string
+	MaxCoreVersion   string
 	SchemaVersion    int
 	Recipes          []domain.Recipe
 	Boilerplates     []domain.Boilerplate

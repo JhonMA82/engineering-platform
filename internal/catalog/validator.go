@@ -17,6 +17,9 @@ func Validate(c Catalog) error {
 	if !validSemver(c.MinCoreVersion) {
 		problems = append(problems, "min_core_version must look like X.Y.Z")
 	}
+	if strings.TrimSpace(c.MaxCoreVersion) != "" && !validSemver(c.MaxCoreVersion) {
+		problems = append(problems, "max_core_version must look like X.Y.Z")
+	}
 	seen := map[string]bool{}
 	uniq := func(kind, id string) {
 		if id == "" || seen[kind+"\x00"+id] {

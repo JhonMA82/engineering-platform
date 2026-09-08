@@ -3,35 +3,30 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jhonma82/engineering-platform/internal/app"
 	"github.com/jhonma82/engineering-platform/internal/catalog"
+	"github.com/jhonma82/engineering-platform/internal/version"
 )
 
-// BinaryVersion is the eng binary release line (single source: app.CoreVersion).
-const BinaryVersion = app.CoreVersion
-
-// BuildCommit and BuildDate carry reproducible-build provenance. Release
-// builds stamp them via ldflags:
-//
-//	go build -X .../internal/cli.BuildCommit=<sha> -X .../internal/cli.BuildDate=<date> ./cmd/eng
-//
-// Unset values report as "unknown" per the §30 "cuando estén disponibles" rule.
-var (
-	BuildCommit = "unknown"
-	BuildDate   = "unknown"
-)
+// VersionString renders the §1.3 version report: the core release line comes
+// from the single canonical source (internal/version, stamped via ldflags on
+// release builds) and the catalog line from the loaded catalog. Separated
+// from runVersion so tests can assert the format without capturing stdout.
+func VersionString() (string, int) {
+	cat, err := catalog.Load("")
+	if err != nil {
+		return fmt.Sprintf("Core: %s\nCatalog: unknown: %v\nCommit: %s\nBuild date: %s\n",
+			version.CoreVersion, err, version.Commit, version.BuildDate), 1
+	}
+	return fmt.Sprintf("Core: %s\nCatalog: %s\nCatalog schema: %d\nCommit: %s\nBuild date: %s\n",
+		version.CoreVersion, cat.CatalogVersion, cat.SchemaVersion, version.Commit, version.BuildDate), 0
+}
 
 func runVersion(args []string) int {
 	if len(args) != 0 {
 		fmt.Println("usage: eng version")
 		return 2
 	}
-	cat, err := catalog.Load("")
-	if err != nil {
-		fmt.Printf("eng %s (catalog: unknown: %v) commit %s date %s\n", BinaryVersion, err, BuildCommit, BuildDate)
-		return 1
-	}
-	fmt.Printf("eng %s (catalog %s, min-core %s, schema %d) commit %s date %s\n",
-		BinaryVersion, cat.CatalogVersion, cat.MinCoreVersion, cat.SchemaVersion, BuildCommit, BuildDate)
-	return 0
+	out, code := VersionString()
+	fmt.Print(out)
+	return code
 }

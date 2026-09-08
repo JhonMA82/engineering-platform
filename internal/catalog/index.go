@@ -60,6 +60,12 @@ func (x Index) Boilerplate(id string) (domain.Boilerplate, bool) {
 	return b, ok
 }
 
+// DatabaseProfile returns the database profile with id.
+func (x Index) DatabaseProfile(id string) (domain.DatabaseProfile, bool) {
+	p, ok := x.profiles[id]
+	return p, ok
+}
+
 // SurfaceKnown reports whether id is a registered surface.
 func (x Index) SurfaceKnown(id domain.SurfaceID) bool {
 	_, ok := x.surfaces[id]
@@ -114,4 +120,73 @@ func (x Index) ProvidersForCapability(id domain.CapabilityID) []domain.Recipe {
 		}
 	}
 	return out
+}
+
+// RecipeTechnology returns the catalog-known technology signals of a recipe
+// under one constraint target, deduplicated and sorted for determinism.
+// Sources are catalog data only: the recipe tech_tags (legacy untyped
+// signals, kept as a documented fallback) plus the technology metadata of
+// the recipe primary boilerplates. The provider target additionally covers
+// the boilerplate identity (id and adapter name). Database and deployment
+// targets have no recipe-level metadata: database resolves through profiles
+// (see MatchDatabaseProfile), deployment is not yet curated and yields
+// nothing.
+func (x Index) RecipeTechnology(r domain.Recipe, target string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(values ...string) {
+		for _, v := range values {
+			v = strings.ToLower(strings.TrimSpace(v))
+			if v == "" || seen[v] {
+				continue
+			}
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	switch target {
+	case domain.ConstraintTargetFramework, domain.ConstraintTargetLanguage, domain.ConstraintTargetRuntime:
+		for _, id := range r.PrimaryBoilerplates {
+			if b, ok := x.boilerplates[id]; ok {
+				add(b.Technology.Values(target)...)
+			}
+		}
+		add(r.TechTags...)
+	case domain.ConstraintTargetProvider:
+		for _, id := range r.PrimaryBoilerplates {
+			add(id)
+			if b, ok := x.boilerplates[id]; ok {
+				add(b.Adapter)
+				add(b.TechTags...)
+			}
+		}
+		add(r.TechTags...)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// MatchDatabaseProfile reports whether value identifies any curated
+// database profile via its id, engine or provider (see
+// DatabaseProfile.MatchesTechnology). No brand names are hardcoded here:
+// the comparison runs against catalog data.
+func (x Index) MatchDatabaseProfile(value string) (domain.DatabaseProfile, bool) {
+	for _, p := range x.profiles {
+		if p.MatchesTechnology(value) {
+			return p, true
+		}
+	}
+	return domain.DatabaseProfile{}, false
+}
+
+// RecipeDatabaseProfiles returns the profile ids a recipe may use: its
+// allowed profiles, or the default alone when no allow-list is declared.
+func (x Index) RecipeDatabaseProfiles(r domain.Recipe) []string {
+	if len(r.DatabasePolicy.AllowedProfiles) > 0 {
+		return append([]string{}, r.DatabasePolicy.AllowedProfiles...)
+	}
+	if r.DatabasePolicy.DefaultProfile != "" {
+		return []string{r.DatabasePolicy.DefaultProfile}
+	}
+	return nil
 }

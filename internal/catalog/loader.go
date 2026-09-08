@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jhonma82/engineering-platform/internal/domain"
+	"github.com/jhonma82/engineering-platform/internal/version"
 )
 
 // defaultDirCandidates resolves the in-repo catalog dir via relative path so
@@ -21,20 +22,43 @@ var defaultDirCandidates = []string{"catalog", "../catalog", "../../catalog"}
 const SupportedSchemaVersion = 1
 
 // Load returns the base catalog from the in-repo ./catalog dir, optionally
-// merged with an overlay directory: load(base) then overlay merge.
+// merged with an overlay directory: load(base) then overlay merge. The
+// running binary (version.CoreVersion) must satisfy the merged metadata
+// bounds; incompatible catalogs fail fast instead of feeding unknown
+// contracts into the engine (§1.2).
 func Load(overlayDir string) (Catalog, error) {
-	base, err := LoadDir(resolveBaseDir())
+	return LoadWithCore(overlayDir, version.CoreVersion)
+}
+
+// checkCoreCompatible rejects a loaded catalog whose core bounds exclude
+// the running binary. The "dev" bypass lives in version.CheckCompatibility
+// and is documented there.
+func checkCoreCompatible(c Catalog, core string) error {
+	if err := version.CheckCompatibility(core, c.MinCoreVersion, c.MaxCoreVersion); err != nil {
+		return domain.Catalog(err.Error())
+	}
+	return nil
+}
+
+// LoadWithCore is Load against an explicit core line, so tests can prove
+// the compatibility gate without restamping the binary.
+func LoadWithCore(overlayDir, core string) (Catalog, error) {
+	base, err := LoadDirWithCore(resolveBaseDir(), core)
 	if err != nil {
 		return Catalog{}, err
 	}
 	if strings.TrimSpace(overlayDir) == "" {
 		return base, nil
 	}
-	overlay, err := LoadDir(overlayDir)
+	overlay, err := LoadDirWithCore(overlayDir, core)
 	if err != nil {
 		return Catalog{}, err
 	}
-	return MergeOverlay(base, overlay), nil
+	merged := MergeOverlay(base, overlay)
+	if err := checkCoreCompatible(merged, core); err != nil {
+		return Catalog{}, err
+	}
+	return merged, nil
 }
 
 func resolveBaseDir() string {
@@ -50,6 +74,7 @@ func resolveBaseDir() string {
 type metadataFile struct {
 	CatalogVersion string `json:"catalog_version"`
 	MinCoreVersion string `json:"min_core_version"`
+	MaxCoreVersion string `json:"max_core_version,omitempty"`
 	SchemaVersion  int    `json:"schema_version"`
 }
 
@@ -58,8 +83,15 @@ type aliasesFile struct {
 	Notes   map[string]string `json:"notes"`
 }
 
-// LoadDir loads a catalog tree from a directory on disk.
+// LoadDir loads a catalog tree from a directory on disk, gated on the
+// running binary line (version.CoreVersion).
 func LoadDir(dir string) (Catalog, error) {
+	return LoadDirWithCore(dir, version.CoreVersion)
+}
+
+// LoadDirWithCore is LoadDir against an explicit core line, so tests can
+// prove the compatibility gate without restamping the binary.
+func LoadDirWithCore(dir, core string) (Catalog, error) {
 	var c Catalog
 	raw, err := os.ReadFile(filepath.Join(dir, "metadata.json"))
 	if err != nil {
@@ -71,11 +103,14 @@ func LoadDir(dir string) (Catalog, error) {
 	}
 	c.CatalogVersion = meta.CatalogVersion
 	c.MinCoreVersion = meta.MinCoreVersion
+	c.MaxCoreVersion = meta.MaxCoreVersion
 	c.SchemaVersion = meta.SchemaVersion
 	if meta.SchemaVersion != SupportedSchemaVersion {
 		return Catalog{}, domain.Catalog(fmt.Sprintf(
-			"unsupported catalog schema_version %d in %s (core understands %d)",
-			meta.SchemaVersion, dir, SupportedSchemaVersion))
+			"unsupported catalog schema version: %d", meta.SchemaVersion))
+	}
+	if err := checkCoreCompatible(c, core); err != nil {
+		return Catalog{}, err
 	}
 	load := func(sub string, add func(raw json.RawMessage) error) error {
 		entries, err := os.ReadDir(filepath.Join(dir, sub))
@@ -177,6 +212,15 @@ func MergeOverlay(base, overlay Catalog) Catalog {
 	merged := base
 	if overlay.CatalogVersion != "" {
 		merged.CatalogVersion = overlay.CatalogVersion
+	}
+	if overlay.MinCoreVersion != "" {
+		merged.MinCoreVersion = overlay.MinCoreVersion
+	}
+	if overlay.MaxCoreVersion != "" {
+		merged.MaxCoreVersion = overlay.MaxCoreVersion
+	}
+	if overlay.SchemaVersion != 0 {
+		merged.SchemaVersion = overlay.SchemaVersion
 	}
 	merged.Recipes = mergeRecipes(base.Recipes, overlay.Recipes)
 	merged.Boilerplates = mergeBoilerplates(base.Boilerplates, overlay.Boilerplates)
