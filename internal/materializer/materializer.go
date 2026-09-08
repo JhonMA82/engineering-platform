@@ -89,9 +89,22 @@ func Materialize(req Request) (Result, error) {
 				"catalog drift: plan pins %s@%s but the catalog pins %s", c.Boilerplate, c.Pin, bp.Pin))
 		}
 		spec := bp.EffectiveSpec()
-		srcDir, err := FetchSource(ctx, bp, c.Pin, fetchRoot)
-		if err != nil {
-			return Result{}, err
+		var srcDir string
+		if spec.Generate != nil {
+			// Generator foundation (H4): the curated command scaffolds
+			// its own output directory; the result flows through the
+			// same copy+prune path as fetched trees below.
+			var err error
+			srcDir, err = RunGenerate(ctx, spec.Generate, c.Destination, fetchRoot, req.CommandTimeout)
+			if err != nil {
+				return Result{}, err
+			}
+		} else {
+			var err error
+			srcDir, err = FetchSource(ctx, bp, c.Pin, fetchRoot)
+			if err != nil {
+				return Result{}, err
+			}
 		}
 		dest := projectSubdir(staging, c.Destination)
 		if _, err := os.Stat(dest); err == nil {
@@ -210,9 +223,21 @@ func preValidate(req Request) error {
 		spec := bp.EffectiveSpec()
 		for _, op := range spec.Operations {
 			switch op {
-			case "fetch", "copy", "prune", "template", "compose":
+			case "fetch", "copy", "prune", "template", "compose", "generate":
 			default:
 				return domain.Catalog(fmt.Sprintf("boilerplate %q declares unknown operation %q", bp.ID, op))
+			}
+		}
+		if spec.Generate != nil {
+			// Fail before staging exists: the placeholder derives from
+			// the destination and the substituted argv must pass the
+			// same argv-only gate as setup/checks.
+			name, err := generateAppName(c.Destination)
+			if err != nil {
+				return err
+			}
+			if err := ValidateCommands([]domain.AdapterCommand{{Run: substituteName(spec.Generate.Run.Run, name)}}); err != nil {
+				return err
 			}
 		}
 		if err := ValidateCommands(append(append([]domain.AdapterCommand{}, spec.Setup...), spec.Checks...)); err != nil {

@@ -1,10 +1,17 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/jhonma82/engineering-platform/internal/catalog"
+	"github.com/jhonma82/engineering-platform/internal/materializer"
+	"github.com/jhonma82/engineering-platform/internal/planner"
 )
 
 // Offline materialization pilots (§53): the Golden Path slices below run
@@ -119,4 +126,75 @@ func assertPilotArtifacts(t *testing.T, projectDir string) {
 			t.Errorf("expected %s: %v", want, err)
 		}
 	}
+}
+
+// TestPilotIgniteGeneration is the H4 upstream pilot: it materializes the
+// real ignite adapter (generic generate op) through npx + network. Normal
+// suites never run it: besides -short and the npx/network probes below, it
+// requires ENG_UPSTREAM_PILOTS=1, so `go test ./...` stays offline and
+// deterministic. Explicit run:
+//
+//	ENG_UPSTREAM_PILOTS=1 go test ./internal/app/ -run TestPilotIgniteGeneration -timeout 30m -v
+//
+// Follow-up recorded in docs/decisions/ignite-materialization.md:
+// confirming or extending setup/checks from the generated tree.
+func TestPilotIgniteGeneration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("short mode: upstream pilot skipped")
+	}
+	if os.Getenv("ENG_UPSTREAM_PILOTS") != "1" {
+		t.Skip("ENG_UPSTREAM_PILOTS != 1: upstream pilot skipped")
+	}
+	if _, err := exec.LookPath("npx"); err != nil {
+		t.Skip("npx not on PATH: upstream pilot skipped")
+	}
+	probeCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if out, err := exec.CommandContext(probeCtx, "git", "ls-remote",
+		"https://github.com/infinitered/ignite", "HEAD").CombinedOutput(); err != nil {
+		t.Skipf("ignite upstream unreachable: upstream pilot skipped (%v: %s)", err, string(out))
+	}
+	cat, err := catalog.Load("")
+	if err != nil {
+		t.Fatalf("load catalog: %v", err)
+	}
+	idx := catalog.NewIndex(cat)
+	bp, ok := idx.Boilerplate("ignite")
+	if !ok {
+		t.Fatal("ignite missing from catalog")
+	}
+	if bp.EffectiveSpec().Generate == nil {
+		t.Fatal("ignite adapter declares no generate spec")
+	}
+	plan := planner.MaterializationPlan{
+		SchemaVersion: 1,
+		Project:       "ignite-pilot",
+		Recipe:        "GP-04",
+		Components: []planner.PlanComponent{{
+			Surface: "mobile-native", Boilerplate: "ignite", Pin: bp.Pin, Destination: "apps/mobile",
+		}},
+		Fingerprint: "ignite-network-pilot",
+	}
+	out := filepath.Join(t.TempDir(), "proj")
+	res, err := materializer.Materialize(materializer.Request{
+		Plan:           plan,
+		Catalog:        cat,
+		OutputDir:      out,
+		CoreVersion:    CoreVersion,
+		CommandTimeout: 15 * time.Minute,
+	})
+	if err != nil {
+		t.Fatalf("ignite materialization: %v", err)
+	}
+	if res.ProjectDir != out {
+		t.Fatalf("project dir = %q, want %q", res.ProjectDir, out)
+	}
+	// A generated Ignite app always ships its package manifest and the
+	// Expo config at the scaffold root.
+	for _, want := range []string{"apps/mobile/package.json", "apps/mobile/app.json"} {
+		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(want))); err != nil {
+			t.Errorf("expected generated %s: %v", want, err)
+		}
+	}
+	assertPilotArtifacts(t, out)
 }

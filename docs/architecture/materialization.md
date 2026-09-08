@@ -10,7 +10,7 @@ architecture: the `MaterializationPlan` is the decision.
 ```text
 validate output dir (empty-or-new)
   → staging temp dir (sibling of the output dir)
-  → per component: fetch source → verify pin → copy + prune
+  → per component: fetch source (or run the curated generator) → verify pin → copy + prune
   → path-safety checks + collision check
   → write manifest, provenance, project map, agent-context files (staging)
   → post-materialize checks (staging)
@@ -75,8 +75,26 @@ output directory is only ever touched by the rename commit.
 ```
 
 `operations` uses the §71 vocabulary (`fetch|copy|prune|template|
-compose`); adding a boilerplate that combines them needs no core
-release. `setup`/`checks` are argv arrays (`["npm","run","build"]`) or
+compose|generate`); adding a boilerplate that combines them needs no core
+release. `generate` covers generator CLIs that scaffold their own output
+directory instead of shipping a copyable tree (e.g.
+`npx ignite-cli@11.5.0 new {name} --yes`):
+
+```json
+"operations": ["generate"],
+"generate": {"run": ["npx", "ignite-cli@11.5.0", "new", "{name}", "--yes"], "output": "{name}"}
+```
+
+`run` is argv-only (never a shell string; the same argv gate as
+setup/checks) and `output` is the relative path the command must produce
+inside its working directory. `{name}` is substituted with the destination
+basename; every other byte is literal. The command runs with cwd set to a
+fresh work directory under the fetch root, allowlisted environment and a
+timeout; the declared output must appear as a directory confined to that
+work dir, otherwise the run fails and the work dir is cleaned up. The
+generated tree then flows through the same copy+prune path as fetched
+trees. See `docs/decisions/ignite-materialization.md`. `setup`/`checks`
+are argv arrays (`["npm","run","build"]`) or
 `{"run": [...]}` / `{"command": ..., "args": [...]}` objects — never
 shell strings. v1 catalog entries declare `fetch+copy` with no commands,
 so materialization is fully offline; recipe `quality_gates` stay
