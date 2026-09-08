@@ -1,0 +1,22 @@
+{
+  "id": "goship",
+  "repo": "https://github.com/leomorpho/goship",
+  "delivery_status": "catalog-only",
+  "decision_status": "experimental",
+  "curation": { "status": "catalog-only", "evidence": "curation/goship.md" },
+  "provides": {
+    "surfaces": [],
+    "capabilities": []
+  },
+  "tech_tags": ["go"],
+  "technology": {
+    "language": ["go"]
+  },
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "historical_decision_status": "experimental",
+    "historical_delivery_status": "catalog-only",
+    "migration_reason": "omitted entry recovered exactly as experimental knowledge; no adapter, no pin, non-selectable until a future curation process promotes it"
+  }
+}

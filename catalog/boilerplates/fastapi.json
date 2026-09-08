@@ -1,0 +1,24 @@
+{
+  "id": "fastapi",
+  "repo": "https://github.com/fastapi/full-stack-fastapi-template",
+  "delivery_status": "catalog-only",
+  "decision_status": "alternative",
+  "curation": { "status": "catalog-only", "evidence": "curation/fastapi.md" },
+  "provides": {
+    "surfaces": ["api"],
+    "capabilities": []
+  },
+  "tech_tags": ["python", "fastapi"],
+  "technology": {
+    "framework": ["fastapi"],
+    "language": ["python"]
+  },
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "legacy_id": "full-stack-fastapi-template",
+    "historical_decision_status": "alternative",
+    "historical_delivery_status": "pilot-ready",
+    "migration_reason": "omitted entry recovered as catalog knowledge; no pin invented (legacy recorded none) so catalog-only until a real curation pilot freezes an immutable commit"
+  }
+}

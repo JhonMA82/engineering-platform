@@ -1,0 +1,32 @@
+{
+  "id": "next-admin",
+  "repo": "https://github.com/arhamkhnz/next-shadcn-admin-dashboard",
+  "pin": "15e0a081bc1acad2b47adc638471b6e67fa36f10",
+  "adapter": {
+    "name": "next",
+    "operations": ["fetch", "copy"],
+    "prune_paths": [],
+    "setup": [],
+    "checks": [],
+    "managed_files": ["AGENTS.md"]
+  },
+  "delivery_status": "pilot-ready",
+  "decision_status": "alternative",
+  "curation": { "status": "pilot-ready", "evidence": "curation/next-admin.md" },
+  "provides": {
+    "surfaces": ["web-admin"],
+    "capabilities": []
+  },
+  "tech_tags": ["next"],
+  "technology": {
+    "framework": ["next"]
+  },
+  "provenance": {
+    "source": "engineering-platform-legacy",
+    "legacy_catalog_version": "2.1.0",
+    "legacy_id": "next-shadcn-admin-dashboard",
+    "historical_decision_status": "alternative",
+    "historical_delivery_status": "curated",
+    "migration_reason": "omitted entry recovered; stays alternative (never default) and pilot-ready until a v1 pilot proves it"
+  }
+}
