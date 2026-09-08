@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform/schemas/development-handoff.schema.json",
+  "title": "DevelopmentHandoff",
+  "description": "Formal ownership transfer to Gentle AI (.engineering/handoff.json).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "next_owner",
+    "locked",
+    "requirements",
+    "open_questions"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "status": { "type": "string", "const": "ready_for_implementation" },
+    "next_owner": { "type": "string", "const": "gentle-ai" },
+    "locked": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

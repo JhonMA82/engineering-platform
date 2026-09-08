@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform/schemas/project-manifest.schema.json",
+  "title": "ProjectManifest",
+  "description": "Reproducible record of a materialized project (.engineering/project.json). Carries no timestamps.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project",
+    "recipe",
+    "catalog_version",
+    "plan_fingerprint",
+    "components",
+    "files"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "project": { "type": "string", "minLength": 1 },
+    "recipe": { "type": "string", "minLength": 1 },
+    "recipe_version": { "type": "string" },
+    "catalog_version": { "type": "string", "minLength": 1 },
+    "database_profile": { "type": "string" },
+    "plan_fingerprint": { "type": "string", "minLength": 1 },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["surface", "boilerplate", "pin", "destination"],
+        "properties": {
+          "surface": { "type": "string", "minLength": 1 },
+          "boilerplate": { "type": "string", "minLength": 1 },
+          "pin": { "type": "string", "minLength": 1 },
+          "destination": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "files": { "type": "array", "items": { "type": "string" } }
+  }
+}

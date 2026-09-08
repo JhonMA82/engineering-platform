@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform/schemas/project-map.schema.json",
+  "title": "ProjectMap",
+  "description": "Machine-readable surface routing (.engineering/project-map.json), counterpart of the root AGENTS.md router table.",
+  "type": "object",
+  "required": ["schema_version", "surfaces", "relationships"],
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "surfaces": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path", "provider", "instructions"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "provider": { "type": "string", "minLength": 1 },
+          "instructions": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "const": "consumes" }
+        }
+      }
+    }
+  }
+}
