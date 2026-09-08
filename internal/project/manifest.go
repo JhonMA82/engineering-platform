@@ -91,6 +91,14 @@ func (m Manifest) Marshal() ([]byte, error) {
 	return append(raw, '\n'), nil
 }
 
+// legacyBoilerplateAliases maps retired catalog ids to their canonical
+// successor for READING manifests written before the rename (§18). It is
+// applied only by ReadManifest; the catalog never lists an alias as an
+// active provider, and new manifests always record the canonical id.
+var legacyBoilerplateAliases = map[string]string{
+	"stardrive-public-web": "stardrive",
+}
+
 // ReadManifest loads .engineering/project.json.
 func ReadManifest(projectDir string) (Manifest, error) {
 	var m Manifest
@@ -99,6 +107,11 @@ func ReadManifest(projectDir string) (Manifest, error) {
 	}
 	if m.SchemaVersion < 1 {
 		return Manifest{}, domain.Filesystem("project manifest schema_version must be >= 1")
+	}
+	for i := range m.Components {
+		if canonical, ok := legacyBoilerplateAliases[m.Components[i].Boilerplate]; ok {
+			m.Components[i].Boilerplate = canonical
+		}
 	}
 	return m, nil
 }
