@@ -1,0 +1,16 @@
+{
+  "name": "blog",
+  "intent": {
+    "schema_version": 1,
+    "name": "company blog",
+    "problem": "publish articles publicly",
+    "product_requirements": [{ "id": "blog", "description": "publish and list blog articles" }],
+    "surfaces": [{ "kind": "public-web", "access": "anonymous", "scope": "required_now" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-01",
+    "must_include_reasons": ["includes product feature: blog"],
+    "must_not_select": ["GP-06"]
+  }
+}

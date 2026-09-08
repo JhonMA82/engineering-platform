@@ -1,0 +1,16 @@
+{
+  "name": "saas-billing-landing",
+  "intent": {
+    "schema_version": 1,
+    "name": "billing landing page",
+    "problem": "marketing site announcing future recurring billing plans",
+    "product_requirements": [{ "id": "billing", "description": "recurring billing with plans" }],
+    "surfaces": [{ "kind": "public-web", "access": "anonymous", "scope": "required_now" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-01",
+    "must_include_reasons": ["covers required surface public-web"],
+    "must_not_select": ["GP-07"]
+  }
+}

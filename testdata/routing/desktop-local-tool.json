@@ -1,0 +1,16 @@
+{
+  "name": "desktop-local-tool",
+  "intent": {
+    "schema_version": 1,
+    "name": "local file tool",
+    "problem": "operators process local files on a workstation",
+    "surfaces": [{ "kind": "desktop app", "access": "authenticated", "scope": "required_now" }],
+    "data": { "persistence": "local" }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-05",
+    "must_include_reasons": ["covers required surface desktop", "local sqlite"],
+    "must_not_select": ["GP-02"]
+  }
+}

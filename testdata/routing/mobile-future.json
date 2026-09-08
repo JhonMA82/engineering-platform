@@ -1,0 +1,19 @@
+{
+  "name": "mobile-future",
+  "intent": {
+    "schema_version": 1,
+    "name": "admin now mobile later",
+    "problem": "admin today, mobile app is a later phase",
+    "surfaces": [
+      { "kind": "web-admin", "access": "authenticated", "scope": "required_now" },
+      { "kind": "mobile-native", "access": "authenticated", "scope": "planned_later" }
+    ],
+    "scope": { "planned_later": ["mobile-native"] }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-02",
+    "must_include_reasons": ["covers required surface web-admin"],
+    "must_not_select": ["GP-06"]
+  }
+}

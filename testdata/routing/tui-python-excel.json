@@ -1,0 +1,17 @@
+{
+  "name": "tui-python-excel",
+  "intent": {
+    "schema_version": 1,
+    "name": "terminal excel compare",
+    "problem": "operators compare excel workbooks from a terminal tool",
+    "product_requirements": [
+      { "id": "excel", "description": "import excel workbooks" },
+      { "id": "pdf-report", "description": "generate pdf comparison reports" }
+    ],
+    "surfaces": [{ "kind": "tui", "access": "authenticated", "scope": "required_now" }]
+  },
+  "expect": {
+    "status": "catalog-gap",
+    "must_include_reasons": ["surface=tui"]
+  }
+}

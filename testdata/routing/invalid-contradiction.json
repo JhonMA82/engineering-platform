@@ -1,0 +1,16 @@
+{
+  "name": "invalid-contradiction",
+  "intent": {
+    "schema_version": 1,
+    "name": "contradictory stack",
+    "problem": "backoffice that must both use and avoid tanstack",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [
+      { "kind": "must-use", "value": "tanstack" },
+      { "kind": "must-not-use", "value": "tanstack" }
+    ]
+  },
+  "expect": {
+    "status": "invalid"
+  }
+}

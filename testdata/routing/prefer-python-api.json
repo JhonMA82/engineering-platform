@@ -1,0 +1,16 @@
+{
+  "name": "prefer-python-api",
+  "intent": {
+    "schema_version": 1,
+    "name": "python-flavored api",
+    "problem": "team prefers python for a single reporting api",
+    "surfaces": [{ "kind": "api", "access": "authenticated", "scope": "required_now" }],
+    "preferences": [{ "kind": "prefer", "value": "python" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-03",
+    "must_include_reasons": ["preference match: python"],
+    "must_not_select": ["GP-06"]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "unsupported-tech",
+  "intent": {
+    "schema_version": 1,
+    "name": "legacy stack",
+    "problem": "admin on an unsupported stack",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [{ "kind": "must-use", "value": "cobol" }]
+  },
+  "expect": {
+    "status": "unsupported",
+    "must_include_reasons": ["must-use tech cobol"]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "python-reporting-tool",
+  "intent": {
+    "schema_version": 1,
+    "name": "excel reporting jobs",
+    "problem": "nightly excel imports validated and reconciled into pdf reports",
+    "product_requirements": [
+      { "id": "excel-import", "description": "import spreadsheets as excel workbooks" },
+      { "id": "pdf-report", "description": "generate pdf reports from reconciled data" }
+    ],
+    "surfaces": [{ "kind": "api", "access": "authenticated", "scope": "required_now" }],
+    "ops": { "background_jobs": true },
+    "technical_constraints": [{ "kind": "must-use", "value": "python" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-03",
+    "must_include_reasons": ["background-processing", "must-use tech python"],
+    "must_not_select": ["GP-06"]
+  }
+}

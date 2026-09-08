@@ -1,0 +1,18 @@
+{
+  "name": "public-docs-only",
+  "intent": {
+    "schema_version": 1,
+    "name": "documentation site",
+    "problem": "publish versioned product documentation publicly",
+    "product_requirements": [
+      { "id": "docs", "description": "versioned documentation pages with search" }
+    ],
+    "surfaces": [{ "kind": "public-web", "access": "anonymous", "scope": "required_now" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-01",
+    "must_include_reasons": ["covers required surface public-web"],
+    "must_not_select": ["GP-06"]
+  }
+}

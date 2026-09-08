@@ -1,0 +1,24 @@
+{
+  "name": "commercial-saas",
+  "intent": {
+    "schema_version": 1,
+    "name": "commercial saas",
+    "problem": "multi-tenant saas with organizations, plans and recurring billing",
+    "product_requirements": [
+      { "id": "billing", "description": "recurring billing with plans" },
+      { "id": "organizations", "description": "tenant organizations with seats" }
+    ],
+    "surfaces": [
+      { "kind": "public-web", "access": "anonymous", "scope": "required_now" },
+      { "kind": "api", "access": "authenticated", "scope": "required_now" }
+    ],
+    "data": { "persistence": "shared", "multi_user": true },
+    "technical_constraints": [{ "kind": "must-use", "value": "react" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-07",
+    "must_include_reasons": ["covers required surface public-web", "must-use tech react"],
+    "must_not_select": ["GP-06"]
+  }
+}

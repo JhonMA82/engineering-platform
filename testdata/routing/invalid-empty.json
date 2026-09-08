@@ -1,0 +1,11 @@
+{
+  "name": "invalid-empty",
+  "intent": {
+    "schema_version": 0,
+    "name": "",
+    "surfaces": []
+  },
+  "expect": {
+    "status": "invalid"
+  }
+}

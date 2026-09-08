@@ -1,0 +1,20 @@
+{
+  "name": "api-realtime",
+  "intent": {
+    "schema_version": 1,
+    "name": "live field api",
+    "problem": "web dashboard and mobile clients share live field updates",
+    "surfaces": [
+      { "kind": "api", "access": "authenticated", "scope": "required_now" },
+      { "kind": "mobile-native", "access": "authenticated", "scope": "required_now" }
+    ],
+    "data": { "persistence": "shared", "multi_user": true },
+    "ops": { "realtime": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-06",
+    "must_include_reasons": ["shared-backend", "realtime"],
+    "must_not_select": ["GP-04"]
+  }
+}

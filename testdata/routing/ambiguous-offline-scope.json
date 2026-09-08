@@ -1,0 +1,21 @@
+{
+  "name": "ambiguous-offline-scope",
+  "intent": {
+    "schema_version": 1,
+    "name": "staff tool with possible offline use",
+    "problem": "staff backoffice that might need offline-tolerant operation later",
+    "architecture_requirements": [
+      {
+        "id": "maybe-offline",
+        "description": "offline operation is possible but undecided",
+        "ref": "offline-operation",
+        "strength": "possible"
+      }
+    ],
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }]
+  },
+  "expect": {
+    "status": "ambiguous",
+    "discriminating_dimensions": ["offline"]
+  }
+}

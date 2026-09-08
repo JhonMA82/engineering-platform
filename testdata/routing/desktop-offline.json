@@ -1,0 +1,17 @@
+{
+  "name": "desktop-offline",
+  "intent": {
+    "schema_version": 1,
+    "name": "offline workstation tool",
+    "problem": "technicians process local files without connectivity",
+    "surfaces": [{ "kind": "desktop", "access": "authenticated", "scope": "required_now" }],
+    "data": { "persistence": "local" },
+    "ops": { "offline_operation": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-05",
+    "must_include_reasons": ["covers required surface desktop", "offline-operation"],
+    "must_not_select": ["GP-06"]
+  }
+}

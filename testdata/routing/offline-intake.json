@@ -1,0 +1,17 @@
+{
+  "name": "offline-intake",
+  "intent": {
+    "schema_version": 1,
+    "name": "field intake",
+    "problem": "collect forms offline in the field",
+    "surfaces": [{ "kind": "public-intake", "access": "anonymous", "scope": "required_now" }],
+    "data": { "persistence": "local", "offline_sync": true },
+    "ops": { "offline_operation": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-06",
+    "must_include_reasons": ["offline-operation"],
+    "must_not_select": ["GP-02"]
+  }
+}

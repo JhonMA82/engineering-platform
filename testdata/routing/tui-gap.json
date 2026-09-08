@@ -1,0 +1,16 @@
+{
+  "name": "tui-gap",
+  "intent": {
+    "schema_version": 1,
+    "name": "terminal tool",
+    "problem": "operators need a terminal app plus admin",
+    "surfaces": [
+      { "kind": "web-admin", "access": "authenticated", "scope": "required_now" },
+      { "kind": "terminal app", "access": "authenticated", "scope": "required_now" }
+    ]
+  },
+  "expect": {
+    "status": "catalog-gap",
+    "must_include_reasons": ["surface=tui"]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "ambiguous-admin-multiapp",
+  "intent": {
+    "schema_version": 1,
+    "name": "maybe public",
+    "problem": "staff tool that might need a public form",
+    "architecture_requirements": [
+      {
+        "id": "maybe-public",
+        "description": "form may be public",
+        "ref": "anonymous-public-access",
+        "strength": "possible"
+      }
+    ],
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "data": { "public_access": "unknown" }
+  },
+  "expect": {
+    "status": "ambiguous",
+    "discriminating_dimensions": ["public_access"]
+  }
+}

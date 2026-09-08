@@ -1,0 +1,17 @@
+{
+  "name": "unsupported-surface-composition",
+  "intent": {
+    "schema_version": 1,
+    "name": "field desk",
+    "problem": "operators and field staff share intake over web, mobile and admin clients",
+    "surfaces": [
+      { "kind": "web-admin", "access": "authenticated", "scope": "required_now" },
+      { "kind": "public-intake", "access": "anonymous", "scope": "required_now" },
+      { "kind": "mobile-native", "access": "authenticated", "scope": "required_now" }
+    ]
+  },
+  "expect": {
+    "status": "unsupported",
+    "must_include_reasons": ["no recipe composes the required surfaces"]
+  }
+}

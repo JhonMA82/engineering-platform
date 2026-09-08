@@ -1,0 +1,20 @@
+{
+  "name": "saas-plus-mobile",
+  "intent": {
+    "schema_version": 1,
+    "name": "saas with mobile client",
+    "problem": "saas product with marketing site, tenant app and native mobile client",
+    "surfaces": [
+      { "kind": "public-web", "access": "anonymous", "scope": "required_now" },
+      { "kind": "mobile-native", "access": "authenticated", "scope": "required_now" },
+      { "kind": "api", "access": "authenticated", "scope": "required_now" }
+    ],
+    "data": { "persistence": "shared", "multi_user": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-06",
+    "must_include_reasons": ["covers required surface mobile-native", "shared-backend"],
+    "must_not_select": ["GP-07"]
+  }
+}

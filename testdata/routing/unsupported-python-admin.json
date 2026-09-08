@@ -1,0 +1,14 @@
+{
+  "name": "unsupported-python-admin",
+  "intent": {
+    "schema_version": 1,
+    "name": "python backoffice",
+    "problem": "backoffice constrained to python while the python foundation serves apis",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [{ "kind": "must-use", "value": "python" }]
+  },
+  "expect": {
+    "status": "unsupported",
+    "must_include_reasons": ["must-use tech python"]
+  }
+}

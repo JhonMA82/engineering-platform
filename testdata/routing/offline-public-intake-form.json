@@ -1,0 +1,20 @@
+{
+  "name": "offline-public-intake-form",
+  "intent": {
+    "schema_version": 1,
+    "name": "offline permit forms",
+    "problem": "applicants submit permit forms with attachments, sync when back online",
+    "product_requirements": [
+      { "id": "file-upload", "description": "attach documents to a form submission" }
+    ],
+    "surfaces": [{ "kind": "public-intake", "access": "anonymous", "scope": "required_now" }],
+    "data": { "persistence": "shared", "multi_user": true, "offline_sync": true },
+    "ops": { "offline_operation": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-06",
+    "must_include_reasons": ["covers required surface public-intake", "offline-operation"],
+    "must_not_select": ["GP-01"]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "unsupported-blockchain",
+  "intent": {
+    "schema_version": 1,
+    "name": "ledger admin",
+    "problem": "backoffice constrained to a blockchain stack",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [{ "kind": "must-use", "value": "blockchain" }]
+  },
+  "expect": {
+    "status": "unsupported",
+    "must_include_reasons": ["must-use tech blockchain"]
+  }
+}

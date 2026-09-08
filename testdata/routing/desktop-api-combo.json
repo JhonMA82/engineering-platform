@@ -1,0 +1,17 @@
+{
+  "name": "desktop-api-combo",
+  "intent": {
+    "schema_version": 1,
+    "name": "desktop plus shared api",
+    "problem": "installed desktop tool sharing business data with a hosted api",
+    "surfaces": [
+      { "kind": "desktop", "access": "authenticated", "scope": "required_now" },
+      { "kind": "api", "access": "authenticated", "scope": "required_now" }
+    ],
+    "data": { "persistence": "shared", "multi_user": true }
+  },
+  "expect": {
+    "status": "unsupported",
+    "must_include_reasons": ["missing required surface"]
+  }
+}

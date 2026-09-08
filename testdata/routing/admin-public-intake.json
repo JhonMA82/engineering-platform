@@ -1,0 +1,18 @@
+{
+  "name": "admin-public-intake",
+  "intent": {
+    "schema_version": 1,
+    "name": "requests desk",
+    "problem": "citizens file requests, staff resolves them",
+    "surfaces": [
+      { "kind": "web-admin", "access": "authenticated", "scope": "required_now" },
+      { "kind": "public-intake", "access": "anonymous", "scope": "required_now" }
+    ]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-06",
+    "must_include_reasons": ["covers required surface public-intake", "anonymous-public-access"],
+    "must_not_select": ["GP-02"]
+  }
+}

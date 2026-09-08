@@ -1,0 +1,20 @@
+{
+  "name": "python-data-local",
+  "intent": {
+    "schema_version": 1,
+    "name": "local data analysis",
+    "problem": "analysts run python document jobs against a local database",
+    "product_requirements": [
+      { "id": "documents", "description": "parse local documents into datasets" }
+    ],
+    "surfaces": [{ "kind": "api", "access": "authenticated", "scope": "required_now" }],
+    "data": { "persistence": "local" },
+    "technical_constraints": [{ "kind": "must-use", "value": "python" }]
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-03",
+    "must_include_reasons": ["must-use tech python", "local sqlite"],
+    "must_not_select": ["GP-06"]
+  }
+}

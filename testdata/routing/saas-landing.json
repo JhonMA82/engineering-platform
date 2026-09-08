@@ -1,0 +1,20 @@
+{
+  "name": "saas-landing",
+  "intent": {
+    "schema_version": 1,
+    "name": "saas product",
+    "problem": "landing plus app plus api for tenants",
+    "surfaces": [
+      { "kind": "landing", "access": "anonymous", "scope": "required_now" },
+      { "kind": "web-admin", "access": "authenticated", "scope": "required_now" },
+      { "kind": "api", "access": "authenticated", "scope": "required_now" }
+    ],
+    "data": { "persistence": "shared", "multi_user": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-06",
+    "must_include_reasons": ["covers required surface public-web"],
+    "must_not_select": ["GP-01"]
+  }
+}

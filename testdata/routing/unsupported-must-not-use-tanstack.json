@@ -1,0 +1,14 @@
+{
+  "name": "unsupported-must-not-use-tanstack",
+  "intent": {
+    "schema_version": 1,
+    "name": "non-tanstack backoffice",
+    "problem": "backoffice that must avoid the tanstack foundation",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "required_now" }],
+    "technical_constraints": [{ "kind": "must-not-use", "value": "tanstack" }]
+  },
+  "expect": {
+    "status": "unsupported",
+    "must_include_reasons": ["must-not-use tech tanstack"]
+  }
+}

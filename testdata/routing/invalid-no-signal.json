@@ -1,0 +1,12 @@
+{
+  "name": "invalid-no-signal",
+  "intent": {
+    "schema_version": 1,
+    "name": "vague idea",
+    "problem": "something for the team eventually",
+    "surfaces": [{ "kind": "web-admin", "access": "authenticated", "scope": "planned_later" }]
+  },
+  "expect": {
+    "status": "invalid"
+  }
+}

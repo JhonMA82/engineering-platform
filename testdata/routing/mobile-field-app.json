@@ -1,0 +1,23 @@
+{
+  "name": "mobile-field-app",
+  "intent": {
+    "schema_version": 1,
+    "name": "field inspections",
+    "problem": "inspectors capture photo evidence with gps, office reviews visits",
+    "product_requirements": [
+      { "id": "camera", "description": "capture photo evidence per visit" },
+      { "id": "gps", "description": "record gps position per visit" }
+    ],
+    "surfaces": [{ "kind": "mobile-native", "access": "authenticated", "scope": "required_now" }],
+    "data": { "persistence": "shared", "multi_user": true }
+  },
+  "expect": {
+    "status": "resolved",
+    "selected_recipe": "GP-04",
+    "must_include_reasons": [
+      "covers required surface mobile-native",
+      "shared backend on postgresql-managed"
+    ],
+    "must_not_select": ["GP-06"]
+  }
+}
