@@ -45,8 +45,9 @@ surface composition over the full component set, capability coverage by the
 union of chosen providers, database policy versus catalog profiles, tech
 compatibility between components, and explicit must-use/must-not-use
 constraints (legacy untyped values plus typed `target=value` pairs
-recovered from decision reasons; database/deployment targets are enforced
-by profile selection or not at all — never against providers). Every
+recovered from decision reasons; database targets are enforced by profile
+selection while deployment targets support no hard constraints in v1.0.1 —
+never against providers). Every
 failure is a typed `composition` domain error.
 
 ## Database profile selection
@@ -55,8 +56,9 @@ failure is a typed `composition` domain error.
 recovered database constraints (§2.4, full contract in
 `docs/concepts/technical-constraints.md`): must-use selects the allowed
 profile identifying the value (id, engine or provider) even when it is not
-the default; must-not-use avoids that profile when an alternative exists;
-prefer selects a matching allowed profile or falls back to the default
+the default; must-not-use avoids that profile when an alternative exists
+and fails with a typed composition error when every allowed profile is
+forbidden; prefer selects a matching allowed profile or falls back to the default
 with the deviation explained in `Composition.DatabaseNote`; avoid picks
 any other allowed profile. Preferences never fail selection. Profiles
 declare `engine`, `provider` and `supports` (`postgresql-managed`,

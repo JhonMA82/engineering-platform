@@ -13,7 +13,12 @@ technology decision: `{target, kind, value}`.
 
 The taxonomy stays small: `framework | language | runtime | database |
 deployment | provider`. Unknown targets are rejected by intent validation
-with the full list. `target` is what lets the resolver tell a database
+with the full list. `deployment` is a known target but supports no hard
+constraints in v1.0.1: the catalog curates no deployment metadata, so
+`must-* deployment=*` is rejected at validation with
+`unsupported technical constraint target: deployment` instead of being
+accepted and silently ignored. `prefer | avoid deployment=*` remain valid
+as recorded, non-routing preferences. `target` is what lets the resolver tell a database
 from a framework: `must-use: turso` alone cannot.
 
 ## Kinds
@@ -36,8 +41,11 @@ Matching runs against catalog data only; the Go core contains no
 - `database`: curated database profiles by id, engine or provider
   (`DatabaseProfile.MatchesTechnology`); resolved at composition time
   against the recipe policy.
-- `deployment`: no catalog metadata is curated yet, so deployment
-  constraints are recorded in decision reasons but not evaluated (§2.3).
+- `deployment`: no catalog metadata is curated yet, so hard deployment
+  constraints are rejected at validation (`unsupported technical constraint
+  target: deployment`, v1.0.1); `prefer`/`avoid` deployment values are only
+  recorded in decision reasons, never evaluated (§2.3). Deployment profiles
+  (`edge`, `serverless`, `container`, ...) are future work.
 
 ## Database constraints (§2.4)
 

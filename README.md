@@ -1,182 +1,431 @@
-# Engineering Platform 1.0 — M1 Deterministic Routing Core
+# Engineering Platform
 
-M1 implements the minimal vertical slice:
+Turn a software idea into a ready-to-develop project foundation.
 
-```text
-ProjectIntent → Catalog → Resolver → ArchitectureDecision
-```
+Engineering Platform takes what you need — an admin dashboard, a public site,
+a mobile app, an API — selects from previously evaluated boilerplates, decides
+a suitable architecture, composes the pieces, and generates the project with
+context so a development agent can continue without starting from zero.
 
-It covers routing for **Public Web (GP-01), Admin (GP-02), Python/Data (GP-03),
-Mobile (GP-04), Desktop (GP-05), Multi-App (GP-06) and Commercial SaaS (GP-07)**
-with hard constraints, scoring, confidence, rejected reasons, ambiguous
-cases and architectural catalog-gap cases (46 routing scenarios,
-floor-guarded at 40).
+## Why Engineering Platform?
 
-Out of scope for M1: materializer, composer, planner, handoff, Pi integration.
+Starting a new product usually means answering the same questions twice: which
+stack to use, how to lay out the repository, and how to hand the result to
+whoever builds the features. Engineering Platform answers the first two
+deterministically and prepares the third:
 
-## M2 — Reproducible Composition
+- **You describe the need.** Users, interfaces, data, offline or native
+  requirements, constraints.
+- **It selects a foundation.** From a catalog of curated boilerplates with a
+  known origin and immutable pin — not from whatever is trending this week.
+- **It composes the architecture.** API, dashboard, web, mobile: the pieces
+  your product actually needs, with conventional destinations.
+- **It generates the project.** Code scaffolding plus agent context
+  (`AGENTS.md`, `GENTLE.md`, an implementation brief, a handoff document), so
+  development continues with a map instead of a blank page.
 
-M2 adds the reproducible slice:
-
-```text
-ArchitectureDecision + Catalog → Composer → Composition → Planner → MaterializationPlan
-```
-
-`eng plan --input intent.json` resolves, composes and plans without
-touching the filesystem: one pinned provider per required surface
-(`tanstack-admin`, `hono-api`, `stardrive`,
-`tanstack-transactional-pwa`, plus Fase 9: `ignite`, `tauri-ui`, `speedpy`,
-`react-starter-kit`), conventional destinations
-(`services/api`, `apps/admin`, `apps/mobile`, `apps/web`, `apps/intake`,
-`apps/desktop`),
-database profile from recipe policy, and a sha256 fingerprint binding the
-intent fingerprint to the catalog version. `--json` prints the full
-`MaterializationPlan` (see `schemas/materialization-plan.schema.json`).
-
-```bash
-go build -o /tmp/eng ./cmd/eng
-python3 -c "import json; d=json.load(open('testdata/routing/admin-only.json')); open('/tmp/admin-intent.json','w').write(json.dumps(d['intent']))"
-/tmp/eng plan --input /tmp/admin-intent.json
-/tmp/eng plan --input /tmp/admin-intent.json --json
-```
-
-Details: `docs/architecture/composition.md`. Composition fixtures live in
-`testdata/composition/` (11 scenarios incl. mobile-only, desktop-only,
-python-job and saas-marketing plus destination collision and path
-traversal); plan goldens in `testdata/plans/`.
-
-## M3 — End-to-End Project Bootstrap
-
-M3 closes the spine:
+## How it works
 
 ```text
-ProjectIntent → Resolve → Plan → Materialize → Doctor → Gentle handoff
+Idea
+  ↓
+Pi asks the necessary questions
+  ↓
+Engineering Platform selects the base
+  ↓
+composes API / dashboard / mobile / etc.
+  ↓
+generates the project
+  ↓
+Gentle AI continues development
 ```
 
-`eng materialize --plan plan.json --output <dir>` executes the plan in a
-staging dir (fetch pinned source → verify pin → copy+prune with
-path-safety checks → collision check), writes `.engineering/` state
-(manifest, provenance, project map) plus agent-context artifacts (root
-`AGENTS.md` router, `ARCHITECTURE.md`, `GENTLE.md`, per-surface stubs,
-`implementation-brief.md`, `handoff.json`), verifies, and atomically
-renames staging into place. `eng doctor --project <dir>` re-validates
-consistency (exit non-zero on drift). Side effects live only in
-`internal/materializer`; `internal/project` owns state and doctor;
-`internal/handoff` is pure generation (no `eng handoff` command).
-Adapters are catalog data: `adapter` accepts the legacy string or an
-object `{operations, prune_paths, setup, checks, managed_files}`,
-sources accept `git` (clone `--depth 1 --branch <pin>` with tag-match
-verification) and `local` (offline fixtures in
-`testdata/fixtures/boilerplates/`, pin-checked via a `PIN` marker).
-Pi discovery lives in `integrations/pi/` (core never imports it).
+Under the hood this maps to a deterministic pipeline
+(`ProjectIntent → Resolver → Composer → Materializer → Development Handoff`),
+described in [How it works internally](#how-it-works-internally).
+
+## What Engineering Platform is not
+
+Engineering Platform does **not** build your whole application:
+
+- Engineering Platform: selects a foundation, composes the architecture,
+  prepares the project, leaves instructions and context.
+- Gentle AI (or your team): implements the product features, deepens
+  requirements when needed.
+
+If you expect a full-app generator, this is not it. It gives you the right
+starting point — the features are still yours to build.
+
+## Example
+
+> "I need a system with an admin dashboard, an API, and a mobile app for
+> recording field operations."
+
+Pi captures the users, the interfaces, the offline/native needs, and the
+restrictions. Engineering Platform can then resolve an API foundation, an
+admin foundation, a mobile foundation, and a database profile, and lay out
+the repository:
+
+```text
+services/api/
+apps/admin/
+apps/mobile/
+```
+
+Each surface keeps its own agent instructions, so whoever builds the field
+ Flow continues from a map, not from guesses.
+
+## Installation
+
+### Prebuilt binary (recommended)
+
+Every `v*` tag publishes binaries and a `checksums.txt` to the
+[GitHub Releases page](https://github.com/JhonMA82/engineering-platform/releases).
+Available assets:
+
+```text
+eng-linux-amd64
+eng-linux-arm64
+eng-darwin-arm64        # macOS Apple Silicon
+eng-windows-amd64.exe
+checksums.txt
+```
+
+**Linux (amd64):**
 
 ```bash
-/tmp/eng plan --input /tmp/admin-intent.json --catalog-dir <overlay> --json > /tmp/plan.json
-/tmp/eng materialize --plan /tmp/plan.json --output /tmp/demo-proj --catalog-dir <overlay>
-/tmp/eng doctor --project /tmp/demo-proj
+curl -L -o eng https://github.com/JhonMA82/engineering-platform/releases/latest/download/eng-linux-amd64
+chmod +x eng
+mkdir -p ~/.local/bin
+mv eng ~/.local/bin/eng
+eng version
 ```
 
-`eng start` chains the same phases as one convenience command (plan →
-materialize → doctor; `--dry-run` prints the plan with zero writes):
+Make sure `~/.local/bin` is on your `PATH`. As an alternative you may place
+the binary in `/usr/local/bin` instead — `sudo` is not required when you use
+`~/.local/bin`.
+
+**Linux (ARM64):** same steps, downloading `eng-linux-arm64` instead.
+
+**macOS (Apple Silicon):** same steps, downloading `eng-darwin-arm64`.
+Intel macOS is not shipped (`darwin-amd64` is not built).
+
+**Windows (amd64):** download `eng-windows-amd64.exe` from the releases page,
+optionally rename it to `eng.exe`, place it in a directory on your `PATH`,
+then run:
+
+```text
+eng version
+```
+
+**Checksums (recommended):** verify your download against `checksums.txt`
+from the same release:
 
 ```bash
-/tmp/eng start --intent /tmp/admin-intent.json --output /tmp/demo-proj --catalog-dir <overlay>
-/tmp/eng start --intent /tmp/admin-intent.json --dry-run
+curl -L -O https://github.com/JhonMA82/engineering-platform/releases/latest/download/checksums.txt
+sha256sum -c checksums.txt
 ```
 
-Runbook: `docs/guides/new-project.md`. Safety and pin policy:
-`docs/architecture/materialization.md`. Gentle ownership transfer:
-`docs/architecture/handoff.md` (`GENTLE.md` Direct vs SDD decision,
-`handoff.json` with `open_product_questions` and `gentle-decides` mode,
-locked `database-profile`). Release process: `docs/guides/release.md`
-(CI gates, build matrix, `v*` tags → binaries + `checksums.txt`).
+### Build from source
+
+For contributors and developers. Requirements: **Go 1.27+** and **Git**
+(no Python needed).
+
+```bash
+git clone https://github.com/JhonMA82/engineering-platform.git
+cd engineering-platform
+go build -o eng ./cmd/eng
+./eng version
+```
+
+## Quick Start
+
+### Recommended: Pi workflow
+
+The recommended experience uses [Pi](https://github.com/juicesharp/pi) as the
+conversational interface: Pi turns your idea into a `ProjectIntent` document
+that Engineering Platform can resolve. The integration lives in
+[`integrations/pi/`](integrations/pi/) and works through structured questions
+(`@juicesharp/rpiv-ask-user-question`), so you answer options instead of
+writing JSON by hand.
+
+1. Install `eng` (see [Installation](#installation)).
+2. Set up the Pi integration from [`integrations/pi/`](integrations/pi/).
+3. Describe your idea to Pi.
+4. Run `/new-project` ([prompt](integrations/pi/prompts/new-project.md)):
+   Pi refines the `ProjectIntent` with you.
+5. Engineering Platform resolves, plans, and materializes the project.
+6. Gentle AI takes over from `GENTLE.md`.
+
+Details: [`integrations/pi/skills/project-discovery/SKILL.md`](integrations/pi/skills/project-discovery/SKILL.md)
+and the [new-project runbook](docs/guides/new-project.md).
+
+### CLI workflow
+
+Without Pi, drive the same pipeline directly:
+
+```bash
+eng resolve --input project-intent.json
+eng plan --input project-intent.json
+eng materialize --plan materialization-plan.json --output ./my-project
+eng doctor --project ./my-project
+```
+
+`eng start` is the short path chaining the same phases
+(`resolve → plan → materialize → doctor`):
+
+```bash
+eng start --intent project-intent.json --output ./my-project
+eng start --intent project-intent.json --dry-run   # inspect the plan, write nothing
+```
+
+`eng explain --input decision.json` prints why a decision resolved the way it
+did. The manual JSON flow exists for scripting and debugging; for normal use,
+prefer the Pi workflow above.
+
+## What gets generated?
+
+```text
+my-project/
+├── AGENTS.md
+├── ARCHITECTURE.md
+├── GENTLE.md
+├── apps/
+├── services/
+└── .engineering/
+    ├── project.json
+    ├── provenance.json
+    ├── project-map.json
+    ├── materialization-plan.json
+    ├── implementation-brief.md
+    └── handoff.json
+```
+
+The concrete layout depends on the selected surfaces (`apps/` and `services/`
+entries follow conventional destinations such as `services/api`,
+`apps/admin`, `apps/mobile`, `apps/web`). `.engineering/` keeps the machine
+state: manifest, provenance, project map, and the materialization plan the
+project was built from.
+
+## Handoff to Gentle AI
+
+Engineering Platform does not just copy boilerplates — it leaves a map for
+agents:
+
+- Root `AGENTS.md` — where to work in the repository.
+- Per-surface `AGENTS.md` — rules specific to each foundation.
+- `GENTLE.md` — how to continue development.
+- `.engineering/implementation-brief.md` — what is to be built.
+
+Point your development agent at `GENTLE.md` and it starts with the
+architecture locked and the product requirements listed.
+
+## Curated foundations
+
+A **curated boilerplate** is an evaluated, registered base with a known origin
+and immutable pin, an adapter, and enough curation evidence for Engineering
+Platform to use it reproducibly.
+
+Main recipes in the default catalog:
+
+| Recipe | What it covers | Primary foundation(s) |
+| --- | --- | --- |
+| GP-01 | Public website | stardrive |
+| GP-02 | Authenticated backoffice | tanstack-admin |
+| GP-03 | Python/data app | speedpy |
+| GP-04 | Native mobile client + shared API | ignite, hono-api |
+| GP-05 | Installed desktop tool, local database | tauri-ui |
+| GP-06 | Multi-app (web + admin + API + PWA) | stardrive, tanstack-admin, hono-api, tanstack-transactional-pwa |
+| GP-07 | Commercial SaaS | react-starter-kit |
+
+Database profiles: `postgresql-managed` (shared multi-user backends) and
+`sqlite-local` (single-node or local scope). The recipe policy picks the
+default; explicit database constraints can steer it (see below).
+
+## Technical constraints
+
+Explicit user decisions travel as `{target, kind, value}` constraints, for
+example `{target: "database", kind: "must-use", value: "sqlite-local"}`.
+Hard constraints (`must-use`, `must-not-use`) can eliminate candidates; soft
+ones (`prefer`, `avoid`) only affect ranking.
+
+Supported hard targets in v1.0.1: `framework`, `language`, `runtime`,
+`database`, `provider`. `deployment` supports **no** hard constraints yet —
+the catalog curates no deployment metadata, so `must-use` / `must-not-use`
+with `target: "deployment"` are rejected at validation
+(`unsupported technical constraint target: deployment`) instead of being
+silently ignored. `prefer` / `avoid` deployment wishes can still be recorded
+as non-routing preferences. Deployment profiles (`edge`, `serverless`,
+`container`, …) are future work.
+
+Full contract: [docs/concepts/technical-constraints.md](docs/concepts/technical-constraints.md).
+
+## When the catalog doesn't have a fit
+
+Engineering Platform never forces a wrong solution. If it understands the
+architectural need but no curated foundation matches, it returns a
+`CatalogGap`:
+
+```text
+CatalogGap → research → curate/add a foundation → resolve again
+```
+
+A gap means architecture is missing from the catalog — not that your product
+lacks a feature. Features like PDF export, Excel import, or QR codes are
+product behavior: they belong to Gentle AI to implement, not to the catalog
+to provide.
+
+**Product feature vs architecture:** take *"a TUI that imports Excel and
+generates PDFs"*. Engineering Platform decides the TUI foundation; Gentle
+implements the Excel import, the PDF generation, and the business behavior.
+If the chosen boilerplate already ships a feature, it is reused — but a
+missing feature never triggers a different foundation.
+
+## Extending the catalog
+
+If tomorrow you need a foundation the catalog lacks (say, a TUI) and the
+engine already understands the operations it uses, you can add it without
+modifying or releasing a new core version: new boilerplate + catalog entry +
+adapter + curation evidence + tests.
+
+Short version (full guide: [docs/guides/add-boilerplate.md](docs/guides/add-boilerplate.md)):
+
+1. Create `catalog/boilerplates/<id>.json`.
+2. Define the repo and its immutable pin.
+3. Declare surfaces and technical metadata.
+4. Create the adapter.
+5. Add curation evidence under `catalog/curation/`.
+6. Run `eng catalog validate`.
+7. Add a pilot/test.
+
+Recipes live in `catalog/recipes/`. You do not need a new recipe per feature:
+PDF, Excel, reports, or QR support are product features, not recipes
+(see [docs/guides/add-recipe.md](docs/guides/add-recipe.md) for when a recipe
+is actually warranted).
+
+Catalogs compose: the default catalog plus an optional organization overlay
+(`--catalog-dir`) for consultancies or companies with private boilerplates.
+
+## Evolving an existing project
+
+Generated projects keep evolving through the same deterministic pipeline:
+
+```bash
+eng surface add --project <dir> --surface <id> [--provider <boilerplate>]
+eng extend --project <dir> --surface <id>
+eng add --project <dir> --requirement "<text>" [--scope required_now|planned_later]
+eng update --project <dir> [--json]
+```
+
+- `surface add` — adds a new architectural part (only the delta materializes;
+  migrating to a different recipe aborts untouched, by design).
+- `extend` — promotes a `planned_later` surface to `required_now`.
+- `add` — records a product requirement; architecture is never touched.
+- `update` — report-only pin comparison against the catalog; never mutates.
+
+Runbook: [docs/guides/evolve-project.md](docs/guides/evolve-project.md).
 
 ## Commands
 
 ```bash
-go build ./...        # or: make build
-go vet ./...          # or: make vet
-go test ./...         # or: make test
-make cover
-
-./eng catalog validate
-./eng catalog                  # list: recipes + boilerplates + surfaces
-./eng catalog show GP-06       # recipe|boilerplate|surface|capability|database-profile
-./eng resolve --input <intent>.json
-./eng resolve --input <intent>.json --json
-./eng start --intent <intent>.json --output <dir> [--dry-run]
-./eng explain --input <decision>.json
-./eng version                  # binary + catalog + commit/date (ldflags-stamped releases)
+eng resolve --input intent.json [--json] [--verbose]
+eng plan --input intent.json [--json]
+eng materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json]
+eng start --intent intent.json --output <dir> [--dry-run] [--json]
+eng doctor --project <dir> [--json]
+eng surface add --project <dir> --surface <id> [--provider <boilerplate>]
+eng extend --project <dir> --surface <id>
+eng add --project <dir> --requirement "<text>" [--scope required_now|planned_later]
+eng update --project <dir> [--json]
+eng explain --input decision.json
+eng catalog [list]
+eng catalog show <id>
+eng catalog validate
+eng version
 ```
 
-Routing fixtures wrap the intent (`{"intent": {...}, "expect": {...}}`);
-extract it first (see the M2 snippet above). Offline materialization
-pilots (GP-02 single, GP-06 multi, GP-04 mobile, surface-add evolution)
-run with fixture sources only:
+All commands accept `--catalog-dir DIR` to use an organization overlay instead
+of the default catalog.
 
-```bash
-go test ./internal/app/ -run 'Pilot' -count=1 -v   # also in .github/workflows/pilots.yml
-```
+## How it works internally
 
-The `eng` binary is built from `./cmd/eng`:
-
-```bash
-go build -o eng ./cmd/eng
-```
-
-## Layout
-
-- `internal/domain/` — pure contracts, zero infra imports.
-- `internal/catalog/` — declarative JSON catalog loader, validator, index.
-- `catalog/` — catalog data (recipes, boilerplates, surfaces, capabilities).
-- `internal/resolver/` — pure in-memory R1–R10 pipeline.
-- `internal/app/` — thin services (`Resolve`/`Plan`/`Materialize`/`Doctor`/evolution) over the core.
-- `internal/cli/` — stdlib-flag CLI; `cmd/eng` entrypoint.
-- `schemas/` — JSON schemas for intent and decision.
-- `testdata/routing/` — routing fixtures asserted by resolver tests.
-- `docs/adr/` — architecture decision records.
-
-## Fase 10 — Project evolution
+Engineering Platform is a deterministic local engine for selecting, composing,
+and materializing curated stacks. Pure core, no network, no LLM calls: stable
+sorts, pinned providers, and a fingerprint binding each plan to the intent and
+the catalog version.
 
 ```text
-Stored intent → Resolve → Compose → Plan → Delta materialize → Doctor
+ProjectIntent
+    ↓
+Resolver            → ArchitectureDecision
+    ↓
+Composer            → Composition
+    ↓
+Planner             → MaterializationPlan
+    ↓
+Materializer        → project + .engineering/ state
+    ↓
+Development Handoff → AGENTS.md / GENTLE.md / brief / handoff.json
 ```
 
-- `eng surface add --project <dir> --surface <id> [--provider <boilerplate>]` —
-  architecture evolution: the evolved intent must resolve and select the
-  same recipe, then only the delta components materialize (existing
-  directories untouched). Recipe migration aborts with an explanatory
-  error and zero mutation — it is out of v1 scope by design.
-- `eng extend --project <dir> --surface <id>` — promotes a `planned_later`
-  surface to `required_now` through the same pipeline.
-- `eng add --project <dir> --requirement "<text>" [--scope required_now|planned_later]` —
-  records a product requirement (brief + handoff refresh, deterministic
-  `REQ-NNN` ids); architecture is never touched, and architecture
-  vocabulary in the text raises a warning pointing at the scope commands.
-- `eng update --project <dir> [--json]` — report-only pin comparison
-  `{component, current, catalog, strategy, action}` with the
-  `replace|merge-seed|fork-track|manual` strategy vocabulary (boilerplate
-  `update_strategy`, default `manual`); exit 0, no mutation.
+Filesystem and process effects live only in the materializer; everything else
+is pure and in-memory. Depth-first reading:
 
-Provenance is append-only (`surface-add` / `scope-extend` /
-`requirement-add` events; `doctor` warns — never errors — on unknown
-surfaces). Runbook: `docs/guides/evolve-project.md`.
+- [docs/architecture/core.md](docs/architecture/core.md) — pipeline and layering
+- [docs/architecture/routing.md](docs/architecture/routing.md) — resolver rules
+- [docs/architecture/composition.md](docs/architecture/composition.md) — composer and compatibility
+- [docs/architecture/materialization.md](docs/architecture/materialization.md) — safety and pin policy
+- [docs/architecture/handoff.md](docs/architecture/handoff.md) — Gentle ownership transfer
 
-## Catalog (Fase 9)
+## Repository layout
 
-| Recipe | Family | Primary foundation(s) |
-| --- | --- | --- |
-| GP-01 | Public web | stardrive |
-| GP-02 | Admin | tanstack-admin |
-| GP-03 | Python/Data | speedpy |
-| GP-04 | Mobile | ignite, hono-api |
-| GP-05 | Desktop | tauri-ui |
-| GP-06 | Multi-app | stardrive, tanstack-admin, hono-api, tanstack-transactional-pwa |
-| GP-07 | Commercial SaaS | react-starter-kit |
+- `catalog/` — catalog data (recipes, boilerplates, surfaces, capabilities, database profiles, curation evidence).
+- `cmd/` — `eng` entrypoint.
+- `internal/` — Go core (domain, resolver, composer, planner, materializer, project state, CLI).
+- `integrations/pi/` — Pi conversational adapter (`/new-project`, discovery skill).
+- `schemas/` — JSON schemas for intents, decisions, and plans.
+- `docs/` — architecture, concepts, guides, and decision records.
+- `testdata/` — routing, composition, and plan fixtures.
 
-Surfaces: `public-web`, `web-admin`, `public-intake`, `api`,
-`mobile-native`, `desktop`, `tui`. Capabilities include `shared-backend`,
-`anonymous-public-access`, `offline-operation`, `realtime`,
-`local-filesystem` and `background-processing`. Curation evidence per
-foundation lives in `catalog/curation/`; migration decisions and skips in
-`docs/decisions/migration-notes.md`.
+## Development
+
+```bash
+gofmt -w .
+go vet ./...
+go test ./...
+go build ./cmd/eng
+./eng catalog validate
+```
+
+`make build`, `make vet`, and `make test` wrap the first three.
+
+Releases tag the core version (`eng version` reports binary, catalog,
+commit, and date); the catalog carries its own revision in
+`catalog/metadata.json` — core version ≠ catalog revision.
+
+## Documentation
+
+- Getting started: [docs/guides/new-project.md](docs/guides/new-project.md)
+- Architecture: [docs/architecture/core.md](docs/architecture/core.md)
+- Catalog concepts: [docs/concepts/catalog.md](docs/concepts/catalog.md),
+  [recipes](docs/concepts/recipe.md),
+  [boilerplates](docs/concepts/boilerplate.md),
+  [technical constraints](docs/concepts/technical-constraints.md)
+- Adding a boilerplate: [docs/guides/add-boilerplate.md](docs/guides/add-boilerplate.md)
+  (curation: [docs/guides/curate-boilerplate.md](docs/guides/curate-boilerplate.md))
+- Adding a recipe: [docs/guides/add-recipe.md](docs/guides/add-recipe.md)
+- Project evolution: [docs/guides/evolve-project.md](docs/guides/evolve-project.md)
+- Release process: [docs/guides/release.md](docs/guides/release.md)
+- Pi integration: [integrations/pi/](integrations/pi/)
+  ([discovery skill](integrations/pi/skills/project-discovery/SKILL.md))
+- Materialization and safety: [docs/architecture/materialization.md](docs/architecture/materialization.md)
+
+## Legacy
+
+The original Python implementation is kept in
+`JhonMA82/engineering-platform-legacy` as a historical reference.
+
+## License
+
+No license file is declared in this repository yet — check with the
+maintainers before reuse beyond evaluation.
