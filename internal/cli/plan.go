@@ -47,7 +47,14 @@ func printPlanHuman(plan planner.MaterializationPlan) {
 	fmt.Printf("database_profile: %s\n", plan.DatabaseProfile)
 	fmt.Println("components:")
 	for _, c := range plan.Components {
-		fmt.Printf("  - %s <- %s@%s (%s)\n", c.Destination, c.Boilerplate, c.Pin, c.Surface)
+		detail := c.Surface
+		if strategy := c.EffectiveStrategy(); strategy != "copy" {
+			detail += ", " + strategy
+			if c.Materialization.Profile != "" {
+				detail += " profile=" + c.Materialization.Profile
+			}
+		}
+		fmt.Printf("  - %s <- %s@%s (%s)\n", c.Destination, c.Boilerplate, c.Pin, detail)
 	}
 	fmt.Printf("fingerprint: %s\n", plan.Fingerprint)
 }

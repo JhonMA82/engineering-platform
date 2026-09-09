@@ -208,6 +208,15 @@ func printCatalogEntry(entry any) {
 	case *domain.Boilerplate:
 		fmt.Printf("  repo: %s  pin: %s\n", v.Repo, v.Pin)
 		fmt.Printf("  adapter: %s  delivery: %s  decision: %s\n", v.Adapter, v.DeliveryStatus, v.DecisionStatus)
+		spec := v.EffectiveSpec()
+		fmt.Printf("  materialization: %s\n", spec.Strategy())
+		if gen := spec.Generate; gen != nil {
+			ids := make([]string, 0, len(gen.Profiles))
+			for _, pr := range gen.Profiles {
+				ids = append(ids, pr.ID)
+			}
+			fmt.Printf("  profiles: default=%s available=%s\n", gen.DefaultProfile, strings.Join(ids, ", "))
+		}
 		if strings.TrimSpace(v.Curation.Evidence) != "" {
 			fmt.Printf("  curation: %s  evidence: %s\n", v.Curation.Status, v.Curation.Evidence)
 		}
