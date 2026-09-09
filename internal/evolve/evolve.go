@@ -413,6 +413,8 @@ func applyArchitectureEvolution(p Project, evolved domain.ProjectIntent, provide
 	prov.IntentFingerprint = decision.IntentFingerprint
 	prov.PlanFingerprint = plan.Fingerprint
 	prov.Pins = pins
+	prov.Components = project.ComponentsForPlan(plan, cat)
+	prov.SchemaVersion = "2"
 	if err := project.WriteProvenance(p.Dir, prov); err != nil {
 		return nil, err
 	}
