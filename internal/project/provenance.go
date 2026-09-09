@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhonma82/engineering-platform/internal/catalog"
 	"github.com/jhonma82/engineering-platform/internal/domain"
+	"github.com/jhonma82/engineering-platform/internal/planner"
 )
 
 // ProvenanceFile is the provenance filename inside EngineeringDir.
@@ -34,37 +36,91 @@ const (
 	EventRequirementAdd = "requirement-add"
 )
 
+// ProvenanceComponent records how one surface was materialized:
+// foundation, pin, strategy, logical generated name, resolved profile,
+// non-runtime arguments and the adapter fingerprint. Temporary paths,
+// secrets, tokens and credentials are never recorded here.
+type ProvenanceComponent struct {
+	Surface            string   `json:"surface"`
+	Foundation         string   `json:"foundation"`
+	Repo               string   `json:"repo"`
+	Pin                string   `json:"pin"`
+	Strategy           string   `json:"strategy"`
+	Name               string   `json:"name,omitempty"`
+	Profile            string   `json:"profile,omitempty"`
+	Arguments          []string `json:"arguments,omitempty"`
+	AdapterFingerprint string   `json:"adapter_fingerprint"`
+}
+
 // Provenance records how a project came to be: core and catalog versions,
 // fingerprints, pins and the materialization timestamp. It is the ONLY
 // document allowed to carry timestamps; decisions and plans stay
 // deterministic and timestamp-free.
 type Provenance struct {
-	SchemaVersion     string            `json:"schema_version"`
-	CoreVersion       string            `json:"core_version"`
-	CatalogVersion    string            `json:"catalog_version"`
-	IntentFingerprint string            `json:"intent_fingerprint,omitempty"`
-	PlanFingerprint   string            `json:"plan_fingerprint"`
-	Pins              map[string]string `json:"pins"`
-	MaterializedAt    string            `json:"materialized_at"`
-	Events            []EvolutionEvent  `json:"events,omitempty"`
+	SchemaVersion     string                `json:"schema_version"`
+	CoreVersion       string                `json:"core_version"`
+	CatalogVersion    string                `json:"catalog_version"`
+	IntentFingerprint string                `json:"intent_fingerprint,omitempty"`
+	PlanFingerprint   string                `json:"plan_fingerprint"`
+	Pins              map[string]string     `json:"pins"`
+	Components        []ProvenanceComponent `json:"components,omitempty"`
+	MaterializedAt    string                `json:"materialized_at"`
+	Events            []EvolutionEvent      `json:"events,omitempty"`
 }
 
 // BuildProvenance assembles the provenance record. now is injected so tests
 // stay deterministic; production passes time.Now().UTC().
 func BuildProvenance(coreVersion, catalogVersion, intentFingerprint, planFingerprint string, pins map[string]string, now time.Time) Provenance {
+	return BuildProvenanceWithComponents(coreVersion, catalogVersion, intentFingerprint, planFingerprint, pins, nil, now)
+}
+
+// BuildProvenanceWithComponents assembles the provenance record including
+// the per-component generation metadata. now is injected so tests stay
+// deterministic; production passes time.Now().UTC().
+func BuildProvenanceWithComponents(coreVersion, catalogVersion, intentFingerprint, planFingerprint string, pins map[string]string, components []ProvenanceComponent, now time.Time) Provenance {
 	cp := map[string]string{}
 	for k, v := range pins {
 		cp[k] = v
 	}
 	return Provenance{
-		SchemaVersion:     "1",
+		SchemaVersion:     "2",
 		CoreVersion:       coreVersion,
 		CatalogVersion:    catalogVersion,
 		IntentFingerprint: intentFingerprint,
 		PlanFingerprint:   planFingerprint,
 		Pins:              cp,
+		Components:        append([]ProvenanceComponent{}, components...),
 		MaterializedAt:    now.UTC().Format(time.RFC3339),
 	}
+}
+
+// ComponentsForPlan derives the per-component generation records for a
+// plan: foundation, repo, pin, strategy, logical name, profile,
+// non-runtime arguments and adapter fingerprint. Unknown providers yield
+// a minimal copy record so reporting never fails on catalog skew (the
+// pipeline itself rejects unknown providers before this runs).
+func ComponentsForPlan(plan planner.MaterializationPlan, cat catalog.Catalog) []ProvenanceComponent {
+	idx := catalog.NewIndex(cat)
+	out := make([]ProvenanceComponent, 0, len(plan.Components))
+	for _, c := range plan.Components {
+		pc := ProvenanceComponent{
+			Surface:    c.Surface,
+			Foundation: c.Boilerplate,
+			Pin:        c.Pin,
+			Strategy:   c.EffectiveStrategy(),
+		}
+		if bp, ok := idx.Boilerplate(c.Boilerplate); ok {
+			pc.Repo = bp.EffectiveRepo()
+			pc.AdapterFingerprint = domain.AdapterFingerprint(bp.EffectiveSpec())
+		}
+		if c.EffectiveStrategy() == domain.StrategyGenerate {
+			pc.Name = c.Materialization.Name
+			pc.Profile = c.Materialization.Profile
+			pc.Arguments = append([]string{}, c.Materialization.Arguments...)
+		}
+		out = append(out, pc)
+	}
+	return out
 }
 
 // ProvenanceRelPath is the project-relative slash path of the record.
@@ -143,3 +199,5 @@ func IntentFingerprintOf(decisionJSON []byte) string {
 	}
 	return doc.IntentFingerprint
 }
+
+// v1.1 generated-foundation generation records live here.

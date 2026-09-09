@@ -101,6 +101,7 @@ func Doctor(projectDir string) ([]Finding, error) {
 			findings = append(findings, errorFinding("provenance-mismatch",
 				"provenance plan_fingerprint %q does not match manifest %q", shortHash(prov.PlanFingerprint), shortHash(manifest.PlanFingerprint)))
 		}
+		findings = append(findings, checkGenerationConsistency(prov, manifest)...)
 		findings = append(findings, checkEvolutionEvents(prov, manifest)...)
 	}
 	planRaw, err := os.ReadFile(engineeringPath(projectDir, planCopyFile))
@@ -139,6 +140,48 @@ func unexpectedEntries(projectDir string, m Manifest) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// checkGenerationConsistency verifies that the generation configuration
+// recorded in provenance matches the manifest: foundation, pin, strategy,
+// logical name, profile, arguments and adapter fingerprint per surface.
+// Schema v1 records without component metadata are skipped so old
+// projects stay clean.
+func checkGenerationConsistency(prov Provenance, m Manifest) []Finding {
+	if len(prov.Components) == 0 {
+		return nil
+	}
+	bySurface := map[string]ProvenanceComponent{}
+	for _, pc := range prov.Components {
+		bySurface[pc.Surface] = pc
+	}
+	var findings []Finding
+	for _, mc := range m.Components {
+		pc, ok := bySurface[mc.Surface]
+		if !ok {
+			findings = append(findings, errorFinding("provenance-component-mismatch",
+				"provenance has no generation record for surface %q (provider %s)", mc.Surface, mc.Boilerplate))
+			continue
+		}
+		if pc.Foundation != mc.Boilerplate || pc.Pin != mc.Pin {
+			findings = append(findings, errorFinding("provenance-component-mismatch",
+				"provenance generation record for surface %q names %s@%s but the manifest has %s@%s",
+				mc.Surface, pc.Foundation, shortHash(pc.Pin), mc.Boilerplate, shortHash(mc.Pin)))
+		}
+		if mc.Strategy != "" && pc.Strategy != mc.Strategy {
+			findings = append(findings, errorFinding("generation-config-drift",
+				"surface %q: provenance strategy %q does not match manifest %q", mc.Surface, pc.Strategy, mc.Strategy))
+		}
+		if mc.Profile != "" && pc.Profile != mc.Profile {
+			findings = append(findings, errorFinding("generation-config-drift",
+				"surface %q: provenance profile %q does not match manifest %q", mc.Surface, pc.Profile, mc.Profile))
+		}
+		if mc.AdapterFingerprint != "" && pc.AdapterFingerprint != mc.AdapterFingerprint {
+			findings = append(findings, errorFinding("generation-config-drift",
+				"surface %q: provenance adapter fingerprint does not match manifest", mc.Surface))
+		}
+	}
+	return findings
 }
 
 // checkEvolutionEvents validates provenance evolution events against the

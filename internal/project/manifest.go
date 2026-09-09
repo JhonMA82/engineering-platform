@@ -24,11 +24,19 @@ const EngineeringDir = ".engineering"
 const ManifestFile = "project.json"
 
 // ManifestComponent records one materialized surface provider.
+// Strategy, Name, Profile, Arguments and AdapterFingerprint carry the
+// generation configuration for generated foundations; schema v1 records
+// omit them and read as copy.
 type ManifestComponent struct {
-	Surface     string `json:"surface"`
-	Boilerplate string `json:"boilerplate"`
-	Pin         string `json:"pin"`
-	Destination string `json:"destination"`
+	Surface            string   `json:"surface"`
+	Boilerplate        string   `json:"boilerplate"`
+	Pin                string   `json:"pin"`
+	Destination        string   `json:"destination"`
+	Strategy           string   `json:"strategy,omitempty"`
+	Name               string   `json:"name,omitempty"`
+	Profile            string   `json:"profile,omitempty"`
+	Arguments          []string `json:"arguments,omitempty"`
+	AdapterFingerprint string   `json:"adapter_fingerprint,omitempty"`
 }
 
 // Manifest is the reproducible record of what was materialized: plan
@@ -51,12 +59,20 @@ type Manifest struct {
 func BuildManifest(plan planner.MaterializationPlan, catalogVersion string, files []string) Manifest {
 	components := make([]ManifestComponent, 0, len(plan.Components))
 	for _, c := range plan.Components {
-		components = append(components, ManifestComponent{
+		mc := ManifestComponent{
 			Surface:     c.Surface,
 			Boilerplate: c.Boilerplate,
 			Pin:         c.Pin,
 			Destination: c.Destination,
-		})
+		}
+		if c.Materialization.Strategy != "" {
+			mc.Strategy = c.Materialization.Strategy
+			mc.Name = c.Materialization.Name
+			mc.Profile = c.Materialization.Profile
+			mc.Arguments = append([]string{}, c.Materialization.Arguments...)
+			mc.AdapterFingerprint = c.Materialization.AdapterFingerprint
+		}
+		components = append(components, mc)
 	}
 	sort.Slice(components, func(i, j int) bool {
 		if components[i].Destination != components[j].Destination {
@@ -67,7 +83,7 @@ func BuildManifest(plan planner.MaterializationPlan, catalogVersion string, file
 	sorted := append([]string{}, files...)
 	sort.Strings(sorted)
 	return Manifest{
-		SchemaVersion:   1,
+		SchemaVersion:   2,
 		Project:         plan.Project,
 		Recipe:          plan.Recipe,
 		RecipeVersion:   plan.RecipeVersion,
