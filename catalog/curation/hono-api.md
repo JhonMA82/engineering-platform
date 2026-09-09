@@ -11,10 +11,21 @@
   typescript-api). The v1 migration restores this identity: the previous
   `JhonMA82/hono-api` repo was a migration invention (catalog id mistaken
   for repository name). The id stays `hono-api`; only the repo is corrected.
-- Adapter: fetch+copy placeholder (`hono`); no setup/check commands are
-  declared. Real setup (install/typecheck) and check commands are a pilot gap.
-- Pilot: not run — no materialization pilot was executed for this foundation
-  in legacy or v1.
+- Adapter (v1.1.0): fetch+generate. The `api-starter` repository is a
+  factory, not a copyable API: the pinned factory is acquired into a
+  temporary sandbox, prepared with `bun install --frozen-lockfile`,
+  executed as `bun run create:project -- --out={output} --profile=<id>`
+  and only the declared output flows into the project staging.
+- Profiles (curated for the v1.1.0 contract): `minimal` (default),
+  `data-api` (shared-backend), `authenticated` (shared-backend without
+  public access), `multi-tenant-core` (shared-backend plus the stable
+  `organizations` requirement id), `integration-platform`
+  (shared-backend plus background-processing). `platform` is deliberately
+  not declared: it must never be an automatic fallback.
+- Pilot: not run — no materialization pilot was executed for this
+  foundation in legacy or v1; the generated contract needs Pilot A
+  (minimal) plus one richer profile before delivery can move above
+  pilot-ready.
 - Gaps (explicit): license re-verify on pilot; no setup/checks; no pilot;
   shared-backend behavior beyond the fixture path unverified.
 - Decision/delivery: default / pilot-ready (downgraded from released under
