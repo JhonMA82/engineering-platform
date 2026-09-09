@@ -1,0 +1,28 @@
+#!/bin/sh
+# Offline fixture generator for Generated Foundations unit tests.
+# Usage: fake-admin-generate --name NAME --profile PROFILE --output DIR
+# Profiles: default (writes AGENTS.md + index.html with the profile marker),
+# empty (creates DIR but writes nothing), escape (writes outside DIR),
+# broken (exits 1), slow (sleeps 30s, for timeout tests).
+set -u
+NAME=""; PROFILE=""; OUTPUT=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --name) NAME="$2"; shift 2;;
+    --profile) PROFILE="$2"; shift 2;;
+    --output) OUTPUT="$2"; shift 2;;
+    *) echo "unknown arg: $1" >&2; exit 2;;
+  esac
+done
+[ -n "$NAME" ] || { echo "name is required" >&2; exit 2; }
+[ -n "$OUTPUT" ] || { echo "output is required" >&2; exit 2; }
+case "$PROFILE" in
+  broken) echo "fixture generator failure" >&2; exit 1;;
+  slow) sleep 30; exit 0;;
+  escape) echo "leak" > "$OUTPUT/../escape.txt"; exit 0;;
+  empty) mkdir -p "$OUTPUT"; exit 0;;
+  "") PROFILE="default";;
+esac
+mkdir -p "$OUTPUT"
+printf '# %s surface\n\nGenerated with profile %s.\n' "$NAME" "$PROFILE" > "$OUTPUT/AGENTS.md"
+printf '<html><body>%s %s</body></html>\n' "$NAME" "$PROFILE" > "$OUTPUT/index.html"

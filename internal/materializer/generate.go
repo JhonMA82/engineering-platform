@@ -13,13 +13,35 @@ import (
 	"github.com/jhonma82/engineering-platform/internal/domain"
 )
 
-// namePlaceholder is substituted with the destination basename in generate
-// argv and output paths. Every other byte of the declaration is literal.
+// namePlaceholder is the legacy single placeholder kept for error
+// messages; resolution now uses the full closed vocabulary from domain.
 const namePlaceholder = "{name}"
 
 // validAppName keeps generated directory names portable across platforms:
 // the placeholder can never inject separators, dots-only escapes or spaces.
 var validAppName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+
+// GenerationValues carries the resolved placeholder values for one
+// generated component. Output is the controlled sandbox location the
+// generator must write to; it is resolved at materialization time and
+// never serialized in plans.
+type GenerationValues struct {
+	Name    string
+	Project string
+	Surface string
+	Profile string
+	Output  string
+}
+
+// generationTimeoutError marks timeout failures so callers can attribute
+// the stage without parsing strings.
+type generationStageError struct {
+	stage string
+	err   error
+}
+
+func (e *generationStageError) Error() string { return e.err.Error() }
+func (e *generationStageError) Unwrap() error { return e.err }
 
 // generateAppName derives the generator placeholder value from a validated
 // project destination (e.g. "apps/mobile" -> "mobile").
@@ -33,6 +55,8 @@ func generateAppName(destination string) (string, error) {
 }
 
 // substituteName replaces every {name} placeholder with the app name.
+// It stays for the legacy single-command path; multi-placeholder
+// resolution uses domain.SubstituteGeneratorPlaceholders.
 func substituteName(argv []string, name string) []string {
 	out := make([]string, len(argv))
 	for i, arg := range argv {
@@ -41,64 +65,139 @@ func substituteName(argv []string, name string) []string {
 	return out
 }
 
-// RunGenerate executes a generic generator declaration (H4): an argv-only
-// curated command that scaffolds its own output directory, as opposed to
-// fetch+copy of a checked-in tree. The command runs with cwd set to a fresh
-// work directory under workRoot, allowlisted environment and a timeout; the
-// declared output must appear as a directory confined to that work dir.
-// Callers copy the returned directory into staging; workRoot cleanup stays
-// with the caller (Materialize passes its fetch root, removed by defer).
+// valuesMap flattens GenerationValues for placeholder substitution.
+func (v GenerationValues) valuesMap() map[string]string {
+	return map[string]string{
+		"name": v.Name, "project": v.Project, "surface": v.Surface,
+		"profile": v.Profile, "output": v.Output,
+	}
+}
+
+// RunGenerate executes a generic generator declaration with the legacy
+// single-placeholder contract: {name} derives from the destination and
+// the command runs in a fresh work directory under workRoot. It exists
+// for schema v1 plans and direct unit-test use; the pipeline prefers
+// RunGenerateWithValues.
 func RunGenerate(ctx context.Context, spec *domain.GenerateSpec, destination, workRoot string, timeout time.Duration) (string, error) {
+	if spec == nil {
+		return "", domain.Materialization("generate: adapter declares no generate spec")
+	}
+	name, err := generateAppName(destination)
+	if err != nil {
+		return "", err
+	}
+	work, err := os.MkdirTemp(workRoot, "generate-*")
+	if err != nil {
+		return "", domain.Filesystem(fmt.Sprintf("create generate dir: %v", err))
+	}
+	values := GenerationValues{Name: name, Project: "project", Surface: name, Output: filepath.Join(work, "output")}
+	return runGenerateIn(ctx, spec, values, work, work, timeout)
+}
+
+// RunGenerateWithValues executes a generator with fully resolved
+// placeholders. factoryDir is the acquired pinned generator source (or ""
+// when the generator is an external pinned tool and needs no factory);
+// sandbox is the per-component isolated workspace owning the output.
+// The curated prepare steps run inside the factory (or sandbox when no
+// factory was acquired); the run command executes with the same working
+// directory and must produce the declared output inside the sandbox.
+// Only the output directory is returned: the factory itself never flows
+// into the project.
+func RunGenerateWithValues(ctx context.Context, spec *domain.GenerateSpec, values GenerationValues, factoryDir, sandbox string, timeout time.Duration) (string, error) {
 	if spec == nil {
 		return "", domain.Materialization("generate: adapter declares no generate spec")
 	}
 	if err := spec.Validate(); err != nil {
 		return "", err
 	}
-	name, err := generateAppName(destination)
+	cwd := factoryDir
+	if cwd == "" {
+		cwd = sandbox
+	}
+	return runGenerateIn(ctx, spec, values, cwd, sandbox, timeout)
+}
+
+// runGenerateIn runs prepare plus the generator command with cwd as the
+// working directory and confines the declared output to sandboxRoot.
+func runGenerateIn(ctx context.Context, spec *domain.GenerateSpec, values GenerationValues, cwd, sandboxRoot string, timeout time.Duration) (string, error) {
+	if err := spec.Validate(); err != nil {
+		return "", err
+	}
+	argv, err := domain.SubstituteGeneratorPlaceholders(spec.Run.Run, values.valuesMap())
 	if err != nil {
 		return "", err
 	}
-	argv := substituteName(spec.Run.Run, name)
 	if err := ValidateCommands([]domain.AdapterCommand{{Run: argv}}); err != nil {
 		return "", err
 	}
-	outputRel := strings.ReplaceAll(spec.Output, namePlaceholder, name)
-	if strings.TrimSpace(outputRel) == "" {
-		return "", domain.Materialization("generate: output must not be empty")
-	}
-	work, err := os.MkdirTemp(workRoot, "generate-*")
+	outputRaw, err := domain.SubstituteGeneratorPlaceholder(spec.Output, values.valuesMap())
 	if err != nil {
-		return "", domain.Filesystem(fmt.Sprintf("create generate dir: %v", err))
+		return "", err
+	}
+	if strings.TrimSpace(outputRaw) == "" {
+		return "", domain.Materialization("generate: output must not be empty")
 	}
 	failed := true
 	defer func() {
 		if failed {
-			_ = os.RemoveAll(work)
+			_ = os.RemoveAll(sandboxRoot)
 		}
 	}()
-	if _, err := RunCommands(ctx, []domain.AdapterCommand{{Run: argv}}, work, timeout); err != nil {
-		return "", err
+	if len(spec.Prepare) > 0 {
+		prepared := make([]domain.AdapterCommand, 0, len(spec.Prepare))
+		for _, cmd := range spec.Prepare {
+			resolved, err := domain.SubstituteGeneratorPlaceholders(cmd.Run, values.valuesMap())
+			if err != nil {
+				return "", err
+			}
+			prepared = append(prepared, domain.AdapterCommand{Run: resolved})
+		}
+		if _, err := RunCommands(ctx, prepared, cwd, timeout); err != nil {
+			return "", &generationStageError{stage: "prepare", err: domain.ExternalCommand(fmt.Sprintf(
+				"generator preparation failed: %v", err))}
+		}
 	}
-	outDir := filepath.Join(work, filepath.FromSlash(outputRel))
+	if _, err := RunCommands(ctx, []domain.AdapterCommand{{Run: argv}}, cwd, timeout); err != nil {
+		return "", &generationStageError{stage: "run", err: domain.ExternalCommand(fmt.Sprintf(
+			"generator execution failed: %v", err))}
+	}
+	outDir := outputRaw
+	if !filepath.IsAbs(outDir) {
+		outDir = filepath.Join(cwd, filepath.FromSlash(outputRaw))
+	}
 	st, err := os.Stat(outDir)
 	if err != nil || !st.IsDir() {
-		_ = os.RemoveAll(work)
 		return "", domain.Materialization(fmt.Sprintf(
-			"generate: command produced no output directory %q", outputRel))
+			"generator output missing: command produced no output directory %q", outputRaw))
 	}
 	resolved, err := filepath.EvalSymlinks(outDir)
 	if err != nil {
-		return "", domain.Materialization(fmt.Sprintf("generate: output %q: %v", outputRel, err))
+		return "", domain.Materialization(fmt.Sprintf("generator output %q: %v", outputRaw, err))
 	}
-	workResolved, err := filepath.EvalSymlinks(work)
+	sandboxResolved, err := filepath.EvalSymlinks(sandboxRoot)
 	if err != nil {
-		workResolved = work
+		sandboxResolved = sandboxRoot
 	}
-	if resolved != workResolved && !strings.HasPrefix(resolved, workResolved+string(os.PathSeparator)) {
+	if resolved != sandboxResolved && !strings.HasPrefix(resolved, sandboxResolved+string(os.PathSeparator)) {
 		return "", domain.Materialization(fmt.Sprintf(
-			"generate: output %q escapes its working directory", outputRel))
+			"generator output escaped sandbox: %q is outside its working directory", outputRaw))
+	}
+	cwdResolved, err := filepath.EvalSymlinks(cwd)
+	if err != nil {
+		cwdResolved = cwd
+	}
+	if resolved == cwdResolved {
+		return "", domain.Materialization(fmt.Sprintf(
+			"generator output validation failed: output %q is the factory root itself; only generated output may flow into the project", outputRaw))
+	}
+	entries, err := os.ReadDir(resolved)
+	if err != nil {
+		return "", domain.Materialization(fmt.Sprintf("generator output %q: %v", outputRaw, err))
+	}
+	if len(entries) == 0 {
+		return "", domain.Materialization(fmt.Sprintf(
+			"generator output validation failed: output directory %q is empty", outputRaw))
 	}
 	failed = false
-	return outDir, nil
+	return resolved, nil
 }

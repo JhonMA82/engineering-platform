@@ -91,11 +91,13 @@ func Materialize(req Request) (Result, error) {
 		spec := bp.EffectiveSpec()
 		var srcDir string
 		if spec.Generate != nil {
-			// Generator foundation (H4): the curated command scaffolds
-			// its own output directory; the result flows through the
-			// same copy+prune path as fetched trees below.
+			// Generated foundation: acquire the pinned generator
+			// factory when the adapter fetches one, execute the
+			// curated command in the isolated sandbox and keep only
+			// the declared output. The factory itself never flows
+			// into the project staging.
 			var err error
-			srcDir, err = RunGenerate(ctx, spec.Generate, c.Destination, fetchRoot, req.CommandTimeout)
+			srcDir, err = runGeneratedComponent(ctx, req, c, bp, spec.Generate, fetchRoot)
 			if err != nil {
 				return Result{}, err
 			}
@@ -137,10 +139,11 @@ func Materialize(req Request) (Result, error) {
 	for _, c := range ordered {
 		pins[c.Boilerplate] = c.Pin
 	}
-	provenance := project.BuildProvenance(
+	provComponents := project.ComponentsForPlan(req.Plan, req.Catalog)
+	provenance := project.BuildProvenanceWithComponents(
 		req.CoreVersion, req.Catalog.CatalogVersion,
 		project.IntentFingerprintOf(req.DecisionJSON), req.Plan.Fingerprint,
-		pins, time.Now().UTC())
+		pins, provComponents, time.Now().UTC())
 	provenanceBytes, err := provenance.Marshal()
 	if err != nil {
 		return Result{}, err
@@ -191,6 +194,68 @@ func Materialize(req Request) (Result, error) {
 	return Result{ProjectDir: req.OutputDir, Manifest: manifest}, nil
 }
 
+// runGeneratedComponent materializes one generated plan component: it
+// creates the per-component sandbox, acquires the pinned generator
+// factory when the adapter declares a fetch operation, resolves the
+// runtime placeholder values and executes the curated generator. The
+// returned directory is the validated generated output only.
+func runGeneratedComponent(ctx context.Context, req Request, c planner.PlanComponent, bp domain.Boilerplate, gen *domain.GenerateSpec, fetchRoot string) (string, error) {
+	sandbox, err := os.MkdirTemp(fetchRoot, "sandbox-*")
+	if err != nil {
+		return "", domain.Filesystem(fmt.Sprintf("create generation sandbox: %v", err))
+	}
+	factoryDir := ""
+	wantsFactory := false
+	for _, op := range bp.EffectiveSpec().Operations {
+		if op == "fetch" {
+			wantsFactory = true
+		}
+	}
+	if wantsFactory {
+		factoryDir, err = FetchSource(ctx, bp, c.Pin, sandbox)
+		if err != nil {
+			return "", err
+		}
+	}
+	values := GenerationValues{
+		Name:    c.Materialization.Name,
+		Project: req.Plan.Project,
+		Surface: c.Surface,
+		Profile: c.Materialization.Profile,
+		Output:  filepath.Join(sandbox, "output"),
+	}
+	if values.Name == "" {
+		values.Name, err = generateAppName(c.Destination)
+		if err != nil {
+			return "", err
+		}
+	}
+	if values.Project == "" {
+		values.Project = values.Name
+	}
+	outDir, err := RunGenerateWithValues(ctx, gen, values, factoryDir, sandbox, req.CommandTimeout)
+	if err != nil {
+		return "", decorateGenerateError(c, bp, err)
+	}
+	return outDir, nil
+}
+
+// decorateGenerateError attributes a generator failure to its surface,
+// provider and stage without leaking secrets or temp paths.
+func decorateGenerateError(c planner.PlanComponent, bp domain.Boilerplate, err error) error {
+	var stageErr *generationStageError
+	if e, ok := err.(*generationStageError); ok {
+		stageErr = e
+	}
+	stage := "execution"
+	if stageErr != nil {
+		stage = stageErr.stage
+		err = stageErr.err
+	}
+	return domain.Materialization(fmt.Sprintf(
+		"generate %s (provider %s, stage %s): %v", c.Surface, bp.ID, stage, err))
+}
+
 // preValidate runs every check that needs no side effects so malformed
 // plans, unknown providers, drifted pins, unsafe destinations, colliding
 // layouts and malicious adapter commands fail before staging exists.
@@ -228,17 +293,56 @@ func preValidate(req Request) error {
 				return domain.Catalog(fmt.Sprintf("boilerplate %q declares unknown operation %q", bp.ID, op))
 			}
 		}
+		if planStrategy := c.Materialization.Strategy; planStrategy != "" && planStrategy != spec.Strategy() {
+			return domain.Materialization(fmt.Sprintf(
+				"adapter drift: plan records %s@%s as %q but the catalog adapter is %q (fingerprint %s)",
+				c.Boilerplate, c.Pin, planStrategy, spec.Strategy(), domain.AdapterFingerprint(spec)))
+		}
+		if fp := c.Materialization.AdapterFingerprint; fp != "" && fp != domain.AdapterFingerprint(spec) {
+			return domain.Materialization(fmt.Sprintf(
+				"adapter drift: plan fingerprint for %s@%s does not match the catalog adapter",
+				c.Boilerplate, c.Pin))
+		}
 		if spec.Generate != nil {
-			// Fail before staging exists: the placeholder derives from
-			// the destination and the substituted argv must pass the
-			// same argv-only gate as setup/checks.
+			// Fail before staging exists: resolve the placeholders
+			// with deterministic dummy values and pass the
+			// substituted argv through the same argv-only gate as
+			// setup/checks. Unknown placeholders fail here.
 			name, err := generateAppName(c.Destination)
 			if err != nil {
 				return err
 			}
-			if err := ValidateCommands([]domain.AdapterCommand{{Run: substituteName(spec.Generate.Run.Run, name)}}); err != nil {
+			profile := c.Materialization.Profile
+			if profile == "" {
+				profile = "profile"
+			}
+			values := map[string]string{
+				"name": name, "project": "project",
+				"surface": c.Surface, "profile": profile, "output": "output",
+			}
+			argv, err := domain.SubstituteGeneratorPlaceholders(spec.Generate.Run.Run, values)
+			if err != nil {
 				return err
 			}
+			for _, cmd := range spec.Generate.Prepare {
+				resolved, err := domain.SubstituteGeneratorPlaceholders(cmd.Run, values)
+				if err != nil {
+					return err
+				}
+				argv = append(argv, resolved...)
+			}
+			_ = argv
+			check := append([]domain.AdapterCommand{{Run: argv}}, append(append([]domain.AdapterCommand{}, spec.Setup...), spec.Checks...)...)
+			// Validate the generator argv alone first so failures
+			// attribute to the generator stage, then setup+checks.
+			genArgv, err := domain.SubstituteGeneratorPlaceholders(spec.Generate.Run.Run, values)
+			if err != nil {
+				return err
+			}
+			if err := ValidateCommands([]domain.AdapterCommand{{Run: genArgv}}); err != nil {
+				return err
+			}
+			_ = check
 		}
 		if err := ValidateCommands(append(append([]domain.AdapterCommand{}, spec.Setup...), spec.Checks...)); err != nil {
 			return err

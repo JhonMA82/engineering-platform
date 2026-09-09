@@ -43,6 +43,21 @@ func Verify(projectDir string, plan planner.MaterializationPlan, manifest projec
 				"manifest component %s pins %s@%s but the plan pins %s@%s",
 				m.Destination, m.Boilerplate, m.Pin, want.Boilerplate, want.Pin))
 		}
+		if want.Materialization.Strategy != "" && m.Strategy != want.Materialization.Strategy {
+			return domain.Materialization(fmt.Sprintf(
+				"manifest component %s records strategy %q but the plan declares %q",
+				m.Destination, m.Strategy, want.Materialization.Strategy))
+		}
+		if want.Materialization.Profile != "" && m.Profile != want.Materialization.Profile {
+			return domain.Materialization(fmt.Sprintf(
+				"manifest component %s records profile %q but the plan declares %q",
+				m.Destination, m.Profile, want.Materialization.Profile))
+		}
+		if want.Materialization.AdapterFingerprint != "" && m.AdapterFingerprint != want.Materialization.AdapterFingerprint {
+			return domain.Materialization(fmt.Sprintf(
+				"manifest component %s adapter fingerprint does not match the plan",
+				m.Destination))
+		}
 	}
 	if err := CheckCollisions(dests); err != nil {
 		return err

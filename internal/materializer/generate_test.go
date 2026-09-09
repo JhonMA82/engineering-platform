@@ -158,7 +158,7 @@ func TestRunGenerateOffline(t *testing.T) {
 // Catalog data may name foundations; core code must not.
 func TestNoBoilerplateSpecialCases(t *testing.T) {
 	root := repoRoot(t)
-	pkgs := []string{"materializer", "composer", "resolver", "catalog", "domain", "planner"}
+	pkgs := []string{"materializer", "composer", "resolver", "catalog", "domain", "planner", "foundationconfig"}
 	var hits []string
 	for _, pkg := range pkgs {
 		dir := filepath.Join(root, "internal", pkg)
