@@ -22,10 +22,16 @@
   `organizations` requirement id), `integration-platform`
   (shared-backend plus background-processing). `platform` is deliberately
   not declared: it must never be an automatic fallback.
-- Pilot: not run — no materialization pilot was executed for this
-  foundation in legacy or v1; the generated contract needs Pilot A
-  (minimal) plus one richer profile before delivery can move above
-  pilot-ready.
+- Pilot: 2026-09-09, manual generation pilots against the pinned commit
+  `360eb274` (equals upstream HEAD): Pilot A (`minimal`) generated
+  successfully via `bun run create:project -- --out=<dir>
+  --profile=minimal` after `bun install --frozen-lockfile`; the generated
+  project passes `bun run typecheck`, ships `AGENTS.md`, and contains no
+  `generator/` or `templates/` factory residue. Pilot B (`authenticated`)
+  generated successfully with the same command shape. Both pilots used the
+  exact argv declared in the catalog adapter, confirming the contract.
+  Delivery stays `pilot-ready` until license re-verification and a
+  maintainer promotion review (see Gaps).
 - Gaps (explicit): license re-verify on pilot; no setup/checks; no pilot;
   shared-backend behavior beyond the fixture path unverified.
 - Decision/delivery: default / pilot-ready (downgraded from released under
