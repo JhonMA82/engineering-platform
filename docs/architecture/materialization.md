@@ -91,14 +91,17 @@ directory instead of shipping a copyable tree (e.g.
 ```
 
 `run` is argv-only (never a shell string; the same argv gate as
-setup/checks) and `output` is the relative path the command must produce
-inside its working directory. `{name}` is substituted with the destination
-basename; every other byte is literal. The command runs with cwd set to a
-fresh work directory under the fetch root, allowlisted environment and a
-timeout; the declared output must appear as a directory confined to that
-work dir, otherwise the run fails and the work dir is cleaned up. The
-generated tree then flows through the same copy+prune path as fetched
-trees. See `docs/decisions/ignite-materialization.md`. `setup`/`checks`
+setup/checks) and `output` is the path the command must produce.
+Placeholders are closed (`{name}`, `{project}`, `{surface}`,
+`{profile}`, `{output}`); every other byte is literal. Generated
+foundations run in a per-component sandbox: an optional `prepare`
+step runs inside the acquired factory, the command executes with the
+factory (or a fresh directory for external tools) as cwd, and only
+the declared non-empty output — strictly inside the sandbox — is
+copied into project staging. Profiles, deterministic selection
+(smallest valid wins) and the full contract live in
+`docs/architecture/generated-foundations.md`.
+See `docs/decisions/ignite-materialization.md`. `setup`/`checks`
 are argv arrays (`["npm","run","build"]`) or
 `{"run": [...]}` / `{"command": ..., "args": [...]}` objects — never
 shell strings. v1 catalog entries declare `fetch+copy` with no commands,
@@ -117,8 +120,10 @@ composer eligibility and tech-signal matching keep working.
 - `.engineering/project.json` — manifest: fingerprint, catalog
   version, pins, file list. No timestamps.
 - `.engineering/provenance.json` — core/catalog versions, intent and
-  plan fingerprints, pins, `materialized_at`. The only timestamped
-  document in the system.
+  plan fingerprints, pins, per-component generation records
+  (strategy, logical name, profile, arguments, adapter
+  fingerprint), `materialized_at`. The only timestamped document in
+  the system.
 - `.engineering/project-map.json` — surfaces `{path, provider,
   instructions}` plus `consumes` edges toward a shared `api` backend.
 - Agent context via `internal/handoff` (pure generation, no separate

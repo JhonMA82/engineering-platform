@@ -50,6 +50,11 @@ EOF
 
 ## 3. Resolve and plan (no filesystem writes)
 
+`eng plan --json` shows per component which foundation, pin, strategy
+(`copy` or `generate`), resolved profile and non-runtime arguments will
+materialize, and where each will land — so `--dry-run` stays meaningful
+for generated foundations (temporary sandbox paths are never shown).
+
 ```bash
 /tmp/eng resolve --input /tmp/intent.json --catalog-dir /tmp/fixture-catalog
 /tmp/eng plan --input /tmp/intent.json --catalog-dir /tmp/fixture-catalog --json > /tmp/plan.json

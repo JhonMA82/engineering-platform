@@ -44,6 +44,13 @@ Under the hood this maps to a deterministic pipeline
 (`ProjectIntent → Resolver → Composer → Materializer → Development Handoff`),
 described in [How it works internally](#how-it-works-internally).
 
+Some foundations are copied from a curated template; others are
+generated from a pinned factory using a validated profile.
+Engineering Platform runs the factory in a temporary workspace and
+keeps only the generated project — for example Next Admin `minimal`
+or API Starter `authenticated`. See
+[Generated Foundations](docs/architecture/generated-foundations.md).
+
 ## What Engineering Platform is not
 
 Engineering Platform does **not** build your whole application:
@@ -361,7 +368,9 @@ Resolver            → ArchitectureDecision
     ↓
 Composer            → Composition
     ↓
-Planner             → MaterializationPlan
+Foundation Configuration → per-component strategy/profile/arguments
+    ↓
+Planner             → MaterializationPlan (v2, fingerprinted)
     ↓
 Materializer        → project + .engineering/ state
     ↓
@@ -375,6 +384,7 @@ is pure and in-memory. Depth-first reading:
 - [docs/architecture/routing.md](docs/architecture/routing.md) — resolver rules
 - [docs/architecture/composition.md](docs/architecture/composition.md) — composer and compatibility
 - [docs/architecture/materialization.md](docs/architecture/materialization.md) — safety and pin policy
+- [docs/architecture/generated-foundations.md](docs/architecture/generated-foundations.md) — copy vs generate strategies, profiles, sandboxing
 - [docs/architecture/handoff.md](docs/architecture/handoff.md) — Gentle ownership transfer
 
 ## Repository layout

@@ -140,3 +140,10 @@ foundation vs composed multi-app) over lone happy paths. Keep every
 pre-existing fixture green — expand additively; if a ranking change is
 genuinely an improvement, document it in the migration notes instead of
 silently updating expectations.
+
+## Generated foundations
+
+Curating a factory (as opposed to a copyable tree) needs the evidence
+listed in `docs/architecture/generated-foundations.md` (Curation):
+validated command, version/pin, profiles and default, output path,
+non-interactive pilot, factory-leak check and `AGENTS.md` behavior.
