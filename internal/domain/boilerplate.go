@@ -1,8 +1,12 @@
 package domain
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -13,6 +17,96 @@ import (
 var validAdapterOperations = map[string]bool{
 	"fetch": true, "copy": true, "prune": true, "template": true, "compose": true,
 	"generate": true,
+}
+
+// Materialization strategies: the only two behaviors the core
+// understands. "copy" fetches a pinned source tree and copies it;
+// "generate" acquires a pinned generator/factory, executes its curated
+// argv command in an isolated workspace and keeps only the declared
+// output. Provider-specific names never appear here.
+const (
+	StrategyCopy     = "copy"
+	StrategyGenerate = "generate"
+)
+
+// ValidGeneratorPlaceholders is the closed placeholder vocabulary for
+// generator templates. {name} is the logical surface name, {project} the
+// normalized project name, {surface} the surface id, {profile} the
+// resolved generation profile and {output} the controlled sandbox output
+// location resolved at materialization time (never serialized in plans).
+var ValidGeneratorPlaceholders = map[string]bool{
+	"name": true, "project": true, "surface": true,
+	"profile": true, "output": true,
+}
+
+// placeholderPattern matches {token} placeholders in generator templates.
+var placeholderPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
+
+// GeneratorPlaceholdersUsed returns the distinct placeholder tokens in
+// template order.
+func GeneratorPlaceholdersUsed(template string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, m := range placeholderPattern.FindAllStringSubmatch(template, -1) {
+		if !seen[m[1]] {
+			seen[m[1]] = true
+			out = append(out, m[1])
+		}
+	}
+	return out
+}
+
+// ValidateGeneratorPlaceholders rejects unknown {tokens} in one template
+// value. Known placeholders are always accepted here; empty-value
+// rejection happens at substitution time when runtime values are known.
+func ValidateGeneratorPlaceholders(field, template string) error {
+	for _, token := range GeneratorPlaceholdersUsed(template) {
+		if !ValidGeneratorPlaceholders[token] {
+			return Validation(fmt.Sprintf("generator %s uses unknown placeholder {%s} (want {name|project|surface|profile|output})", field, token))
+		}
+	}
+	return nil
+}
+
+// SubstituteGeneratorPlaceholder resolves every placeholder in one value.
+// Unknown tokens fail; known tokens with a missing or empty value fail so
+// a curated command can never run with a silently dropped argument.
+func SubstituteGeneratorPlaceholder(template string, values map[string]string) (string, error) {
+	var fail error
+	resolved := placeholderPattern.ReplaceAllStringFunc(template, func(match string) string {
+		if fail != nil {
+			return match
+		}
+		token := match[1 : len(match)-1]
+		if !ValidGeneratorPlaceholders[token] {
+			fail = Validation(fmt.Sprintf("generator template uses unknown placeholder {%s} (want {name|project|surface|profile|output})", token))
+			return match
+		}
+		value, ok := values[token]
+		if !ok || len(value) == 0 {
+			fail = Validation(fmt.Sprintf("generator placeholder {%s} has no value", token))
+			return match
+		}
+		return value
+	})
+	if fail != nil {
+		return "", fail
+	}
+	return resolved, nil
+}
+
+// SubstituteGeneratorPlaceholders resolves placeholders element-wise so
+// every argv token stays a separate argument (never a shell string).
+func SubstituteGeneratorPlaceholders(argv []string, values map[string]string) ([]string, error) {
+	out := make([]string, len(argv))
+	for i, arg := range argv {
+		resolved, err := SubstituteGeneratorPlaceholder(arg, values)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = resolved
+	}
+	return out, nil
 }
 
 // AdapterCommand is one curated executable declaration. It is always argv,
@@ -76,24 +170,90 @@ func (c AdapterCommand) Validate() error {
 	return nil
 }
 
+// ProfileRequirements declares the structured decision signals a
+// generation profile needs. Capabilities and surfaces match the
+// resolver-derived signals (never free text); requirement_ids match stable
+// product-requirement IDs recorded in the decision reasons as
+// "includes product feature: <id>" and only optimize an already-selected
+// foundation — an unmet requirement never disqualifies the foundation, it
+// falls back to a smaller profile. UnlessCapabilities excludes a profile
+// when a capability is present (e.g. a public-access capability excludes
+// an authenticated-only profile). All lists are exact lowercase ids.
+type ProfileRequirements struct {
+	Capabilities       []string `json:"capabilities,omitempty"`
+	Surfaces           []string `json:"surfaces,omitempty"`
+	RequirementIDs     []string `json:"requirement_ids,omitempty"`
+	UnlessCapabilities []string `json:"unless_capabilities,omitempty"`
+}
+
+// Validate checks the requirements shape structurally.
+func (r ProfileRequirements) Validate(profileID string) error {
+	for _, v := range append(append(append(append([]string{}, r.Capabilities...), r.Surfaces...), r.RequirementIDs...), r.UnlessCapabilities...) {
+		if len(v) == 0 {
+			return Validation(fmt.Sprintf("generator profile %q has a blank requirement entry", profileID))
+		}
+	}
+	return nil
+}
+
+// GeneratorProfile is one curated generation variant of a factory. The
+// core never interprets what an id means (minimal, authenticated, ... are
+// foundation concepts); it only selects deterministically and passes the
+// declared arguments. Arguments are non-runtime argv fragments:
+// temporary paths are never recorded here.
+type GeneratorProfile struct {
+	ID        string               `json:"id"`
+	Arguments []string             `json:"arguments,omitempty"`
+	Requires  *ProfileRequirements `json:"requires,omitempty"`
+}
+
+// Validate checks the profile shape and its placeholder vocabulary.
+func (p GeneratorProfile) Validate() error {
+	if len(p.ID) == 0 {
+		return Validation("generator profile id is required")
+	}
+	for _, arg := range p.Arguments {
+		if len(arg) == 0 {
+			return Validation(fmt.Sprintf("generator profile %q has an empty argument", p.ID))
+		}
+		if err := ValidateGeneratorPlaceholders("profile "+p.ID+" argument", arg); err != nil {
+			return err
+		}
+	}
+	if p.Requires != nil {
+		if err := p.Requires.Validate(p.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GenerateSpec is the declarative form of the generic "generate"
-// operation (H4). Some foundations are not copyable trees but generator
-// CLIs that scaffold a fresh directory (e.g. `<cli> new <App>`).
-// Run is argv-only — never a shell string — and Output is the relative
-// path the command must produce inside its working directory. The literal
-// placeholder "{name}" in Run args or Output is substituted with the
-// destination basename (see materializer); every other byte is literal.
+// operation. Some foundations are not copyable trees but generator
+// factories that scaffold a fresh directory. Prepare runs dependency
+// steps inside the factory workspace (never the final destination); Run
+// is argv-only — never a shell string; Output is the path the command
+// must produce. Run, Prepare and Output accept the closed placeholder
+// vocabulary ({name}, {project}, {surface}, {profile}, {output}); every
+// other byte is literal. Profiles declare the curated variants;
+// DefaultProfile is the smallest valid one.
 type GenerateSpec struct {
-	Run    AdapterCommand `json:"run"`
-	Output string         `json:"output"`
+	Prepare        []AdapterCommand   `json:"prepare,omitempty"`
+	Run            AdapterCommand     `json:"run"`
+	Output         string             `json:"output"`
+	DefaultProfile string             `json:"default_profile,omitempty"`
+	Profiles       []GeneratorProfile `json:"profiles,omitempty"`
 }
 
 // UnmarshalJSON accepts {run, output} where run is any AdapterCommand
 // shape (argv array or {run|command+args} object).
 func (g *GenerateSpec) UnmarshalJSON(raw []byte) error {
 	var obj struct {
-		Run    json.RawMessage `json:"run"`
-		Output string          `json:"output"`
+		Prepare        []json.RawMessage  `json:"prepare"`
+		Run            json.RawMessage    `json:"run"`
+		Output         string             `json:"output"`
+		DefaultProfile string             `json:"default_profile"`
+		Profiles       []GeneratorProfile `json:"profiles"`
 	}
 	if err := json.Unmarshal(raw, &obj); err != nil {
 		return fmt.Errorf("generate spec must be an object with run and output: %s", trimJSON(raw))
@@ -107,20 +267,138 @@ func (g *GenerateSpec) UnmarshalJSON(raw []byte) error {
 	}
 	g.Run = run
 	g.Output = obj.Output
+	g.DefaultProfile = obj.DefaultProfile
+	g.Profiles = obj.Profiles
+	for _, rawPrepare := range obj.Prepare {
+		var cmd AdapterCommand
+		if err := json.Unmarshal(rawPrepare, &cmd); err != nil {
+			return fmt.Errorf("generate prepare: %v", err)
+		}
+		g.Prepare = append(g.Prepare, cmd)
+	}
 	return nil
 }
 
-// Validate checks the argv shape structurally and confines the output to
-// a clean relative path. Shell/metacharacter rejection runs at execution
-// (materializer) and pre-validation, mirroring setup/checks.
+// Validate checks the argv shapes structurally, the closed placeholder
+// vocabulary and the profile contract. Shell/metacharacter rejection runs
+// at execution (materializer) and pre-validation, mirroring
+// setup/checks. Output allows placeholders: each token is validated by
+// substituting a dummy segment so {output} and friends stay confined to
+// clean relative paths.
 func (g GenerateSpec) Validate() error {
+	for _, cmd := range g.Prepare {
+		if err := cmd.Validate(); err != nil {
+			return err
+		}
+		for _, arg := range cmd.Run {
+			if err := ValidateGeneratorPlaceholders("prepare argument", arg); err != nil {
+				return err
+			}
+		}
+	}
 	if err := g.Run.Validate(); err != nil {
 		return err
 	}
-	if err := checkRelativePath("generate output", g.Output); err != nil {
+	for _, arg := range g.Run.Run {
+		if err := ValidateGeneratorPlaceholders("run argument", arg); err != nil {
+			return err
+		}
+	}
+	if err := ValidateGeneratorPlaceholders("output", g.Output); err != nil {
 		return err
 	}
+	dummy, err := SubstituteGeneratorPlaceholder(g.Output, map[string]string{
+		"name": "x", "project": "x", "surface": "x", "profile": "x", "output": "x",
+	})
+	if err != nil {
+		return err
+	}
+	if err := checkRelativePath("generate output", dummy); err != nil {
+		return err
+	}
+	seen := map[string]bool{}
+	for _, pr := range g.Profiles {
+		if err := pr.Validate(); err != nil {
+			return err
+		}
+		if seen[pr.ID] {
+			return Validation(fmt.Sprintf("duplicate generator profile id %q", pr.ID))
+		}
+		seen[pr.ID] = true
+	}
+	if len(g.Profiles) == 0 {
+		if len(g.DefaultProfile) != 0 {
+			return Validation("generate default_profile requires at least one profile")
+		}
+		return nil
+	}
+	if len(g.DefaultProfile) == 0 {
+		return Validation("generate profiles require a default_profile (smallest valid profile)")
+	}
+	if !seen[g.DefaultProfile] {
+		return Validation(fmt.Sprintf("generate default_profile %q matches no declared profile", g.DefaultProfile))
+	}
 	return nil
+}
+
+// AdapterFingerprint is the deterministic sha256 hex over the executable
+// adapter contract: strategy, operations, prepare commands, run template,
+// output declaration, profile definitions, setup, checks, managed files
+// and prune paths. A plan records it so an old plan never silently
+// executes a modified adapter even when provider and pin are unchanged.
+func AdapterFingerprint(spec AdapterSpec) string {
+	h := sha256.New()
+	write := func(v string) {
+		h.Write([]byte(v))
+		h.Write([]byte{0})
+	}
+	write(spec.Strategy())
+	for _, op := range spec.Operations {
+		write(op)
+	}
+	if spec.Generate != nil {
+		for _, cmd := range spec.Generate.Prepare {
+			write(joinArgs(cmd.Run))
+		}
+		write(joinArgs(spec.Generate.Run.Run))
+		write(spec.Generate.Output)
+		write(spec.Generate.DefaultProfile)
+		for _, pr := range spec.Generate.Profiles {
+			write(pr.ID)
+			write(joinArgs(pr.Arguments))
+			if pr.Requires != nil {
+				caps := append([]string{}, pr.Requires.Capabilities...)
+				sort.Strings(caps)
+				surfaces := append([]string{}, pr.Requires.Surfaces...)
+				sort.Strings(surfaces)
+				ids := append([]string{}, pr.Requires.RequirementIDs...)
+				sort.Strings(ids)
+				unless := append([]string{}, pr.Requires.UnlessCapabilities...)
+				sort.Strings(unless)
+				for _, v := range append(append(append(caps, surfaces...), ids...), unless...) {
+					write(v)
+				}
+			}
+		}
+	}
+	for _, cmd := range spec.Setup {
+		write(joinArgs(cmd.Run))
+	}
+	for _, cmd := range spec.Checks {
+		write(joinArgs(cmd.Run))
+	}
+	for _, entry := range spec.PrunePaths {
+		write(entry)
+	}
+	for _, entry := range spec.ManagedFiles {
+		write(entry)
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// joinArgs flattens one argv command for fingerprinting.
+func joinArgs(argv []string) string {
+	return strings.Join(argv, "\x1f")
 }
 
 // Provenance records where a catalog entry came from without digging
@@ -160,13 +438,28 @@ type AdapterSpec struct {
 	Generate     *GenerateSpec    `json:"generate,omitempty"`
 }
 
+// Strategy reports the materialization behavior of an adapter: generate
+// when the generic generate operation is declared (a Generate spec is then
+// required), copy otherwise. Legacy string-only adapters default to copy.
+func (s AdapterSpec) Strategy() string {
+	for _, op := range s.Operations {
+		if op == "generate" {
+			return StrategyGenerate
+		}
+	}
+	if s.Generate != nil {
+		return StrategyGenerate
+	}
+	return StrategyCopy
+}
+
 // Validate enforces the operation vocabulary, relative safe paths and
 // well-formed commands.
 func (s AdapterSpec) Validate() error {
 	seen := map[string]bool{}
 	for _, op := range s.Operations {
 		if !validAdapterOperations[op] {
-			return Validation(fmt.Sprintf("unknown adapter operation %q (want fetch|copy|prune|template|compose)", op))
+			return Validation(fmt.Sprintf("unknown adapter operation %q (want fetch|copy|prune|template|compose|generate)", op))
 		}
 		if seen[op] {
 			return Validation(fmt.Sprintf("duplicate adapter operation %q", op))
@@ -446,6 +739,13 @@ func (b Boilerplate) EffectiveRepo() string {
 		return b.Source.Repo
 	}
 	return b.Repo
+}
+
+// MaterializationStrategy reports copy or generate for a boilerplate
+// from its effective adapter. It is the only strategy signal the core
+// uses; provider identities never branch behavior.
+func (b Boilerplate) MaterializationStrategy() string {
+	return b.EffectiveSpec().Strategy()
 }
 
 // EffectiveSpec returns the declarative adapter, defaulting legacy
