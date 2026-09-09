@@ -33,7 +33,9 @@
         "strategy": "generate",
         "name": "field-ops-api",
         "profile": "authenticated",
-        "arguments": ["--profile=authenticated"],
+        "arguments": [
+          "--profile=authenticated"
+        ],
         "adapter_fingerprint": "0008138a8d464d3ac3dcc5c2a2236d7a501c22cf55478ef387c006789a2d79be"
       }
     }
@@ -44,7 +46,13 @@
     "materialize apps/mobile from tanstack-transactional-pwa@f2571ea8efb2e5a2ceaaafa7ff38c523dca1ac0c",
     "materialize services/api from hono-api@360eb274cc5936fee5aab88eb8bd94977e95dfc9 [generate profile=authenticated]"
   ],
-  "setup": ["provision database profile postgresql-managed"],
-  "checks": ["contract-test", "typecheck", "auth-smoke"],
+  "setup": [
+    "provision database profile postgresql-managed"
+  ],
+  "checks": [
+    "contract-test",
+    "typecheck",
+    "auth-smoke"
+  ],
   "fingerprint": "58a020a30b83e09bd1571974877627eaa494887e4e047fbdc47dbffcbc3a28e7"
 }
