@@ -4,24 +4,122 @@
   "pin": "360eb274cc5936fee5aab88eb8bd94977e95dfc9",
   "adapter": {
     "name": "hono",
-    "operations": ["fetch", "copy"],
+    "operations": [
+      "fetch",
+      "generate"
+    ],
+    "generate": {
+      "prepare": [
+        {
+          "run": [
+            "bun",
+            "install",
+            "--frozen-lockfile"
+          ]
+        }
+      ],
+      "run": [
+        "bun",
+        "run",
+        "create:project",
+        "--",
+        "--out={output}"
+      ],
+      "output": "{output}",
+      "default_profile": "minimal",
+      "profiles": [
+        {
+          "id": "minimal",
+          "arguments": [
+            "--profile=minimal"
+          ]
+        },
+        {
+          "id": "data-api",
+          "arguments": [
+            "--profile=data-api"
+          ],
+          "requires": {
+            "capabilities": [
+              "shared-backend"
+            ]
+          }
+        },
+        {
+          "id": "authenticated",
+          "arguments": [
+            "--profile=authenticated"
+          ],
+          "requires": {
+            "capabilities": [
+              "shared-backend"
+            ],
+            "unless_capabilities": [
+              "anonymous-public-access"
+            ]
+          }
+        },
+        {
+          "id": "multi-tenant-core",
+          "arguments": [
+            "--profile=multi-tenant-core"
+          ],
+          "requires": {
+            "capabilities": [
+              "shared-backend"
+            ],
+            "requirement_ids": [
+              "organizations"
+            ]
+          }
+        },
+        {
+          "id": "integration-platform",
+          "arguments": [
+            "--profile=integration-platform"
+          ],
+          "requires": {
+            "capabilities": [
+              "shared-backend",
+              "background-processing"
+            ]
+          }
+        }
+      ]
+    },
     "prune_paths": [],
     "setup": [],
     "checks": [],
-    "managed_files": ["AGENTS.md"]
+    "managed_files": [
+      "AGENTS.md"
+    ]
   },
   "delivery_status": "pilot-ready",
   "decision_status": "default",
-  "curation": { "status": "pilot-ready", "evidence": "curation/hono-api.md" },
+  "curation": {
+    "status": "pilot-ready",
+    "evidence": "curation/hono-api.md"
+  },
   "provides": {
-    "surfaces": ["api"],
-    "capabilities": ["shared-backend"]
+    "surfaces": [
+      "api"
+    ],
+    "capabilities": [
+      "shared-backend"
+    ]
   },
-  "tech_tags": ["hono"],
+  "tech_tags": [
+    "hono"
+  ],
   "technology": {
-    "framework": ["hono"]
+    "framework": [
+      "hono"
+    ]
   },
-  "included_features": ["rest", "openapi"],
+  "included_features": [
+    "rest",
+    "openapi"
+  ],
   "provenance": {
     "source": "engineering-platform-legacy",
     "legacy_catalog_version": "2.1.0",
