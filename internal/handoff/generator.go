@@ -55,15 +55,16 @@ type Requirement struct {
 // content. ImplementationMode is always "gentle-decides": the platform
 // never prescribes direct-build vs SDD.
 type Handoff struct {
-	SchemaVersion        int           `json:"schema_version"`
-	Status               string        `json:"status"`
-	NextOwner            string        `json:"next_owner"`
-	Locked               []string      `json:"locked"`
-	Requirements         []Requirement `json:"requirements"`
-	OpenQuestions        []string      `json:"open_questions"`
-	ProductRequirements  []Requirement `json:"product_requirements"`
-	OpenProductQuestions []string      `json:"open_product_questions"`
-	ImplementationMode   string        `json:"implementation_mode"`
+	SchemaVersion        int             `json:"schema_version"`
+	Status               string          `json:"status"`
+	NextOwner            string          `json:"next_owner"`
+	Locked               []string        `json:"locked"`
+	Requirements         []Requirement   `json:"requirements"`
+	OpenQuestions        []string        `json:"open_questions"`
+	ProductRequirements  []Requirement   `json:"product_requirements"`
+	OpenProductQuestions []string        `json:"open_product_questions"`
+	ImplementationMode   string          `json:"implementation_mode"`
+	Foundations          []foundationRef `json:"foundations"`
 }
 
 // File is one rendered artifact: a project-relative slash path, its
@@ -185,14 +186,30 @@ func canonicalJSON(raw []byte) ([]byte, error) {
 }
 
 // componentView is one plan component enriched with provider metadata.
+// Strategy and Profile name the generation configuration that produced
+// the surface so Gentle understands which foundation variant it owns
+// without rediscovering why the profile was chosen.
 type componentView struct {
 	Surface          string
 	Destination      string
 	Boilerplate      string
 	Pin              string
+	Strategy         string
+	Profile          string
 	Responsibility   string
 	Instructions     string
 	ProvidedFeatures []string
+}
+
+// foundationRef is the per-surface generation record transferred to
+// Gentle: which foundation, pin, strategy and profile produced it.
+type foundationRef struct {
+	Surface     string `json:"surface"`
+	Destination string `json:"destination"`
+	Provider    string `json:"provider"`
+	Pin         string `json:"pin"`
+	Strategy    string `json:"strategy"`
+	Profile     string `json:"profile,omitempty"`
 }
 
 // briefView is the template model shared by every markdown document.
@@ -231,6 +248,8 @@ func buildView(in Input, intent *domain.ProjectIntent, decision *domain.Architec
 			Destination:      c.Destination,
 			Boilerplate:      c.Boilerplate,
 			Pin:              c.Pin,
+			Strategy:         c.EffectiveStrategy(),
+			Profile:          c.Materialization.Profile,
 			Responsibility:   surfaceResponsibility(c.Surface),
 			Instructions:     c.Destination + "/AGENTS.md",
 			ProvidedFeatures: []string{},
@@ -291,11 +310,23 @@ func buildView(in Input, intent *domain.ProjectIntent, decision *domain.Architec
 	}
 	// OpenQuestions keeps the historic routing-ambiguity content; product
 	// questions travel separately and never affect routing.
+	foundations := make([]foundationRef, 0, len(components))
+	for _, cv := range components {
+		foundations = append(foundations, foundationRef{
+			Surface:     cv.Surface,
+			Destination: cv.Destination,
+			Provider:    cv.Boilerplate,
+			Pin:         cv.Pin,
+			Strategy:    cv.Strategy,
+			Profile:     cv.Profile,
+		})
+	}
 	handoff := Handoff{
 		SchemaVersion:        1,
 		Status:               StatusReadyForImplementation,
 		NextOwner:            NextOwnerGentle,
 		Locked:               append([]string{}, LockedDecisions...),
+		Foundations:          foundations,
 		Requirements:         append([]Requirement{}, view.ProductReqs...),
 		OpenQuestions:        append([]string{}, view.RoutingQuestions...),
 		ProductRequirements:  append([]Requirement{}, view.ProductReqs...),
@@ -313,6 +344,9 @@ func buildView(in Input, intent *domain.ProjectIntent, decision *domain.Architec
 	}
 	if handoff.OpenProductQuestions == nil {
 		handoff.OpenProductQuestions = []string{}
+	}
+	if handoff.Foundations == nil {
+		handoff.Foundations = []foundationRef{}
 	}
 	view.OpenQuestions = append([]string{}, view.RoutingQuestions...)
 	view.Handoff = handoff
@@ -398,7 +432,7 @@ Recipe {{.Recipe}}{{if .RecipeVersion}} {{.RecipeVersion}}{{end}} · database pr
 ## Selected foundations
 
 {{range .Components}}
-- {{.Destination}} serves {{.Surface}} via {{.Boilerplate}}@{{.Pin}}
+- {{.Destination}} serves {{.Surface}} via {{.Boilerplate}}@{{.Pin}} ({{.Strategy}}{{if .Profile}}, profile {{.Profile}}{{end}})
 {{end}}
 
 Remaining product work is Gentle's: foundations cover structure, not features.
@@ -543,7 +577,7 @@ implementation or SDD session — the platform never prescribes it).
 `,
 	"surface": `# {{.Surface}} surface — {{.Destination}}
 
-Provider {{.Boilerplate}}@{{.Pin}} ({{.Responsibility}}).
+Provider {{.Boilerplate}}@{{.Pin}} ({{.Responsibility}}), materialized via {{.Strategy}}{{if .Profile}} with profile {{.Profile}}{{end}}.
 {{if .ProvidedFeatures}}
 Already provided by the foundation: {{join .ProvidedFeatures ", "}}.
 {{end}}
