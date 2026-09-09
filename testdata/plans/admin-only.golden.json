@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": "backoffice",
   "recipe": "GP-02",
   "recipe_version": "1.0.0",
@@ -8,19 +8,18 @@
       "boilerplate": "tanstack-admin",
       "pin": "e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0",
       "destination": "apps/admin",
-      "surface": "web-admin"
+      "surface": "web-admin",
+      "materialization": {
+        "strategy": "copy",
+        "adapter_fingerprint": "72bdb46da4bd38d0013d14b95841fd10fe0d90565ace78ad8d43313c91300617"
+      }
     }
   ],
   "database_profile": "postgresql-managed",
   "operations": [
     "materialize apps/admin from tanstack-admin@e6e5d3bdb7974d4a2283df763ea2dd222d82e1f0"
   ],
-  "setup": [
-    "provision database profile postgresql-managed"
-  ],
-  "checks": [
-    "typecheck",
-    "auth-smoke"
-  ],
-  "fingerprint": "db7d2864a2925f139f1c648cf0bf8a194bd0138291528bf5acac3a56febd9ae6"
+  "setup": ["provision database profile postgresql-managed"],
+  "checks": ["typecheck", "auth-smoke"],
+  "fingerprint": "36aaabb0ce44fe11d938c86a77a1cda7d82bae96f9e6ba14ac061c2707eb68e7"
 }
