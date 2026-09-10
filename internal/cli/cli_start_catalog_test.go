@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/jhonma82/engineering-platform/internal/app"
 )
 
 // startCatalogOverlay builds the minimal offline overlay for the start tests:
@@ -75,7 +77,46 @@ func TestStartFullChain(t *testing.T) {
 	}
 }
 
-// TestStartUnresolvedFails proves an ambiguous intent exits non-zero with no
+// TestStartCleansBootstrapInInitWorkspace proves the bootstrap lifecycle
+// end to end (bootstrap RFC sections 10-13): eng init prepares the
+// workspace, eng start materializes into it, validates it, and sheds only
+// the disposable bootstrap resources. Product and provenance stay.
+func TestStartCleansBootstrapInInitWorkspace(t *testing.T) {
+	overlay := startCatalogOverlay(t)
+	intent := writeIntent(t, startAdminIntent)
+	out := filepath.Join(t.TempDir(), "proj")
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.InitWorkspace(out, "pi", false); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	if code := Main([]string{"start", "--intent", intent, "--output", out, "--catalog-dir", overlay}); code != 0 {
+		t.Fatalf("start exit = %d, want 0", code)
+	}
+	for _, gone := range []string{
+		".engineering/bootstrap.json",
+		".pi/prompts/newproject.md",
+		".pi/skills/project-discovery/SKILL.md",
+	} {
+		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(gone))); !os.IsNotExist(err) {
+			t.Errorf("%s must be cleaned, stat err = %v", gone, err)
+		}
+	}
+	for _, kept := range []string{
+		"AGENTS.md",
+		".engineering/project.json",
+		".engineering/provenance.json",
+	} {
+		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(kept))); err != nil {
+			t.Errorf("stat %s: %v", kept, err)
+		}
+	}
+	if code := Main([]string{"doctor", "--project", out}); code != 0 {
+		t.Errorf("doctor after start exit = %d, want 0", code)
+	}
+}
+
 // project directory created.
 func TestStartUnresolvedFails(t *testing.T) {
 	overlay := startCatalogOverlay(t)

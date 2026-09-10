@@ -84,7 +84,16 @@ Each surface keeps its own agent instructions, so whoever builds the field
 
 ## Installation
 
-### Prebuilt binary (recommended)
+### Go install (recommended for Go users)
+
+```bash
+go install github.com/JhonMA82/engineering-platform/cmd/eng@latest
+```
+
+The binary is installed to `$(go env GOPATH)/bin` (or `$GOBIN`). Make sure
+that directory is on your `PATH`.
+
+### Prebuilt binary
 
 Every `v*` tag publishes binaries and a `checksums.txt` to the
 [GitHub Releases page](https://github.com/JhonMA82/engineering-platform/releases).
@@ -147,39 +156,56 @@ go build -o eng ./cmd/eng
 
 ## Quick Start
 
-### Recommended: Pi workflow
+### Create a project with PI
 
 The recommended experience uses [Pi](https://github.com/juicesharp/pi) as the
-conversational interface: Pi turns your idea into a `ProjectIntent` document
-that Engineering Platform can resolve. The integration lives in
-[`integrations/pi/`](integrations/pi/) and works through structured questions
-(`@juicesharp/rpiv-ask-user-question`), so you answer options instead of
-writing JSON by hand.
+conversational interface. Pi turns your idea into a `ProjectIntent` document
+that Engineering Platform can resolve.
 
-1. Install `eng` (see [Installation](#installation)).
-2. Set up the Pi integration from [`integrations/pi/`](integrations/pi/).
-3. Describe your idea to Pi.
-4. Run `/new-project` ([prompt](integrations/pi/prompts/new-project.md)):
-   Pi refines the `ProjectIntent` with you.
-5. Engineering Platform resolves, plans, and materializes the project.
-6. Gentle AI takes over from `GENTLE.md`.
+```bash
+mkdir my-project
+cd my-project
+eng init
+pi
+```
 
-Details: [`integrations/pi/skills/project-discovery/SKILL.md`](integrations/pi/skills/project-discovery/SKILL.md)
-and the [new-project runbook](docs/guides/new-project.md).
+Then inside Pi:
 
-### CLI workflow
+```text
+/newproject Inventory system for warehouses with mobile scanning
+```
 
-Without Pi, drive the same pipeline directly:
+Engineering Platform handles:
+
+```text
+discovery → stack/foundation selection → planning → materialization → validation → clean handoff
+```
+
+The resulting repository contains your project and minimal metadata (`.engineering/`)
+for future lifecycle operations like `eng doctor` or `eng update`.
+
+Details:
+
+- [`integrations/pi/skills/project-discovery/SKILL.md`](integrations/pi/skills/project-discovery/SKILL.md)
+- `/newproject` prompt and workflow
+
+OpenCode is supported with the same lifecycle: `eng init --agent opencode`
+installs `.opencode/commands/newproject.md` and the
+`engineering-project-discovery` skill locally, and cleanup after
+materialization follows the same ownership rules.
+
+### Advanced CLI
+
+Keep direct commands available for scripting, debugging, and CI:
 
 ```bash
 eng resolve --input project-intent.json
 eng plan --input project-intent.json
-eng materialize --plan materialization-plan.json --output ./my-project
+eng materialize --plan plan.json --output ./my-project
 eng doctor --project ./my-project
 ```
 
-`eng start` is the short path chaining the same phases
-(`resolve → plan → materialize → doctor`):
+`eng start` chains the same phases (`resolve → plan → materialize → doctor`):
 
 ```bash
 eng start --intent project-intent.json --output ./my-project
@@ -392,7 +418,7 @@ is pure and in-memory. Depth-first reading:
 - `catalog/` — catalog data (recipes, boilerplates, surfaces, capabilities, database profiles, curation evidence).
 - `cmd/` — `eng` entrypoint.
 - `internal/` — Go core (domain, resolver, composer, planner, materializer, project state, CLI).
-- `integrations/pi/` — Pi conversational adapter (`/new-project`, discovery skill).
+- `integrations/pi/` — Pi conversational adapter (`/newproject`, discovery skill).
 - `schemas/` — JSON schemas for intents, decisions, and plans.
 - `docs/` — architecture, concepts, guides, and decision records.
 - `testdata/` — routing, composition, and plan fixtures.
@@ -415,7 +441,7 @@ commit, and date); the catalog carries its own revision in
 
 ## Documentation
 
-- Getting started: [docs/guides/new-project.md](docs/guides/new-project.md)
+- Getting started: [docs/guides/newproject.md](docs/guides/newproject.md)
 - Architecture: [docs/architecture/core.md](docs/architecture/core.md)
 - Catalog concepts: [docs/concepts/catalog.md](docs/concepts/catalog.md),
   [recipes](docs/concepts/recipe.md),

@@ -1,6 +1,15 @@
-# /new-project
+# /newproject
 
 Start a new project with Engineering Platform and hand it to Gentle AI.
+
+The command accepts the initial project idea directly:
+
+```text
+/newproject Inventory system for three warehouses with mobile barcode scanning
+```
+
+Treat that argument as the starting discovery context. Never ask again
+for information already supplied in the command.
 
 ## Steps
 
@@ -21,11 +30,26 @@ Start a new project with Engineering Platform and hand it to Gentle AI.
    `eng materialize --plan plan.json --intent project-intent.json
    --decision decision.json --output <dir>`
    (save the resolve output as `decision.json` first).
+   When the workspace was prepared with `eng init`, materialize into the
+   current workspace (`--output .`); otherwise use a new empty directory.
 5. **Verify.** Run `eng doctor --project <dir>`; it must report a
    consistent project.
 6. **Hand off.** Point Gentle AI at `<dir>/GENTLE.md`. Done: architecture
    is locked, product requirements are listed in
    `<dir>/.engineering/implementation-brief.md`.
+7. **Clean up bootstrap.** After a successful `doctor`, remove only the
+   eng-owned bootstrap resources (they created the project; they are not
+   the product):
+   - `.pi/prompts/newproject.md`
+   - `.pi/skills/project-discovery/`
+   - `.engineering/bootstrap.json`
+   `eng start` does this automatically. For the step-by-step commands,
+   remove them here.
+   Keep the generated application code, its agent tooling (`AGENTS.md`,
+   `GENTLE.md`, surface files) and the minimal `.engineering/` provenance
+   (`project.json`, `provenance.json`, plan, brief, handoff). If
+   materialization or validation failed, clean up nothing: keep the state
+   for diagnosis and retry.
 
 Never write a recipe id by hand, never edit scores, never invent
 compatibilities. If the user changes requirements after materialization,

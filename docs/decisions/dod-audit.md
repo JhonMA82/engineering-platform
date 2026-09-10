@@ -19,7 +19,7 @@ How to re-verify: `go vet ./...`, `go test -count=1 ./...`,
 | 2 | `eng` compila como binario Go | pass | `go build -o /tmp/eng ./cmd/eng` → `BUILD_OK`; `cmd/eng/main.go` over `internal/cli` |
 | 3 | el resolver no requiere `project_type` | pass | `internal/domain/intent.go` documents "intentionally no project_type field"; only mentions in repo are comments rejecting it; 42 routing fixtures resolve without it |
 | 4 | Pi no selecciona Recipes | pass | `integrations/pi/skills/project-discovery/SKILL.md` → intent → `eng resolve` selects; resolver R1–R10 is pure core (`internal/resolver/`) |
-| 5 | Pi usa `@juicesharp/rpiv-ask-user-question` en la integración oficial | pass | `integrations/pi/package.json` declares the dependency; `SKILL.md:16-17` and `prompts/new-project.md:15` route controlled questions through `ask_user_question`. Live Pi usage is human-side (see note) |
+| 5 | Pi usa `@juicesharp/rpiv-ask-user-question` en la integración oficial | pass | `integrations/pi/package.json` declares the dependency; `SKILL.md:16-17` and `prompts/newproject.md:15` route controlled questions through `ask_user_question`. Live Pi usage is human-side (see note) |
 | 6 | catálogo, Surfaces y vocabulario no hardcodeados en el resolver | pass | `catalog/*.json` + `internal/catalog/loader.go` + `index.go`; resolver consumes them via `catalog.NewIndex`, no closed lists |
 | 7 | nuevo boilerplate representable sin recompilar el core | pass | `MergeOverlay` replaces entries by id; pilots repoint `ignite` at a fixture source with zero core changes (`internal/app/pilots_test.go`); `docs/guides/add-recipe.md`, `docs/guides/curate-boilerplate.md`, `catalog/curation/` evidence |
 | 8 | routing dataset ≥ 40 casos útiles | pass | `testdata/routing/` holds **42** fixtures, all asserted by `internal/resolver` tests |
@@ -37,7 +37,7 @@ How to re-verify: `go vet ./...`, `go test -count=1 ./...`,
 | 20 | se genera `.engineering/project-map.json` | pass | asserted in e2e + pilots; observed in `/tmp/demo-proj/.engineering/` |
 | 21 | se genera `.engineering/implementation-brief.md` | pass | same as 20 |
 | 22 | se genera `.engineering/handoff.json` | pass | same as 20 |
-| 23 | Pi ejecuta el flujo end-to-end | contract-ready | skill `project-discovery` + prompt `new-project.md` + all `eng` commands exist; a live Pi session was not observed here |
+| 23 | Pi ejecuta el flujo end-to-end | contract-ready | skill `project-discovery` + prompt `newproject.md` + all `eng` commands exist; a live Pi session was not observed here |
 | 24 | Gentle recibe el proyecto sin re-describir la idea | contract-ready | handoff trio + `GENTLE.md` + stored intent produced deterministically; Gentle-side consumption is human-side |
 | 25 | Gentle puede decidir direct build vs SDD | contract-ready | `GENTLE.md` + brief expose scope/foundation state for the call; the call itself is Gentle behavior |
 | 26 | una sesión SDD no re-descubre decisiones cerradas | contract-ready | locked artifacts (decision json, provenance, project-map) persist; SDD session discipline is human-side |

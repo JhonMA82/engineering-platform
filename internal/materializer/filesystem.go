@@ -239,24 +239,132 @@ func ListFiles(root string) ([]string, error) {
 }
 
 // ensureEmptyOrNew verifies the output directory is new or an empty dir.
+// It stays for callers that need the strict check; Materialize uses the
+// init-aware ensureMaterializable below.
 func ensureEmptyOrNew(dir string) error {
+	_, err := ensureMaterializable(dir)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ensureMaterializable verifies the output directory is new, empty, or an
+// eng-init workspace (bootstrap RFC section 10: discovery happens inside
+// the project, so materialization targets the prepared workspace). It
+// reports initMode=true for the workspace case. Any other non-empty
+// directory is refused exactly as before.
+//
+// A workspace qualifies only when it carries a readable
+// .engineering/bootstrap.json. User files inside are preserved across the
+// atomic commit by stash/restore, and any path the plan would generate
+// collides explicitly instead of being overwritten.
+func ensureMaterializable(dir string) (bool, error) {
 	st, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		return nil
+		return false, nil
 	}
 	if err != nil {
-		return domain.Filesystem(fmt.Sprintf("stat output dir: %v", err))
+		return false, domain.Filesystem(fmt.Sprintf("stat output dir: %v", err))
 	}
 	if !st.IsDir() {
-		return domain.Filesystem(fmt.Sprintf("output %q exists and is not a directory", dir))
+		return false, domain.Filesystem(fmt.Sprintf("output %q exists and is not a directory", dir))
 	}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return domain.Filesystem(fmt.Sprintf("read output dir: %v", err))
+		return false, domain.Filesystem(fmt.Sprintf("read output dir: %v", err))
 	}
-	if len(entries) > 0 {
-		return domain.Materialization(fmt.Sprintf(
-			"refusing to materialize into non-empty directory %q (need an empty or new directory)", dir))
+	if len(entries) == 0 {
+		return false, nil
+	}
+	if isInitWorkspace(dir) {
+		return true, nil
+	}
+	return false, domain.Materialization(fmt.Sprintf(
+		"refusing to materialize into non-empty directory %q (need an empty or new directory)", dir))
+}
+
+// isInitWorkspace reports whether dir carries eng-init bootstrap state. A
+// corrupt bootstrap.json counts as absent: the directory is not treated as
+// an init workspace and the conservative refusal applies.
+func isInitWorkspace(dir string) bool {
+	state, err := readBootstrapState(filepath.Join(dir, ".engineering", "bootstrap.json"))
+	return err == nil && state != nil
+}
+
+// checkStagingCollisions refuses when a file already present in the init
+// workspace would be overwritten by a path the plan generates. It runs
+// before anything is moved, so refusal leaves the workspace untouched.
+func checkStagingCollisions(output string, staged []string) error {
+	existing, err := ListFiles(output)
+	if err != nil {
+		return err
+	}
+	present := make(map[string]bool, len(existing))
+	for _, f := range existing {
+		present[f] = true
+	}
+	for _, f := range staged {
+		if present[f] {
+			return domain.Materialization(fmt.Sprintf(
+				"refusing to overwrite %q in init workspace (move it aside or use an empty directory)", f))
+		}
 	}
 	return nil
+}
+
+// stashOutputDir moves every top-level entry of output into a fresh temp
+// sibling directory and returns its path. The output dir is left empty so
+// the atomic rename commit keeps working; pre-existing files are restored
+// afterwards with restoreStash. On failure it moves back whatever it
+// already stashed, best effort.
+func stashOutputDir(output string) (string, error) {
+	stash, err := os.MkdirTemp(filepath.Dir(output), ".eng-stash-*")
+	if err != nil {
+		return "", domain.Filesystem(fmt.Sprintf("create stash dir: %v", err))
+	}
+	if err := moveTopEntries(output, stash); err != nil {
+		_ = moveTopEntries(stash, output)
+		_ = os.RemoveAll(stash)
+		return "", err
+	}
+	return stash, nil
+}
+
+// moveTopEntries renames every top-level entry of src into dst.
+func moveTopEntries(src, dst string) error {
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return domain.Filesystem(fmt.Sprintf("read dir %q: %v", src, err))
+	}
+	for _, e := range entries {
+		if err := os.Rename(filepath.Join(src, e.Name()), filepath.Join(dst, e.Name())); err != nil {
+			return domain.Filesystem(fmt.Sprintf("stash %q: %v", e.Name(), err))
+		}
+	}
+	return nil
+}
+
+// restoreStash moves every stashed file back into output, recreating
+// parent directories, and removes the stash dir. Callers run
+// checkStagingCollisions first, so restored paths cannot overlap the
+// committed project.
+func restoreStash(stash, output string) error {
+	if err := os.MkdirAll(output, 0o755); err != nil {
+		return domain.Filesystem(fmt.Sprintf("recreate output dir: %v", err))
+	}
+	stashed, err := ListFiles(stash)
+	if err != nil {
+		return err
+	}
+	for _, f := range stashed {
+		dst := filepath.Join(output, filepath.FromSlash(f))
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return domain.Filesystem(fmt.Sprintf("restore parent dir: %v", err))
+		}
+		if err := os.Rename(filepath.Join(stash, filepath.FromSlash(f)), dst); err != nil {
+			return domain.Filesystem(fmt.Sprintf("restore %q: %v", f, err))
+		}
+	}
+	return os.RemoveAll(stash)
 }

@@ -4,7 +4,7 @@
 // types. The materializer never re-resolves architecture; the plan is the
 // decision.
 //
-// Pipeline: validate output dir (empty-or-new) → staging temp dir → per
+// Pipeline: validate output dir (new, empty, or eng-init workspace) → staging temp dir → per
 // component fetch source → verify pin → copy+prune with path-safety
 // checks → collision check → write manifest, provenance, project map and
 // agent-context files into staging → post-materialize checks → atomic move
@@ -53,7 +53,8 @@ func Materialize(req Request) (Result, error) {
 	if err := preValidate(req); err != nil {
 		return Result{}, err
 	}
-	if err := ensureEmptyOrNew(req.OutputDir); err != nil {
+	initMode, err := ensureMaterializable(req.OutputDir)
+	if err != nil {
 		return Result{}, err
 	}
 	parent := filepath.Dir(req.OutputDir)
@@ -187,10 +188,33 @@ func Materialize(req Request) (Result, error) {
 	if err := Verify(staging, req.Plan, manifest); err != nil {
 		return Result{}, err
 	}
+	// Init workspaces keep their pre-existing files (bootstrap state, local
+	// .pi integration, user discovery documents) across the atomic commit:
+	// collisions are refused before anything moves, then the workspace
+	// content is stashed aside, staging commits by rename, and the stash is
+	// restored file by file.
+	var stash string
+	if initMode {
+		if err := checkStagingCollisions(req.OutputDir, files); err != nil {
+			return Result{}, err
+		}
+		stash, err = stashOutputDir(req.OutputDir)
+		if err != nil {
+			return Result{}, err
+		}
+	}
 	if err := commitStaging(staging, req.OutputDir); err != nil {
+		if stash != "" {
+			_ = restoreStash(stash, req.OutputDir)
+		}
 		return Result{}, err
 	}
 	committed = true
+	if stash != "" {
+		if err := restoreStash(stash, req.OutputDir); err != nil {
+			return Result{}, err
+		}
+	}
 	return Result{ProjectDir: req.OutputDir, Manifest: manifest}, nil
 }
 

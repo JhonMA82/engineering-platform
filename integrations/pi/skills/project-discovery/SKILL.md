@@ -48,16 +48,18 @@ forcing a fit.
 ## Flow
 
 ```text
-/new-project (prompts/new-project.md)
-  → progressive questions → project-intent.json
+/newproject <idea> (prompts/newproject.md; the <idea> argument is the starting context)
+  → progressive questions (never repeat what the idea already supplied) → project-intent.json
   → eng resolve
   → resolved: present the proposal, ask for confirmation
   → ambiguous: ask discriminating dimensions, update intent, resolve again
   → catalog-gap: explain the gap, stop
   → eng plan → show components and pins
-  → eng materialize --plan plan.json --output <dir>
+  → eng materialize --plan plan.json --output <dir> (. when eng init prepared it)
   → eng doctor --project <dir>
   → hand the directory to Gentle AI (GENTLE.md has the takeover steps)
+  → clean up eng-owned bootstrap only (.pi/prompts/newproject.md,
+    .pi/skills/project-discovery/, .engineering/bootstrap.json)
 ```
 
 Recipe selection, scoring rationale and compatibility stay inside

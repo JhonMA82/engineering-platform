@@ -14,6 +14,8 @@ func Main(args []string) int {
 		return 2
 	}
 	switch args[0] {
+	case "init":
+		return runInit(args[1:])
 	case "resolve":
 		return runResolve(args[1:])
 	case "explain":
@@ -57,7 +59,8 @@ func runSurface(args []string) int {
 }
 
 func usage() {
-	fmt.Println("usage: eng <resolve|explain|catalog|plan|materialize|start|doctor|surface|add|extend|update|version> [flags]")
+	fmt.Println("usage: eng <init|resolve|explain|catalog|plan|materialize|start|doctor|surface|add|extend|update|version> [flags]")
+	fmt.Println("  init [--agent pi|opencode] [--force] [--no-agent]")
 	fmt.Println("  resolve --input intent.json [--json] [--verbose] [--catalog-dir DIR]")
 	fmt.Println("  plan --input intent.json [--json] [--catalog-dir DIR]")
 	fmt.Println("  materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json] [--catalog-dir DIR]")

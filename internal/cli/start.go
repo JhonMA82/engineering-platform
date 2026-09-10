@@ -92,5 +92,16 @@ func runStart(args []string) int {
 	if project.HasErrors(findings) {
 		return 1
 	}
+	// Bootstrap lifecycle (bootstrap RFC sections 11-13): a workspace
+	// prepared by eng init sheds its disposable bootstrap resources only
+	// after successful materialization and validation. Cleanup is
+	// ownership-based (never pattern-based) and a no-op for directories
+	// eng init never prepared. A cleanup failure warns but does not fail
+	// the otherwise valid project.
+	if crep, err := app.CleanupBootstrap(*output); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: bootstrap cleanup: %v\n", err)
+	} else if crep.Cleaned {
+		fmt.Printf("bootstrap cleanup: removed %d file(s)\n", len(crep.Removed))
+	}
 	return 0
 }

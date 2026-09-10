@@ -6,7 +6,7 @@ resolve → compose → plan → delta materialize — against the stored intent
 `add` records product requirements without touching architecture; `update`
 is a report, never an auto-apply.
 
-Starting point: a materialized project (see `docs/guides/new-project.md`),
+Starting point: a materialized project (see `docs/guides/newproject.md`),
 for example a GP-06 project with `web-admin` + `api` required now:
 
 ```bash
