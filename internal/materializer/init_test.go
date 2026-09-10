@@ -130,6 +130,22 @@ func TestInitWorkspaceBadAgent(t *testing.T) {
 	}
 }
 
+// TestEmbeddedPromptsReceiveArguments is a regression test: pi and
+// OpenCode inject slash-command arguments ONLY through $ARGUMENTS-style
+// placeholders. A /newproject template without one silently drops the
+// idea and the agent asks for it again.
+func TestEmbeddedPromptsReceiveArguments(t *testing.T) {
+	if !strings.Contains(pibootstrap.NewprojectMD, "${ARGUMENTS") {
+		t.Fatal("pi newproject prompt must reference ${ARGUMENTS}")
+	}
+	if !strings.Contains(pibootstrap.NewprojectMD, "argument-hint") {
+		t.Fatal("pi newproject prompt must declare argument-hint frontmatter")
+	}
+	if !strings.Contains(opencodebootstrap.NewprojectMD, "$ARGUMENTS") {
+		t.Fatal("opencode newproject command must reference $ARGUMENTS")
+	}
+}
+
 // TestEmbeddedSkillsHaveFrontmatter is a regression test: agent harnesses
 // refuse skills without name/description frontmatter (pi reports
 // "[Skill conflicts] ... description is required"), so every embedded

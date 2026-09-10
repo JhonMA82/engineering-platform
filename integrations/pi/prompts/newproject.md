@@ -1,15 +1,27 @@
+---
+description: Start a new Engineering Platform project and hand it to a development agent
+argument-hint: "<idea>"
+---
+
 # /newproject
 
 Start a new project with Engineering Platform and hand it to Gentle AI.
 
-The command accepts the initial project idea directly:
+The initial project idea arrives as the command argument:
 
 ```text
-/newproject Inventory system for three warehouses with mobile barcode scanning
+${ARGUMENTS:-<no idea supplied — ask the user for it>}
 ```
 
-Treat that argument as the starting discovery context. Never ask again
-for information already supplied in the command.
+- If an idea is supplied above, treat it as the starting discovery
+  context. Never ask again for information it already contains.
+- If no idea was supplied, start by asking the user what they want to
+  build (problem, users, main flows).
+
+Prerequisites: the `ask_user_question` extension
+(`pi install npm:@juicesharp/rpiv-ask-user-question`) for structured
+questions. If it is unavailable, ask the same questions as plain chat
+lists instead of guessing.
 
 ## Steps
 

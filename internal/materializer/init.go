@@ -15,7 +15,7 @@ import (
 // BootstrapVersion versions the eng-owned bootstrap resources installed by
 // InitWorkspace. Bump it when the embedded PI files change so a second
 // `eng init` can detect outdated integrations and repair them.
-const BootstrapVersion = "1.0.1"
+const BootstrapVersion = "1.0.2"
 
 // managedFiles maps eng-owned project-local paths (slash-separated,
 // relative to the workspace root) to their embedded content for one agent.
