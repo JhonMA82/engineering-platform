@@ -87,7 +87,7 @@ Each surface keeps its own agent instructions, so whoever builds the field
 ### Go install (recommended for Go users)
 
 ```bash
-go install github.com/JhonMA82/engineering-platform/cmd/eng@latest
+go install github.com/jhonma82/engineering-platform/cmd/eng@latest
 ```
 
 The binary is installed to `$(go env GOPATH)/bin` (or `$GOBIN`). Make sure

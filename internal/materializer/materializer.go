@@ -257,7 +257,7 @@ func runGeneratedComponent(ctx context.Context, req Request, c planner.PlanCompo
 	if values.Project == "" {
 		values.Project = values.Name
 	}
-	outDir, err := RunGenerateWithValues(ctx, gen, values, factoryDir, sandbox, req.CommandTimeout)
+	outDir, err := RunGenerateWithValues(ctx, gen, values, factoryDir, sandbox, req.CommandTimeout, c.Materialization.Arguments)
 	if err != nil {
 		return "", decorateGenerateError(c, bp, err)
 	}
@@ -359,10 +359,20 @@ func preValidate(req Request) error {
 			check := append([]domain.AdapterCommand{{Run: argv}}, append(append([]domain.AdapterCommand{}, spec.Setup...), spec.Checks...)...)
 			// Validate the generator argv alone first so failures
 			// attribute to the generator stage, then setup+checks.
+			// The effective command is Run plus the plan's resolved
+			// Materialization.Arguments (the curated profile arguments
+			// the pipeline will append); both substitute with the same
+			// dummy values so unknown placeholders and argv violations
+			// in either set fail before staging exists.
 			genArgv, err := domain.SubstituteGeneratorPlaceholders(spec.Generate.Run.Run, values)
 			if err != nil {
 				return err
 			}
+			planArgs, err := domain.SubstituteGeneratorPlaceholders(c.Materialization.Arguments, values)
+			if err != nil {
+				return err
+			}
+			genArgv = append(genArgv, planArgs...)
 			if err := ValidateCommands([]domain.AdapterCommand{{Run: genArgv}}); err != nil {
 				return err
 			}

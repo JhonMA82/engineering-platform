@@ -91,19 +91,22 @@ func RunGenerate(ctx context.Context, spec *domain.GenerateSpec, destination, wo
 		return "", domain.Filesystem(fmt.Sprintf("create generate dir: %v", err))
 	}
 	values := GenerationValues{Name: name, Project: "project", Surface: name, Output: filepath.Join(work, "output")}
-	return runGenerateIn(ctx, spec, values, work, work, timeout)
+	return runGenerateIn(ctx, spec, values, work, work, timeout, nil)
 }
 
 // RunGenerateWithValues executes a generator with fully resolved
 // placeholders. factoryDir is the acquired pinned generator source (or ""
 // when the generator is an external pinned tool and needs no factory);
 // sandbox is the per-component isolated workspace owning the output.
+// extraArgs carries the resolved component Materialization.Arguments (the
+// curated profile arguments serialized in the plan); they are substituted
+// with the same values and appended to the base Run argv, order preserved.
 // The curated prepare steps run inside the factory (or sandbox when no
 // factory was acquired); the run command executes with the same working
 // directory and must produce the declared output inside the sandbox.
 // Only the output directory is returned: the factory itself never flows
 // into the project.
-func RunGenerateWithValues(ctx context.Context, spec *domain.GenerateSpec, values GenerationValues, factoryDir, sandbox string, timeout time.Duration) (string, error) {
+func RunGenerateWithValues(ctx context.Context, spec *domain.GenerateSpec, values GenerationValues, factoryDir, sandbox string, timeout time.Duration, extraArgs []string) (string, error) {
 	if spec == nil {
 		return "", domain.Materialization("generate: adapter declares no generate spec")
 	}
@@ -114,19 +117,28 @@ func RunGenerateWithValues(ctx context.Context, spec *domain.GenerateSpec, value
 	if cwd == "" {
 		cwd = sandbox
 	}
-	return runGenerateIn(ctx, spec, values, cwd, sandbox, timeout)
+	return runGenerateIn(ctx, spec, values, cwd, sandbox, timeout, extraArgs)
 }
 
 // runGenerateIn runs prepare plus the generator command with cwd as the
 // working directory and confines the declared output to sandboxRoot.
-func runGenerateIn(ctx context.Context, spec *domain.GenerateSpec, values GenerationValues, cwd, sandboxRoot string, timeout time.Duration) (string, error) {
+// extraArgs are substituted element-wise with the same values as the base
+// Run argv (never shell strings) and appended after it; the FULL effective
+// argv is validated once with ValidateCommands so profile arguments cannot
+// bypass the argv-only gate.
+func runGenerateIn(ctx context.Context, spec *domain.GenerateSpec, values GenerationValues, cwd, sandboxRoot string, timeout time.Duration, extraArgs []string) (string, error) {
 	if err := spec.Validate(); err != nil {
 		return "", err
 	}
-	argv, err := domain.SubstituteGeneratorPlaceholders(spec.Run.Run, values.valuesMap())
+	base, err := domain.SubstituteGeneratorPlaceholders(spec.Run.Run, values.valuesMap())
 	if err != nil {
 		return "", err
 	}
+	extra, err := domain.SubstituteGeneratorPlaceholders(extraArgs, values.valuesMap())
+	if err != nil {
+		return "", err
+	}
+	argv := append(append([]string{}, base...), extra...)
 	if err := ValidateCommands([]domain.AdapterCommand{{Run: argv}}); err != nil {
 		return "", err
 	}

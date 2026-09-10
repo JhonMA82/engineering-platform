@@ -3,11 +3,14 @@ package catalog
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	catalogdata "github.com/jhonma82/engineering-platform/catalog"
 	"github.com/jhonma82/engineering-platform/internal/domain"
 	"github.com/jhonma82/engineering-platform/internal/version"
 )
@@ -21,11 +24,16 @@ var defaultDirCandidates = []string{"catalog", "../catalog", "../../catalog"}
 // evolution never silently feeds unknown contracts into the engine (§30).
 const SupportedSchemaVersion = 1
 
-// Load returns the base catalog from the in-repo ./catalog dir, optionally
-// merged with an overlay directory: load(base) then overlay merge. The
-// running binary (version.CoreVersion) must satisfy the merged metadata
-// bounds; incompatible catalogs fail fast instead of feeding unknown
-// contracts into the engine (§1.2).
+// Load returns the base catalog, optionally merged with an overlay
+// directory: load(base) then overlay merge. The base comes from the
+// in-repo ./catalog tree when one resolves from the working directory
+// (dev checkouts and tests); otherwise the catalog embedded in the binary
+// is the normal base source, so a globally installed eng works from any
+// directory. --catalog-dir stays an optional overlay (or additional
+// external catalog): it merges over the base and is never a mandatory
+// replacement. The running binary (version.CoreVersion) must satisfy the
+// merged metadata bounds; incompatible catalogs fail fast instead of
+// feeding unknown contracts into the engine (§1.2).
 func Load(overlayDir string) (Catalog, error) {
 	return LoadWithCore(overlayDir, version.CoreVersion)
 }
@@ -43,7 +51,7 @@ func checkCoreCompatible(c Catalog, core string) error {
 // LoadWithCore is Load against an explicit core line, so tests can prove
 // the compatibility gate without restamping the binary.
 func LoadWithCore(overlayDir, core string) (Catalog, error) {
-	base, err := LoadDirWithCore(resolveBaseDir(), core)
+	base, err := loadBaseWithCore(core)
 	if err != nil {
 		return Catalog{}, err
 	}
@@ -62,13 +70,37 @@ func LoadWithCore(overlayDir, core string) (Catalog, error) {
 }
 
 func resolveBaseDir() string {
+	dir, ok := findBaseDir()
+	if !ok {
+		return "catalog"
+	}
+	return dir
+}
+
+// findBaseDir reports the in-repo catalog dir when one resolves from the
+// working directory, mirroring the historic probe order.
+func findBaseDir() (string, bool) {
 	for _, dir := range defaultDirCandidates {
 		meta := filepath.Join(dir, "metadata.json")
 		if st, err := os.Stat(meta); err == nil && !st.IsDir() {
-			return dir
+			return dir, true
 		}
 	}
-	return "catalog"
+	return "", false
+}
+
+// loadBaseWithCore loads the base catalog from the resolved in-repo tree
+// when one exists, else from the binary-embedded catalog.
+func loadBaseWithCore(core string) (Catalog, error) {
+	if dir, ok := findBaseDir(); ok {
+		return LoadDirWithCore(dir, core)
+	}
+	return loadEmbeddedWithCore(core)
+}
+
+// loadEmbeddedWithCore loads the base catalog embedded in the binary.
+func loadEmbeddedWithCore(core string) (Catalog, error) {
+	return loadFromFS(catalogdata.FS, "embedded catalog", core)
 }
 
 // BaseDir reports the resolved in-repo catalog directory so CLI commands
@@ -99,8 +131,16 @@ func LoadDir(dir string) (Catalog, error) {
 // LoadDirWithCore is LoadDir against an explicit core line, so tests can
 // prove the compatibility gate without restamping the binary.
 func LoadDirWithCore(dir, core string) (Catalog, error) {
+	return loadFromFS(os.DirFS(dir), dir, core)
+}
+
+// loadFromFS reads a catalog tree from fsys. show names the tree in error
+// messages; for on-disk loads it is the directory, preserving the historic
+// messages byte for byte. fsys paths always use slashes (path.Join) so the
+// embedded tree resolves on every platform; show uses filepath.Join.
+func loadFromFS(fsys fs.FS, show, core string) (Catalog, error) {
 	var c Catalog
-	raw, err := os.ReadFile(filepath.Join(dir, "metadata.json"))
+	raw, err := fs.ReadFile(fsys, "metadata.json")
 	if err != nil {
 		return Catalog{}, domain.Catalog(fmt.Sprintf("read metadata: %v", err))
 	}
@@ -120,22 +160,23 @@ func LoadDirWithCore(dir, core string) (Catalog, error) {
 		return Catalog{}, err
 	}
 	load := func(sub string, add func(raw json.RawMessage) error) error {
-		entries, err := os.ReadDir(filepath.Join(dir, sub))
+		entries, err := fs.ReadDir(fsys, sub)
 		if os.IsNotExist(err) {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		var files []string
+		var names []string
 		for _, e := range entries {
 			if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
-				files = append(files, filepath.Join(dir, sub, e.Name()))
+				names = append(names, e.Name())
 			}
 		}
-		sort.Strings(files)
-		for _, f := range files {
-			raw, err := os.ReadFile(f)
+		sort.Strings(names)
+		for _, name := range names {
+			f := filepath.Join(show, sub, name)
+			raw, err := fs.ReadFile(fsys, path.Join(sub, name))
 			if err != nil {
 				return fmt.Errorf("read %s: %w", f, err)
 			}
@@ -198,7 +239,7 @@ func LoadDirWithCore(dir, core string) (Catalog, error) {
 	}); err != nil {
 		return Catalog{}, domain.Catalog(err.Error())
 	}
-	raw, err = os.ReadFile(filepath.Join(dir, "vocabulary", "aliases.json"))
+	raw, err = fs.ReadFile(fsys, path.Join("vocabulary", "aliases.json"))
 	if err == nil {
 		var af aliasesFile
 		if err := json.Unmarshal(raw, &af); err != nil {

@@ -112,7 +112,7 @@ func TestGeneratedFoundationRunsInTemporaryWorkspace(t *testing.T) {
 	}
 	defer os.RemoveAll(sandbox)
 	values := GenerationValues{Name: "demo-admin", Project: "demo", Surface: "web-admin", Profile: "minimal", Output: filepath.Join(sandbox, "output")}
-	out, err := RunGenerateWithValues(context.Background(), bp.AdapterSpec.Generate, values, factory, sandbox, time.Minute)
+	out, err := RunGenerateWithValues(context.Background(), bp.AdapterSpec.Generate, values, factory, sandbox, time.Minute, nil)
 	if err != nil {
 		t.Fatalf("RunGenerateWithValues: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestGeneratedOutputCannotEscapeSandbox(t *testing.T) {
 	}
 	defer os.RemoveAll(sandbox)
 	values := GenerationValues{Name: "demo-admin", Project: "demo", Surface: "web-admin", Profile: "escape", Output: filepath.Join(sandbox, "output")}
-	if _, err := RunGenerateWithValues(context.Background(), bp.AdapterSpec.Generate, values, factory, sandbox, time.Minute); err == nil {
+	if _, err := RunGenerateWithValues(context.Background(), bp.AdapterSpec.Generate, values, factory, sandbox, time.Minute, nil); err == nil {
 		t.Fatal("expected sandbox escape failure, got nil")
 	}
 }
@@ -220,7 +220,7 @@ func TestMissingGeneratedOutputFails(t *testing.T) {
 	}
 	sandbox := t.TempDir()
 	values := GenerationValues{Name: "x", Project: "x", Surface: "x", Output: filepath.Join(sandbox, "output")}
-	if _, err := RunGenerateWithValues(context.Background(), spec, values, "", sandbox, time.Minute); err == nil {
+	if _, err := RunGenerateWithValues(context.Background(), spec, values, "", sandbox, time.Minute, nil); err == nil {
 		t.Fatal("expected missing-output failure, got nil")
 	} else if !strings.Contains(err.Error(), "no output directory") {
 		t.Fatalf("wrong failure: %v", err)
@@ -238,7 +238,7 @@ func TestEmptyGeneratedOutputFails(t *testing.T) {
 	}
 	defer os.RemoveAll(sandbox)
 	values := GenerationValues{Name: "demo-admin", Project: "demo", Surface: "web-admin", Profile: "empty", Output: filepath.Join(sandbox, "output")}
-	if _, err := RunGenerateWithValues(context.Background(), bp.AdapterSpec.Generate, values, factory, sandbox, time.Minute); err == nil {
+	if _, err := RunGenerateWithValues(context.Background(), bp.AdapterSpec.Generate, values, factory, sandbox, time.Minute, nil); err == nil {
 		t.Fatal("expected empty-output failure, got nil")
 	} else if !strings.Contains(err.Error(), "empty") {
 		t.Fatalf("wrong failure: %v", err)
