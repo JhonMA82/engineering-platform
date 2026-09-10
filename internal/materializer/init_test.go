@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	opencodebootstrap "github.com/jhonma82/engineering-platform/integrations/opencode"
+	pibootstrap "github.com/jhonma82/engineering-platform/integrations/pi"
 )
 
 func TestInitWorkspaceFresh(t *testing.T) {
@@ -123,5 +127,30 @@ func TestInitWorkspaceNoAgent(t *testing.T) {
 func TestInitWorkspaceBadAgent(t *testing.T) {
 	if _, err := InitWorkspace(t.TempDir(), InitOptions{Agent: "clippy"}); err == nil {
 		t.Fatal("want error for unknown agent")
+	}
+}
+
+// TestEmbeddedSkillsHaveFrontmatter is a regression test: agent harnesses
+// refuse skills without name/description frontmatter (pi reports
+// "[Skill conflicts] ... description is required"), so every embedded
+// skill must carry it. Prompts need no frontmatter.
+func TestEmbeddedSkillsHaveFrontmatter(t *testing.T) {
+	for _, content := range []string{
+		pibootstrap.DiscoverySkillMD,
+		opencodebootstrap.DiscoverySkillMD,
+	} {
+		if !strings.HasPrefix(content, "---\n") {
+			t.Fatal("embedded skill must start with YAML frontmatter")
+		}
+		end := strings.Index(content[len("---\n"):], "\n---")
+		if end < 0 {
+			t.Fatal("embedded skill frontmatter must close")
+		}
+		front := content[:end]
+		for _, key := range []string{"name:", "description:"} {
+			if !strings.Contains(front, key) {
+				t.Fatalf("embedded skill frontmatter must contain %q", key)
+			}
+		}
 	}
 }

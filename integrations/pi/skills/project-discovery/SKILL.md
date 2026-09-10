@@ -1,3 +1,8 @@
+---
+name: project-discovery
+description: Turn a product idea into an Engineering Platform ProjectIntent and orchestrate eng resolve, plan, materialize and doctor. Use when starting a new project with /newproject.
+---
+
 # Project Discovery — Pi skill
 
 Pi is a conversational adapter, not the decision brain. This skill turns a
