@@ -46,7 +46,7 @@ union of chosen providers, database policy versus catalog profiles, tech
 compatibility between components, and explicit must-use/must-not-use
 constraints (legacy untyped values plus typed `target=value` pairs
 recovered from decision reasons; database targets are enforced by profile
-selection while deployment targets support no hard constraints in v1.0.1 —
+selection while deployment targets support no hard constraints —
 never against providers). Every
 failure is a typed `composition` domain error.
 

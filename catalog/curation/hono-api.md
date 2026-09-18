@@ -36,4 +36,4 @@
   shared-backend behavior beyond the fixture path unverified.
 - Decision/delivery: default / pilot-ready (downgraded from released under
   H3: release-grade evidence bars require a Pilot success record, which does
-  not exist — see docs/decisions/migration-notes.md).
+  not exist).

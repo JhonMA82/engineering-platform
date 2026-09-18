@@ -20,7 +20,7 @@
   unverified.
 - Decision/delivery: specialized / pilot-ready (downgraded from curated
   under H3: curated requires a Pilot success record, which does not
-  exist — see docs/decisions/migration-notes.md).
+  exist).
   Specialized keeps the foundation eligible while preventing it from winning
   generic intents on simplicity alone — GP-07 is selected by explicit
   commercial-SaaS signals (React/Cloudflare stack, SaaS composition).

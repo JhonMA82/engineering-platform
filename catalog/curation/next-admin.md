@@ -21,5 +21,4 @@
 - Gaps (explicit): license re-verify on pilot; pin frozen (not tip); no
   setup/checks; no pilot; CRUD/auth behavior unverified.
 - Decision/delivery: alternative / pilot-ready (downgraded from curated
-  under H3: curated requires a Pilot success record, which does not exist
-  — see docs/decisions/migration-notes.md).
+  under H3: curated requires a Pilot success record, which does not exist).

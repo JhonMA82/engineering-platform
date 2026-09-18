@@ -18,5 +18,4 @@
 - Pilot: not run — install, typecheck, lint, test and build were not run
   from the pinned snapshot in legacy or v1.
 - Decision/delivery: default / pilot-ready (downgraded from curated under
-  H3: curated requires a Pilot success record, which does not exist — see
-  docs/decisions/migration-notes.md).
+  H3: curated requires a Pilot success record, which does not exist.

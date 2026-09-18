@@ -15,4 +15,4 @@ A recipe declares what families it serves (`provides`), which foundations
 serve them (`primary_boilerplates`), which surface sets compose
 (`allowed_surface_composition`, subset semantics) and the data policy
 (`database_policy`, including whether the family shares one backend).
-Runbook: `docs/guides/add-recipe.md`.
+Runbook: `docs/maintainers/add-recipe.md`.

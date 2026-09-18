@@ -1,51 +1,53 @@
-# Curate a boilerplate (§38 runbook)
+# Curate a boilerplate
 
-Each migration follows the same seven steps. Work from the legacy 0.x catalog
-as reference; never copy code, only extract knowledge.
+Curating a boilerplate follows the same seven steps. Work from the upstream
+repository and any prior review as reference; never copy code, only extract
+knowledge.
 
-## 1. Read the old entry
+## 1. Read the upstream
 
-`platform/boilerplates.json` → `entries[]`: id, repository, `upstream`
-(branch/commit/license/observed_at), `decision_status`, `delivery_status`,
-`maintenance_tier`, `use_when`/`avoid_when`, `integration` (mode,
-update_strategy, adapter/evidence paths).
+Record the candidate: repository URL, default branch and current commit,
+license, maintenance signals (recent activity, releases), and the
+`decision_status` / `delivery_status` you will claim (downgrade on doubt —
+see the enforcement rules below). The upstream repository is authoritative;
+the historic 0.x catalog no longer lives in this tree.
 
 ## 1b. Identity rule (never derive one field from another)
 
 Catalog id, display name, repository URL, upstream pin, adapter id and
 Surface are independent concepts: never derive one from another by textual
-similarity. Copy `repository` and `upstream.commit` verbatim from the
-legacy entry — an id like `hono-api` may point at `JhonMA82/api-starter`,
+similarity. Copy `repository` and the reviewed commit verbatim from the
+upstream source — an id like `hono-api` may point at `JhonMA82/api-starter`,
 and `tanstack-admin` at `arhamkhnz/tanstack-shadcn-admin-dashboard`.
-Cross-check every repo/pin against the legacy source before writing; when
-in doubt, legacy wins and the discrepancy goes in the migration notes.
+Cross-check every repo/pin against the upstream source before writing; when
+in doubt, the upstream wins and the discrepancy goes in the entry curation
+stub (`catalog/curation/<id>.md`).
 Record the mapping in the entry `provenance` object: the regression suite
 (`internal/catalog/legacy_migration_test.go` over
 `testdata/catalog/legacy-boilerplate-baseline.json`) guards the restored
 identity.
+## 2. Read how it installs
 
-## 2. Read the adapter
-
-`curation/<id>/adapter.json`: integration mode (overlay / direct /
-seed-fork / reference-only), materializer type (git-copy vs
-command-generator), destination, setup/checks, prune paths, requirements.
+Determine the materializer type: a git-copy tree (clone a pinned commit and
+copy/prune it) or a command-generator (a CLI that scaffolds its own output
+directory, e.g. `ignite-cli new`). Note destinations, setup/check commands,
+prune paths and requirements.
 Map to the v1 adapter object (`{name, operations, prune_paths, setup,
 checks, managed_files}`); the v1 operation vocabulary is
 fetch/copy/prune/template/compose/generate. A `command-generator` legacy
 adapter (a CLI that scaffolds its own output directory, e.g. `ignite-cli
 new`) maps to the generic `generate` operation (`{run: argv, output:
 relative-path}` with `{name}` substitution — see
-`docs/decisions/ignite-materialization.md` and
-`docs/architecture/materialization.md`); only use a fetch+copy placeholder
+`docs/architecture/materialization.md` and
+`docs/architecture/generated-foundations.md`); only use a fetch+copy placeholder
 for a generator if the generator command cannot be expressed as argv, and
-then document the gap in the curation stub and
-`docs/decisions/migration-notes.md`.
+then document the gap in the curation stub.
 
-## 3. Read the evidence
+## 3. Record the evidence
 
-`curation/<id>/evidence.json`: reviewed_at, ai_friendly, evidence list,
-gaps, pilot commands. Carry every gap and caveat forward into
-`catalog/curation/<id>.md` — a migration must not launder away known
+Write the curation stub `catalog/curation/<id>.md` first: reviewed date,
+license, maintenance signal, pin and verification method, gaps and pilot
+commands. Carry every gap and caveat forward into the stub — curation must not launder away known
 limitations (see `tauri-ui.md` for the pattern).
 
 ## 4. Transform to the v1 contract
@@ -57,23 +59,25 @@ Write `catalog/boilerplates/<id>.json`:
   HEAD via `git ls-remote <repo> HEAD`, or the commits API for a frozen
   non-HEAD pin (record which method in the stub). Never float a pin.
 
-### Pin policy (H6 — immutable pins)
+### Pin policy (immutable pins)
 
 Maximum reproducibility means commit SHAs, not mutable refs:
 
 - Prefer a full commit SHA as `pin` (kind `sha`).
 - A tag may be used only with an `expected_sha` recorded alongside when the
   SHA is verifiable offline from existing evidence (pilot log, prior
-  `git ls-remote` output quoted in the migration notes). Never invent a
-  SHA: an unverifiable tag stays kind `tag` and is recorded in
-  `docs/decisions/migration-notes.md` as **re-verify-on-pilot** — the next
-  real pilot resolves the tag once, quotes the SHA, and the entry is
+  `git ls-remote` output quoted in the curation stub). Never invent a
+  SHA: an unverifiable tag stays kind `tag` and is recorded in the entry
+  curation stub (`catalog/curation/<id>.md`) as **re-verify-on-pilot** — the
+  next real pilot resolves the tag once, quotes the SHA, and the entry is
   re-pinned to it.
-- Per-entry pin kinds live in the migration-notes pin table (§H6 pins).
+- Per-entry pin kinds live with the entry (`pin` plus the verification
+  method quoted in the curation stub). All current catalog pins are full
+  SHAs; the historical tag-pin table was retired with the migration notes
+  (git history).
 - CI (`pilots.yml`) materializes through these pins; a moved tag without a
   recorded SHA is a release blocker, not a silent upgrade.
-- `decision_status` / `delivery_status`: keep the legacy values when they
-  are inside the eligible sets (decision:
+- `decision_status` / `delivery_status`: choose values inside the eligible sets (decision:
   curated/default/alternative/specialized/reference; delivery:
   stable/curated/pilot-ready/released). Downgrade on doubt, never upgrade.
 - `provides.surfaces`: only surfaces the foundation actually serves (check
@@ -84,7 +88,7 @@ Maximum reproducibility means commit SHAs, not mutable refs:
   `included_features` (tie-break only).
 - `tech_tags`: stack signals used by must-use matching.
 - `adapter`: object form with argv `setup`/`checks` mirroring the piloted
-  legacy commands.
+  upstream commands.
 - `curation`: formal evidence link — `{"status": "<delivery_status>",
   "evidence": "curation/<id>.md"}`. The status reuses the delivery
   vocabulary (single axis: a set `curation.status` must equal
@@ -92,7 +96,7 @@ Maximum reproducibility means commit SHAs, not mutable refs:
   path confined to the catalog (no `..`, no absolute paths, no symlink
   escapes) pointing at a real file.
 
-## 4b. Curation enforcement rules (H3 — `eng catalog validate` enforces)
+## 4b. Curation enforcement rules (`eng catalog validate` enforces)
 
 | `delivery_status` | Evidence requirement |
 | --- | --- |
@@ -106,8 +110,8 @@ Maximum reproducibility means commit SHAs, not mutable refs:
   `released` without pilot evidence is invalid. |
 
 Rules: downgrade on doubt, never upgrade — an entry without a Pilot
-success record is at most `pilot-ready`, and the reason goes in
-`docs/decisions/migration-notes.md`. Never fake evidence to keep a
+success record is at most `pilot-ready`, and the reason goes in the entry
+curation stub. Never fake evidence to keep a
 status. Adding evidence is a data-only operation (new stub +
 `curation` link in the entry JSON); it needs no core changes.
 
@@ -138,7 +142,7 @@ new foundation and one under `testdata/composition/` that places it as a
 provider. Prefer discriminating pairs (native vs offline mobile, SaaS
 foundation vs composed multi-app) over lone happy paths. Keep every
 pre-existing fixture green — expand additively; if a ranking change is
-genuinely an improvement, document it in the migration notes instead of
+genuinely an improvement, document it in the commit message instead of
 silently updating expectations.
 
 ## Generated foundations

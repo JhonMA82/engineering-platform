@@ -92,7 +92,7 @@ func runStart(args []string) int {
 	if project.HasErrors(findings) {
 		return 1
 	}
-	// Bootstrap lifecycle (bootstrap RFC sections 11-13): a workspace
+	// Bootstrap lifecycle: a workspace
 	// prepared by eng init sheds its disposable bootstrap resources only
 	// after successful materialization and validation. Cleanup is
 	// ownership-based (never pattern-based) and a no-op for directories

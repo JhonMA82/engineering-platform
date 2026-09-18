@@ -101,7 +101,7 @@ the declared non-empty output — strictly inside the sandbox — is
 copied into project staging. Profiles, deterministic selection
 (smallest valid wins) and the full contract live in
 `docs/architecture/generated-foundations.md`.
-See `docs/decisions/ignite-materialization.md`. `setup`/`checks`
+`setup`/`checks`
 are argv arrays (`["npm","run","build"]`) or
 `{"run": [...]}` / `{"command": ..., "args": [...]}` objects — never
 shell strings. v1 catalog entries declare `fetch+copy` with no commands,

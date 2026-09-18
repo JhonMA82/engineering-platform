@@ -36,8 +36,7 @@ composition, not from user-supplied categories.
 A new recipe is needed when an intent family is covered by no existing
 provides/composition combination — e.g. GP-07 exists although GP-06 already
 serves public-web stacks, because a single seed-fork SaaS foundation is a
-different foundation fit from a composed backoffice (see
-`docs/decisions/migration-notes.md`). If an existing recipe already covers
+different foundation fit from a composed backoffice). If an existing recipe already covers
 the family, fold the change into its primaries or combos instead.
 
 ## Validate

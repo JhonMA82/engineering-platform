@@ -15,7 +15,6 @@
   the composer eligibility gate (which excludes experimental decisions and
   requires pin+adapter) keeps this entry out of every candidate and
   materialization pool until a later curation process promotes it.
-- Pilot: excluded — `catalog-only` entries require no stable pilot (see
-  docs/decisions/migration-notes.md).
+- Pilot: excluded — `catalog-only` entries require no stable pilot.
 - Gaps (explicit): no pin; no adapter; license unverified; not selectable;
   never promoted automatically by migration alone.

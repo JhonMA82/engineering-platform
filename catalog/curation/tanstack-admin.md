@@ -20,5 +20,4 @@
   setup/checks; no pilot; CRUD/auth behavior beyond the fixture path
   unverified.
 - Decision/delivery: default / pilot-ready (downgraded from curated under
-  H3: curated requires a Pilot success record, which does not exist — see
-  docs/decisions/migration-notes.md).
+  H3: curated requires a Pilot success record, which does not exist.

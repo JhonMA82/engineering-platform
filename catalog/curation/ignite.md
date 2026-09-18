@@ -10,16 +10,17 @@
 - Legacy review: `curation/ignite/evidence.json` (reviewed 2026-09-01,
   ai_friendly medium); gaps recorded there: generated project still needs the
   Engineering AGENTS.md overlay.
-- v1 adapter (H4): the generic `generate` operation runs the pinned
+- v1 adapter: the generic `generate` operation runs the pinned
   generator (`npx ignite-cli@11.5.0 new {name} --yes`; npm metadata
   confirms 11.5.0 exists) and validates the scaffolded directory through
   the same copy+prune path as fetched trees. `--yes` accepts CLI defaults
-  (bundle id, git init, dep install); no extra setup/check commands are
-  declared until the network pilot confirms post-generation behavior —
-  see `docs/decisions/ignite-materialization.md`.
+  (bundle id, git init, dep install); the CLI inputs are app name
+  (positional, becomes the output directory) plus `parameter.option`
+  flags (`yes`, `bundle`, `git`, `installDeps`, `packager`), so no
+  interactive prompt is needed. No extra setup/check commands are
+  declared until the network pilot confirms post-generation behavior.
 - Pilot: not run — no materialization pilot was executed for this
-  foundation in legacy or v1 (generator-based materialization is H4 work;
-  see docs/decisions/ignite-materialization.md).
-- Decision/delivery: default / pilot-ready (downgraded from curated under
-  H3: curated requires a Pilot success record, which does not exist — see
-  docs/decisions/migration-notes.md).
+  foundation in legacy or v1. Confirming or extending setup/checks from
+  the generated tree is the pilot's explicit follow-up, not guessed here.
+- Decision/delivery: default / pilot-ready (downgraded from curated:
+  curated requires a Pilot success record, which does not exist).

@@ -9,7 +9,7 @@ import (
 	"github.com/jhonma82/engineering-platform/internal/project"
 )
 
-// TestMaterializeIntoInitWorkspace covers bootstrap RFC section 10: a
+// TestMaterializeIntoInitWorkspace covers the init-workspace case: a
 // workspace prepared with eng init (bootstrap state + local .pi files plus
 // user discovery files) accepts materialization. Pre-existing files survive
 // the atomic commit and the result still passes doctor.
@@ -52,8 +52,7 @@ func TestMaterializeIntoInitWorkspace(t *testing.T) {
 	}
 }
 
-// TestMaterializeRefusesCollisionInInitWorkspace guards bootstrap RFC
-// section 24: when a user file in an init workspace collides with a path
+// TestMaterializeRefusesCollisionInInitWorkspace guards collision refusal: when a user file in an init workspace collides with a path
 // the plan would generate, materialization refuses before touching
 // anything. No user data is lost and no partial project is committed.
 func TestMaterializeRefusesCollisionInInitWorkspace(t *testing.T) {
@@ -107,7 +106,7 @@ func TestMaterializeRefusesCollisionInInitWorkspace(t *testing.T) {
 	}
 }
 
-// TestCleanupBootstrap covers bootstrap RFC sections 11-13: after success,
+// TestCleanupBootstrap covers bootstrap cleanup: after success,
 // only eng-owned bootstrap resources disappear. Product code, agent
 // tooling and minimal provenance stay.
 func TestCleanupBootstrap(t *testing.T) {

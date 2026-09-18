@@ -250,7 +250,7 @@ func ensureEmptyOrNew(dir string) error {
 }
 
 // ensureMaterializable verifies the output directory is new, empty, or an
-// eng-init workspace (bootstrap RFC section 10: discovery happens inside
+// eng-init workspace (discovery happens inside
 // the project, so materialization targets the prepared workspace). It
 // reports initMode=true for the workspace case. Any other non-empty
 // directory is refused exactly as before.

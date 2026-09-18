@@ -17,7 +17,6 @@
   pilot-ready: without a pin there is nothing honest to pilot).
   Non-selectable: the composer eligibility gate requires pin+adapter, so
   this entry can never serve a surface until curation completes.
-- Pilot: excluded — no pin exists to verify (see
-  docs/decisions/migration-notes.md).
+- Pilot: excluded — no pin exists to verify.
 - Gaps (explicit): no pin; no adapter; license unverified; no pilot; never
   promoted automatically by migration alone.

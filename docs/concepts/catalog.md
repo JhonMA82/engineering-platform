@@ -28,8 +28,8 @@ catalog/
   synthetic overlay surface with zero core changes).
 - **Pins are immutable references.** Commit SHA preferred; a tag is allowed
   only with a recorded SHA, otherwise it is `re-verify-on-pilot`. Pin kinds
-  are recorded per entry in `docs/decisions/migration-notes.md`; the policy
-  lives in `docs/guides/curate-boilerplate.md` §4.
+  are recorded per entry in the curation stub (`catalog/curation/<id>.md`);
+  the policy lives in `docs/maintainers/curate-boilerplate.md` §4.
 - **Curation gates selection** (`eng catalog validate`): `catalog-only`
   entries exist without full evidence but are not selectable;
   `pilot-ready` needs license/repo/pin/adapter/basic evidence; `curated` and
@@ -42,4 +42,4 @@ catalog/
 Additive by default: new entries, new surfaces, new evidence links. Overlay
 dirs (`catalog.LoadDir` + `MergeOverlay`) let tests and pilots extend the
 base catalog without touching it. Removing or renaming an id is a breaking
-change — record it in the migration notes with the affected recipes.
+change — record it in the commit message with the affected recipes.

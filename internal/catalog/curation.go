@@ -20,7 +20,7 @@ var validDeliveryStates = map[string]bool{
 }
 
 // pilotLine matches the structured pilot record every curated+ evidence stub
-// must carry (see docs/guides/curate-boilerplate.md): a "Pilot:" line whose
+// must carry (see docs/maintainers/curate-boilerplate.md): a "Pilot:" line whose
 // value describes the successful pilot.
 var pilotLine = regexp.MustCompile(`(?im)^\s*(?:[-*]\s*)?pilot\s*:\s*(.+?)\s*$`)
 

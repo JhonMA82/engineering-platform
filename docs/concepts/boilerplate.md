@@ -16,4 +16,4 @@ the catalog in `catalog/curation/<id>.md`.
 
 Adding a representable foundation is catalog work — entry plus adapter plus
 evidence plus tests — and needs no core release. Runbook:
-`docs/guides/curate-boilerplate.md`.
+`docs/maintainers/curate-boilerplate.md`.

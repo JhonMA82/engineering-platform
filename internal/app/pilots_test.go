@@ -136,8 +136,7 @@ func assertPilotArtifacts(t *testing.T, projectDir string) {
 //
 //	ENG_UPSTREAM_PILOTS=1 go test ./internal/app/ -run TestPilotIgniteGeneration -timeout 30m -v
 //
-// Follow-up recorded in docs/decisions/ignite-materialization.md:
-// confirming or extending setup/checks from the generated tree.
+// Follow-up: confirming or extending setup/checks from the generated tree.
 func TestPilotIgniteGeneration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short mode: upstream pilot skipped")

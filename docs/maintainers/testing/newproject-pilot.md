@@ -1,9 +1,34 @@
-# New project runbook (M3)
+# New project pilot (maintainers)
+
+> Maintainer scope: this page verifies the end-to-end pipeline offline
+> with the fixture catalog overlay. For the real first-user workflow
+> (install → `eng init` → Pi → `/newproject`), see
+> `docs/getting-started/first-project.md`.
 
 End-to-end: intent → resolve → plan → materialize → doctor → Gentle
 handoff. Everything below runs offline using the fixture catalog
 overlay; real boilerplates additionally need network for the pinned
 `git clone`.
+
+## Bootstrap invariants (`eng init`)
+
+- `eng` is global tooling; the bootstrap is project-local. `eng init
+  [--agent pi|opencode]` writes only inside the current directory (agent
+  integration plus `.engineering/` state) and never touches global agent
+  configuration.
+- Bootstrap resources are disposable. The `/newproject` prompt, discovery
+  skill copies and temporary state exist only to create the project;
+  after successful materialization and validation they are removed
+  automatically. If materialization fails, the state is retained for
+  diagnosis and retry.
+- Provenance is minimal and persistent. `.engineering/` keeps only the
+  manifest, provenance, project map, materialization plan, brief and
+  handoff — never discovery conversation noise.
+- Cleanup is ownership-based. Only eng-owned files are ever removed or
+  repaired (`--force` repairs eng-owned files even when customized);
+  user files are never deleted.
+- Initialization is idempotent. Re-running `eng init` reports
+  "already initialized" and writes nothing.
 
 ## 0. Build
 

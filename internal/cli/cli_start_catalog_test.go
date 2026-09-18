@@ -78,7 +78,7 @@ func TestStartFullChain(t *testing.T) {
 }
 
 // TestStartCleansBootstrapInInitWorkspace proves the bootstrap lifecycle
-// end to end (bootstrap RFC sections 10-13): eng init prepares the
+// end to end: eng init prepares the
 // workspace, eng start materializes into it, validates it, and sheds only
 // the disposable bootstrap resources. Product and provenance stay.
 func TestStartCleansBootstrapInInitWorkspace(t *testing.T) {

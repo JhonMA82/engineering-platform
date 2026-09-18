@@ -38,7 +38,9 @@ go build -o /tmp/eng ./cmd/eng
    `go test ./internal/app/ -run 'Pilot' -count=1 -v` (offline) and, when
    touching generation, the network-gated
    `ENG_UPSTREAM_PILOTS=1 go test ./internal/app/ -run TestPilotIgniteGeneration`.
-2. Readiness mapped in `docs/decisions/readiness-v1.md` (§11 checkboxes).
+2. Confirm the gates above are green plus the relevant pilots. There is no
+   separate readiness checklist; the v1.0 readiness audit is retired
+   (git history).
 3. Tag and push:
 
    ```bash
@@ -64,5 +66,6 @@ sha256sum -c checksums.txt
   only via ldflags (Makefile `release` target or the workflow).
 - Catalog versions move independently (`catalog/metadata.json`); the load
   gate enforces `min_core_version`/`schema_version` compatibility.
-- Re-verify-on-pilot tag pins (migration-notes pin table) must be resolved
-  to SHAs before they ride a stable release.
+- Unresolved re-verify-on-pilot tag pins must be resolved to SHAs before
+  they ride a stable release. None remain in the current catalog — every
+  pin is a full SHA (policy: `docs/maintainers/curate-boilerplate.md` §4).

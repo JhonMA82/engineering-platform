@@ -405,7 +405,8 @@ func joinArgs(argv []string) string {
 // through commit history (§12). Historical statuses preserve the legacy
 // migration semantics; the live decision_status/delivery_status fields stay
 // honest for the v1 gates (see Validate and the curation contract), and any
-// intentional downgrade is documented in docs/decisions/migration-notes.md.
+// intentional downgrade is documented in the entry provenance
+// (migration_reason).
 type Provenance struct {
 	Source                   string `json:"source,omitempty"`
 	LegacyCatalogVersion     string `json:"legacy_catalog_version,omitempty"`

@@ -18,7 +18,7 @@ type CleanupReport struct {
 }
 
 // CleanupBootstrap removes exactly the eng-owned bootstrap resources of
-// the workspace's agent (bootstrap RFC sections 11-13): the managed
+// the workspace's agent: the managed
 // integration files plus .engineering/bootstrap.json.
 //
 // Empty parent directories below the agent directory are pruned only when

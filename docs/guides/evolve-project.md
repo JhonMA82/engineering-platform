@@ -1,4 +1,4 @@
-# Evolve a materialized project (Fase 10)
+# Evolve a materialized project
 
 Four commands grow a project after bootstrap without losing provenance.
 Architecture evolution (`surface add`, `extend`) reuses the whole spine —
@@ -6,7 +6,7 @@ resolve → compose → plan → delta materialize — against the stored intent
 `add` records product requirements without touching architecture; `update`
 is a report, never an auto-apply.
 
-Starting point: a materialized project (see `docs/guides/newproject.md`),
+Starting point: a materialized project (see `docs/getting-started/first-project.md`),
 for example a GP-06 project with `web-admin` + `api` required now:
 
 ```bash
