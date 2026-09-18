@@ -15,12 +15,27 @@ Prebuilt binaries (`eng-linux-amd64`, `eng-linux-arm64`, `eng-darwin-arm64`, `en
 ## Quickstart
 
 ```bash
-mkdir demo && cd demo
-eng init --no-agent
-eng catalog list
+mkdir demo
+cd demo
+eng init
+pi
 ```
 
-You get a prepared workspace and the curated catalog (7 recipes, 11 boilerplates). For the full flow with Pi, describe your idea with `/newproject` and receive a generated project: [First project](docs/getting-started/first-project.md).
+Then inside Pi:
+
+```text
+/newproject <describe your idea>
+```
+
+```text
+idea
+→ Pi
+→ Engineering Platform
+→ selected/composed foundation
+→ generated project ready for development
+```
+
+Full walkthrough: [First project](docs/getting-started/first-project.md).
 
 ## Commands
 

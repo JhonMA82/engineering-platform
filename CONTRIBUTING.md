@@ -25,7 +25,8 @@ tree green locally first (the cross-compilation matrix runs in CI).
 - `integrations/pi/` — Pi conversational adapter (`/newproject`,
   discovery skill).
 - `schemas/` — JSON schemas for intents, decisions, and plans.
-- `docs/` — architecture, concepts, guides, and decision records.
+- `docs/` — getting started, guides, concepts, reference,
+  maintainer documentation, architecture, and ADRs.
 - `testdata/` — routing, composition, and plan fixtures.
 
 ## Development rules
