@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jhonma82/engineering-platform/internal/app"
+	"github.com/jhonma82/engineering-platform/internal/project"
 )
 
 func runMaterialize(args []string) int {
@@ -24,6 +25,7 @@ func runMaterialize(args []string) int {
 	planRaw, err := os.ReadFile(*planPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "materialize: %v\n", err)
+		persistReport(reportBaseDir(*output), project.ErrorReport("materialize", project.SummarizeIntent(nil, *output), err, nil, ""))
 		return 1
 	}
 	var intentRaw, decisionRaw []byte
@@ -31,6 +33,7 @@ func runMaterialize(args []string) int {
 		intentRaw, err = os.ReadFile(*intentPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "materialize: %v\n", err)
+			persistReport(reportBaseDir(*output), project.ErrorReport("materialize", project.SummarizeIntent(nil, *output), err, nil, ""))
 			return 1
 		}
 	}
@@ -38,12 +41,14 @@ func runMaterialize(args []string) int {
 		decisionRaw, err = os.ReadFile(*decisionPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "materialize: %v\n", err)
+			persistReport(reportBaseDir(*output), project.ErrorReport("materialize", project.SummarizeIntent(intentRaw, *output), err, nil, ""))
 			return 1
 		}
 	}
 	manifest, err := app.MaterializeProject(planRaw, intentRaw, decisionRaw, *catalogDir, *output)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "materialize: %v\n", err)
+		persistReport(reportBaseDir(*output), project.ErrorReport("materialize", project.SummarizeIntent(intentRaw, *output), err, nil, ""))
 		return 1
 	}
 	fmt.Printf("materialized %s — recipe %s (%d components, %d files)\n",

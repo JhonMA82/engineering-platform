@@ -19,6 +19,7 @@ func runDoctor(args []string) int {
 	findings, err := app.DoctorProject(*projectDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "doctor: %v\n", err)
+		persistReport(reportBaseDir(*projectDir), project.ErrorReport("doctor", project.IntentSummary{Output: *projectDir}, err, nil, ""))
 		return 1
 	}
 	if *asJSON {
@@ -28,6 +29,7 @@ func runDoctor(args []string) int {
 		printDoctorHuman(*projectDir, findings)
 	}
 	if project.HasErrors(findings) {
+		persistReport(reportBaseDir(*projectDir), project.DoctorReport(project.IntentSummary{Output: *projectDir}, findings))
 		return 1
 	}
 	return 0

@@ -14,6 +14,14 @@ The complete `eng` command surface, derived from `internal/cli`
   instead of the embedded default catalog.
 - `--json` (resolve, plan, start, doctor, add-excluded, update, catalog
   list/show): machine-readable output on stdout.
+- Run reports: `start`, `materialize` and `doctor` persist one JSON trace
+  per failed run (or doctor run with error-severity findings) under
+  `.engineering/runs/<timestamp>-<cmd>.json` in the project/output dir
+  when it exists, otherwise in the workspace. Each report records the
+  intention (name, problem, surfaces, recipe/plan fingerprint, output)
+  vs the result (status, error class/message, hint, findings, manifest
+  fingerprint). stderr always names the file plus the hint; a report
+  failure warns only and never masks the run error.
 
 ## Commands
 

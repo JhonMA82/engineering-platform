@@ -6,3 +6,5 @@ coverage.out
 *.test
 # Pi local runtime
 .pi/
+# Generated run reports (eng start/materialize/doctor diagnostics)
+.engineering/

@@ -37,11 +37,13 @@ func runStart(args []string) int {
 	intentRaw, err := os.ReadFile(*intentPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", project.SummarizeIntent(nil, *output), err, nil, ""))
 		return 1
 	}
 	decision, _, plan, err := app.PlanProject(intentRaw, *catalogDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", project.SummarizeIntent(intentRaw, *output), err, nil, ""))
 		return 1
 	}
 	if *dryRun {
@@ -57,21 +59,33 @@ func runStart(args []string) int {
 	planJSON, err := json.Marshal(plan)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		intent := project.SummarizeIntent(intentRaw, *output).SummarizePlan(plan)
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", intent, err, nil, ""))
 		return 1
 	}
 	decisionJSON, err := json.Marshal(decision)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		intent := project.SummarizeIntent(intentRaw, *output).SummarizePlan(plan)
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", intent, err, nil, ""))
 		return 1
 	}
 	manifest, err := app.MaterializeProject(planJSON, intentRaw, decisionJSON, *catalogDir, *output)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		intent := project.SummarizeIntent(intentRaw, *output).SummarizePlan(plan)
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", intent, err, nil, ""))
 		return 1
 	}
 	findings, err := app.DoctorProject(*output)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		intent := project.SummarizeIntent(intentRaw, *output).SummarizePlan(plan)
+		manifestFP := ""
+		if manifest != nil {
+			manifestFP = manifest.PlanFingerprint
+		}
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", intent, err, nil, manifestFP))
 		return 1
 	}
 	if *asJSON {
@@ -90,6 +104,8 @@ func runStart(args []string) int {
 		printDoctorHuman(*output, findings)
 	}
 	if project.HasErrors(findings) {
+		intent := project.SummarizeIntent(intentRaw, *output).SummarizePlan(plan)
+		persistReport(reportBaseDir(*output), project.ErrorReport("start", intent, nil, findings, manifest.PlanFingerprint))
 		return 1
 	}
 	// Bootstrap lifecycle: a workspace
