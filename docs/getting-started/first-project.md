@@ -31,7 +31,9 @@ eng init
 ```
 
 `eng init` installs the project-local agent integration (Pi by default;
-`--agent opencode` for OpenCode) plus `.engineering/` state. It writes
+`--agent opencode` for OpenCode v1 and v2 — the shipped
+`.opencode/commands/` + `.opencode/skills/<id>/SKILL.md` layout is the v2
+preferred form and keeps working on v1) plus `.engineering/` state. It writes
 only inside the current directory and is safe to re-run (reports
 "already initialized" when there is nothing to do).
 
