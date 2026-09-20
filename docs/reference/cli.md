@@ -30,7 +30,10 @@ eng init [--agent pi|opencode] [--force] [--no-agent]
 ```
 
 Prepares the current directory as a workspace (agent integration plus
-`.engineering/` state). Prints what it created, updated, or kept, then
+`.engineering/` state). `--agent opencode` targets OpenCode v1 and v2
+(the installed `.opencode/commands/` + `.opencode/skills/` layout is the
+v2 preferred form and remains v1-compatible, so no version flag is
+needed). Prints what it created, updated, or kept, then
 the next step (`pi`, `opencode`, or `eng start --intent intent.json
 --output .` for `--no-agent`). Re-running reports "already initialized"
 and writes nothing; `--force` repairs eng-owned files even when
