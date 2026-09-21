@@ -61,3 +61,12 @@ them; `eng doctor` never requires them; `eng evolve` / `materialize` /
 - `aicontext check` answers: "is the repository context still coherent with
   reality?" It observes the same contracts but never reimplements `eng
   doctor`.
+
+## Product enrichment boundary
+
+Between foundation and implementation lives Product Plan (the `product-plan`
+skill): it enriches domain, behavior, rules, MVP scope, flows, permissions,
+and edge cases into `.planning/PRODUCT_PLAN.md` behind a deterministic READY
+gate. It consumes the intent/brief/handoff copies above as optional evidence
+and treats locked decisions as constraints; it never redecides them and
+never writes `.engineering/` or AiContext-owned state.
