@@ -20,6 +20,9 @@ Three doors: **use** the platform, **understand** it, or **maintain** it.
   [generated foundations](architecture/generated-foundations.md),
   [handoff](architecture/handoff.md).
 - [Catalog](concepts/catalog.md) — the declarative knowledge base.
+- [Public contracts](concepts/public-contracts.md) — versioned
+  `.engineering/` artifacts external tools (AiContext) may consume, plus
+  the `.engineering/` ownership table.
 - [Project intent](concepts/project-intent.md) — the only resolver input.
 - [Surfaces](concepts/surface.md), [recipes](concepts/recipe.md),
   [boilerplates](concepts/boilerplate.md),

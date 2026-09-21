@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform/schemas/provenance.schema.json",
+  "title": "Provenance",
+  "description": "Dated authorship record of a materialized project (.engineering/provenance.json). The ONLY document allowed to carry timestamps; decisions and plans stay deterministic and timestamp-free. v1 records carry no per-component generation metadata; v2 adds components[].",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "core_version",
+    "catalog_version",
+    "plan_fingerprint",
+    "pins",
+    "materialized_at"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "minLength": 1 },
+    "core_version": { "type": "string", "minLength": 1 },
+    "catalog_version": { "type": "string", "minLength": 1 },
+    "intent_fingerprint": { "type": "string" },
+    "plan_fingerprint": { "type": "string", "minLength": 1 },
+    "pins": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["surface", "foundation", "repo", "pin", "strategy", "adapter_fingerprint"],
+        "properties": {
+          "surface": { "type": "string", "minLength": 1 },
+          "foundation": { "type": "string", "minLength": 1 },
+          "repo": { "type": "string" },
+          "pin": { "type": "string", "minLength": 1 },
+          "strategy": { "type": "string", "minLength": 1 },
+          "name": { "type": "string" },
+          "profile": { "type": "string" },
+          "arguments": { "type": "array", "items": { "type": "string" } },
+          "adapter_fingerprint": { "type": "string" }
+        }
+      }
+    },
+    "materialized_at": { "type": "string", "minLength": 1 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "at"],
+        "properties": {
+          "type": { "type": "string", "minLength": 1 },
+          "at": { "type": "string", "minLength": 1 },
+          "surface": { "type": "string" },
+          "provider": { "type": "string" },
+          "recipe": { "type": "string" },
+          "requirement": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    }
+  }
+}

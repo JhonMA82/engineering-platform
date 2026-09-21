@@ -131,6 +131,9 @@ func Materialize(req Request) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	// AiContext-owned .engineering state is never absorbed into the
+	// manifest: it is validated by `aicontext check`, never by `eng doctor`.
+	files = project.FilterManifestFiles(files)
 	manifest := project.BuildManifest(req.Plan, req.Catalog.CatalogVersion, files)
 	manifestBytes, err := manifest.Marshal()
 	if err != nil {
@@ -171,10 +174,12 @@ func Materialize(req Request) (Result, error) {
 		return Result{}, err
 	}
 	// Re-list: manifest and agent-context files are part of the record.
+	// AiContext-owned state stays out (see above).
 	files, err = ListFiles(staging)
 	if err != nil {
 		return Result{}, err
 	}
+	files = project.FilterManifestFiles(files)
 	manifest = project.BuildManifest(req.Plan, req.Catalog.CatalogVersion, files)
 	manifestBytes, err = manifest.Marshal()
 	if err != nil {

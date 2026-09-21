@@ -448,13 +448,24 @@ func deltaDests(delta []planner.PlanComponent) []string {
 
 // refreshGeneratedFiles writes the handoff-rendered agent-context and
 // .engineering copies. Overwriting files are refreshed; surface stubs never
-// overwrite, so foundation-shipped instructions survive evolution.
+// overwrite, so foundation-shipped instructions survive evolution. The root
+// AGENTS.md carries AiContext-owned marked blocks, which are preserved
+// byte-identically across the refresh (`aicontext sync` refreshes their
+// content afterwards).
 func refreshGeneratedFiles(projectDir string, in handoff.Input) error {
+	existingAgents := ""
+	if raw, err := os.ReadFile(filepath.Join(projectDir, filepath.FromSlash(handoff.AgentsRelPath))); err == nil {
+		existingAgents = string(raw)
+	}
 	files, err := handoff.Render(in)
 	if err != nil {
 		return err
 	}
 	for _, f := range files {
+		data := f.Data
+		if f.Path == handoff.AgentsRelPath && existingAgents != "" {
+			data = []byte(project.MergeAgentsPreservingAicontext(existingAgents, string(f.Data)))
+		}
 		target := filepath.Join(projectDir, filepath.FromSlash(f.Path))
 		if !f.Overwrite {
 			if _, err := os.Stat(target); err == nil {
@@ -464,7 +475,7 @@ func refreshGeneratedFiles(projectDir string, in handoff.Input) error {
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			return domain.Filesystem(fmt.Sprintf("evolve: create dir for %q: %v", f.Path, err))
 		}
-		if err := os.WriteFile(target, f.Data, 0o644); err != nil {
+		if err := os.WriteFile(target, data, 0o644); err != nil {
 			return domain.Filesystem(fmt.Sprintf("evolve: write %q: %v", f.Path, err))
 		}
 	}
@@ -483,12 +494,14 @@ func writeProjectMap(projectDir string, plan planner.MaterializationPlan) error 
 }
 
 // rebuildManifest re-lists the project directory and records the evolved
-// plan fingerprint, pins and file list.
+// plan fingerprint, pins and file list. AiContext-owned .engineering state
+// is excluded: `eng doctor` must never require files it does not own.
 func rebuildManifest(projectDir string, plan planner.MaterializationPlan, catalogVersion string) error {
 	files, err := materializer.ListFiles(projectDir)
 	if err != nil {
 		return err
 	}
+	files = project.FilterManifestFiles(files)
 	manifest := project.BuildManifest(plan, catalogVersion, files)
 	raw, err := manifest.Marshal()
 	if err != nil {

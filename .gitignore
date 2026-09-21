@@ -8,3 +8,4 @@ coverage.out
 .pi/
 # Generated run reports (eng start/materialize/doctor diagnostics)
 .engineering/
+.codegraph/

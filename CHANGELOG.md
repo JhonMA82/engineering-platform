@@ -7,7 +7,17 @@ were read with `git show <tag>:catalog/metadata.json`.
 
 ## Unreleased
 
-Nothing yet.
+- AiContext compatibility (no behavior change for existing projects):
+  `schemas/provenance.schema.json` publishes the versioned provenance
+  contract; `docs/concepts/public-contracts.md` declares the public
+  `.engineering/` artifacts, versions, and the ownership table.
+  `internal/project/ownership.go` makes the boundary executable: the
+  manifest file list never absorbs AiContext-owned state
+  (`aicontext.toml`, `PROJECT_STATE.md`, `PATTERNS.md`, `consistency.yml`,
+  `subprojects.yml`, `rules/**`), and evolution preserves
+  `<!-- aicontext:* -->` blocks when refreshing the root `AGENTS.md`.
+  `internal/project/ownership_test.go` covers the filter, the merge, and a
+  doctor run over AiContext state.
 
 ## v1.2.4 — 2026-09-18
 
