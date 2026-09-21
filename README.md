@@ -41,10 +41,10 @@ Prebuilt binaries (`eng-linux-amd64`, `eng-linux-arm64`, `eng-darwin-arm64`, `en
 mkdir demo
 cd demo
 eng init
-pi
+opencode
 ```
 
-Then inside Pi:
+Then inside OpenCode:
 
 ```text
 /newproject <describe your idea>
@@ -52,7 +52,7 @@ Then inside Pi:
 
 ```text
 idea
-→ Pi
+→ OpenCode
 → Engineering Platform
 → selected/composed foundation
 → generated project ready for development

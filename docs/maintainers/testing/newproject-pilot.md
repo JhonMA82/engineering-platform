@@ -2,7 +2,7 @@
 
 > Maintainer scope: this page verifies the end-to-end pipeline offline
 > with the fixture catalog overlay. For the real first-user workflow
-> (install → `eng init` → Pi → `/newproject`), see
+> (install → `eng init` → OpenCode → `/newproject`), see
 > `docs/getting-started/first-project.md`.
 
 End-to-end: intent → resolve → plan → materialize → doctor → Gentle

@@ -42,17 +42,17 @@ cd my-project
 eng init
 ```
 
-`eng init` installs the project-local agent integration (Pi by default;
-`--agent opencode` for OpenCode v1 and v2 — the shipped
+`eng init` installs the project-local agent integration (OpenCode by
+default; `--agent pi` for Pi — the shipped
 `.opencode/commands/` + `.opencode/skills/<id>/SKILL.md` layout is the v2
 preferred form and keeps working on v1) plus `.engineering/` state. It writes
 only inside the current directory and is safe to re-run (reports
 "already initialized" when there is nothing to do).
 
-## 3. Describe your idea in Pi
+## 3. Describe your idea in OpenCode
 
 ```bash
-pi
+opencode
 ```
 
 Then:
@@ -61,7 +61,7 @@ Then:
 /newproject Inventory system for warehouses with mobile scanning
 ```
 
-Pi asks what it needs (problem, users, flows, surfaces, data,
+OpenCode asks what it needs (problem, users, flows, surfaces, data,
 offline/native needs, restrictions) and turns your answers into a
 `ProjectIntent`. It resolves the architecture with `eng resolve`,
 shows you the winning recipe and its reasons for confirmation, then

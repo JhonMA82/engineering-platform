@@ -31,6 +31,25 @@ func TestInitAlreadyUpToDateNamesTheAgent(t *testing.T) {
 	}
 }
 
+// TestInitDefaultsToOpenCode proves bare `eng init` bootstraps the
+// OpenCode integration; Pi stays behind `--agent pi`.
+func TestInitDefaultsToOpenCode(t *testing.T) {
+	dir := t.TempDir()
+	if code := runInitIn(t, dir); code != 0 {
+		t.Fatalf("bare init: exit %d", code)
+	}
+	out := runInitInCapture(t, dir)
+	if !strings.Contains(out, "Agent: opencode") {
+		t.Fatalf("bare init should report Agent: opencode:\n%s", out)
+	}
+	if _, err := os.Stat(dir + "/.opencode/commands/newproject.md"); err != nil {
+		t.Fatalf("bare init should install the opencode command: %v", err)
+	}
+	if _, err := os.Stat(dir + "/.pi/prompts/newproject.md"); !os.IsNotExist(err) {
+		t.Fatalf("bare init must not install the pi integration")
+	}
+}
+
 // runInitIn runs runInit with cwd pointed at dir (runInit resolves the
 // workspace from os.Getwd) and restores the caller's directory.
 func runInitIn(t *testing.T, dir string, args ...string) int {

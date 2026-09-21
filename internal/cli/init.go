@@ -13,7 +13,7 @@ import (
 func runInit(args []string) int {
 	flags := newFlagSet("init")
 	var (
-		agentFlag   = flags.String("agent", "pi", "Agent to bootstrap (pi, opencode)")
+		agentFlag   = flags.String("agent", "opencode", "Agent to bootstrap (pi, opencode)")
 		forceFlag   = flags.Bool("force", false, "Repair eng-owned files even when customized")
 		noAgentFlag = flags.Bool("no-agent", false, "Initialize only Engineering Platform state, skip agent integration")
 	)
