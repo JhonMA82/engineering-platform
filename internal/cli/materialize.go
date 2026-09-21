@@ -11,7 +11,7 @@ import (
 func runMaterialize(args []string) int {
 	fs := newFlagSet("materialize")
 	planPath := fs.String("plan", "", "path to materialization plan JSON file")
-	output := fs.String("output", "", "project output directory (new or empty)")
+	output := fs.String("output", "", "project output directory (new, empty, or eng-init workspace; use . inside init workspace)")
 	intentPath := fs.String("intent", "", "optional path to project intent JSON file")
 	decisionPath := fs.String("decision", "", "optional path to architecture decision JSON file")
 	catalogDir := fs.String("catalog-dir", "", "overlay catalog directory")

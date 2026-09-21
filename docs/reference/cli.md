@@ -59,9 +59,12 @@ fingerprint). Writes nothing.
 eng materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json] [--catalog-dir DIR]
 ```
 
-Executes a plan into a new or empty directory (re-running into a
-non-empty directory is refused). `--intent` / `--decision` embed copies
-in the project state.
+Executes a plan into a new or empty directory, or into the eng-init
+workspace itself (`--output .` when `.engineering/bootstrap.json`
+exists). Re-running into a non-empty directory is refused, as is a new
+or empty subdirectory nested inside an init workspace (never derive the
+output from the intent/project name there). `--intent` / `--decision`
+embed copies in the project state.
 
 ```text
 eng start --intent intent.json --output <dir> [--catalog-dir DIR] [--dry-run] [--json]
@@ -69,9 +72,10 @@ eng start --intent intent.json --output <dir> [--catalog-dir DIR] [--dry-run] [-
 
 Chains resolve → plan → materialize → doctor. `--dry-run` prints the
 plan and performs zero filesystem writes (`--output` may be omitted
-with `--dry-run`). After successful validation, workspaces prepared by
-`eng init` shed their disposable bootstrap resources (warns, never
-fails, on cleanup errors).
+with `--dry-run`). Inside an `eng init` workspace use `--output .`;
+a nested project-named subdirectory is refused. After successful
+validation, workspaces prepared by `eng init` shed their disposable
+bootstrap resources (warns, never fails, on cleanup errors).
 
 ```text
 eng doctor [--project <dir>] [--json]

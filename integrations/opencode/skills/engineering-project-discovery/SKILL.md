@@ -19,6 +19,12 @@ architecture; OpenCode never does.
 - OpenCode never asks for information already present in the intent and never
   repeats resolved questions.
 - The `/newproject` command argument is the starting discovery context.
+- When `.engineering/bootstrap.json` exists (the current directory is an
+  `eng init` workspace), NEVER derive `--output` from the intent/project
+  name. Materialize into the workspace itself (`--output .`) and run
+  `eng doctor --project .`. Creating a project-named subdirectory inside
+  the workspace (for example `reloj_checador/reloj_checador_escolar/`) is
+  forbidden; the core refuses it.
 
 ## Progressive questionnaire
 
@@ -57,8 +63,8 @@ foundation research/curation instead of forcing a fit.
   → ambiguous: ask discriminating dimensions, update intent, resolve again
   → catalog-gap: explain the gap, stop
   → eng plan → show components and pins
-  → eng materialize --plan plan.json --output <dir> (. when eng init prepared it)
-  → eng doctor --project <dir>
+  → eng materialize --plan plan.json --output <dir> (. when eng init prepared it: bootstrap.json exists, never a project-named subdirectory)
+  → eng doctor --project <dir> (. in an init workspace)
   → hand the directory to the development agent (GENTLE.md has the takeover steps)
   → clean up eng-owned bootstrap only (.opencode/commands/newproject.md,
     .opencode/skills/engineering-project-discovery/, .engineering/bootstrap.json)

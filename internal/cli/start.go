@@ -19,7 +19,7 @@ import (
 func runStart(args []string) int {
 	fs := newFlagSet("start")
 	intentPath := fs.String("intent", "", "path to project intent JSON file")
-	output := fs.String("output", "", "project output directory (new or empty)")
+	output := fs.String("output", "", "project output directory (new, empty, or eng-init workspace; use . inside init workspace)")
 	catalogDir := fs.String("catalog-dir", "", "overlay catalog directory")
 	dryRun := fs.Bool("dry-run", false, "print the plan without writing anything")
 	asJSON := fs.Bool("json", false, "print machine-readable JSON")

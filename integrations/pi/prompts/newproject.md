@@ -42,9 +42,12 @@ lists instead of guessing.
    `eng materialize --plan plan.json --intent project-intent.json
    --decision decision.json --output <dir>`
    (save the resolve output as `decision.json` first).
-   When the workspace was prepared with `eng init`, materialize into the
-   current workspace (`--output .`); otherwise use a new empty directory.
-5. **Verify.** Run `eng doctor --project <dir>`; it must report a
+   When the workspace was prepared with `eng init`
+   (`.engineering/bootstrap.json` exists), materialize into the
+   current workspace (`--output .`) and never create a project-named
+   subdirectory from the intent name inside it. Otherwise use a new
+   empty directory.
+5. **Verify.** Run `eng doctor --project <dir>` (init workspaces use `--project .`); it must report a
    consistent project.
 6. **Hand off.** Point Gentle AI at `<dir>/GENTLE.md`. Done: architecture
    is locked, product requirements are listed in

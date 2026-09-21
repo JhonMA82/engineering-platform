@@ -18,6 +18,12 @@ architecture; Pi never does.
   `prefer`, `avoid`) verbatim into the intent.
 - Pi never asks for information already present in the intent and never
   repeats resolved questions.
+- When `.engineering/bootstrap.json` exists (the current directory is an
+  `eng init` workspace), NEVER derive `--output` from the intent/project
+  name. Materialize into the workspace itself (`--output .`) and run
+  `eng doctor --project .`. Creating a project-named subdirectory inside
+  the workspace (for example `reloj_checador/reloj_checador_escolar/`) is
+  forbidden; the core refuses it.
 - Controlled questions go through `ask_user_question`
   (`@juicesharp/rpiv-ask-user-question`). Free text is for problem
   description and narrative context only.
@@ -60,8 +66,8 @@ forcing a fit.
   → ambiguous: ask discriminating dimensions, update intent, resolve again
   → catalog-gap: explain the gap, stop
   → eng plan → show components and pins
-  → eng materialize --plan plan.json --output <dir> (. when eng init prepared it)
-  → eng doctor --project <dir>
+  → eng materialize --plan plan.json --output <dir> (. when eng init prepared it: bootstrap.json exists, never a project-named subdirectory)
+  → eng doctor --project <dir> (. in an init workspace)
   → hand the directory to Gentle AI (GENTLE.md has the takeover steps)
   → clean up eng-owned bootstrap only (.pi/prompts/newproject.md,
     .pi/skills/project-discovery/, .engineering/bootstrap.json)

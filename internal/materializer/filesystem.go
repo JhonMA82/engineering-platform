@@ -259,9 +259,18 @@ func ensureEmptyOrNew(dir string) error {
 // .engineering/bootstrap.json. User files inside are preserved across the
 // atomic commit by stash/restore, and any path the plan would generate
 // collides explicitly instead of being overwritten.
+//
+// A new or empty directory nested inside an eng-init workspace is also
+// refused: when bootstrap.json exists the agent must materialize into the
+// workspace itself (--output .) and must not derive a project-named
+// subdirectory from the intent name (e.g. reloj_checador/reloj_checador_escolar).
 func ensureMaterializable(dir string) (bool, error) {
 	st, err := os.Stat(dir)
 	if os.IsNotExist(err) {
+		if ws, ok := enclosingInitWorkspace(dir); ok {
+			return false, domain.Materialization(fmt.Sprintf(
+				"refusing to materialize into %q: it is inside eng-init workspace %q (materialize into the workspace itself with --output . or choose a directory outside it; never create a project-named subdirectory when .engineering/bootstrap.json exists)", dir, ws))
+		}
 		return false, nil
 	}
 	if err != nil {
@@ -275,6 +284,10 @@ func ensureMaterializable(dir string) (bool, error) {
 		return false, domain.Filesystem(fmt.Sprintf("read output dir: %v", err))
 	}
 	if len(entries) == 0 {
+		if ws, ok := enclosingInitWorkspace(dir); ok {
+			return false, domain.Materialization(fmt.Sprintf(
+				"refusing to materialize into %q: it is inside eng-init workspace %q (materialize into the workspace itself with --output . or choose a directory outside it; never create a project-named subdirectory when .engineering/bootstrap.json exists)", dir, ws))
+		}
 		return false, nil
 	}
 	if isInitWorkspace(dir) {
@@ -282,6 +295,33 @@ func ensureMaterializable(dir string) (bool, error) {
 	}
 	return false, domain.Materialization(fmt.Sprintf(
 		"refusing to materialize into non-empty directory %q (need an empty or new directory)", dir))
+}
+
+// enclosingInitWorkspace reports the nearest ancestor (or self) that is an
+// eng-init workspace when dir itself is not that workspace. It walks the
+// absolute path upward so a relative nested output such as
+// "reloj_checador_escolar" inside "/.../reloj_checador" resolves against
+// the caller working directory. The second return value is false when no
+// ancestor carries bootstrap state.
+func enclosingInitWorkspace(dir string) (string, bool) {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", false
+	}
+	abs = filepath.Clean(abs)
+	// Start from the parent: dir itself is either missing (new output) or
+	// an empty directory, never the workspace itself here.
+	current := abs
+	for {
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", false
+		}
+		current = parent
+		if isInitWorkspace(current) {
+			return current, true
+		}
+	}
 }
 
 // isInitWorkspace reports whether dir carries eng-init bootstrap state. A
