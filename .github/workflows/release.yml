@@ -1,8 +1,11 @@
 name: release
 
 # Release artifacts for tags v* (§6.5): matrix binaries plus sha256
-# checksums as release assets. Deliberately plain `go build` + `sha256sum`
-# (no goreleaser, no Homebrew/AUR): every step stays auditable in this file.
+# checksums as release assets, with the install/uninstall scripts
+# (scripts/install.sh|ps1, scripts/uninstall.sh|ps1) bundled alongside so
+# remote install/update/uninstall pins to the tag instead of floating main.
+# Deliberately plain `go build` + `sha256sum` (no goreleaser, no
+# Homebrew/AUR): every step stays auditable in this file.
 # See docs/guides/release.md for the tagging runbook.
 #
 # Fast deterministic CI stays in ci.yml; upstream pilots stay in pilots.yml.
@@ -38,6 +41,9 @@ jobs:
         run: |
           (cd dist && sha256sum eng-* > checksums.txt)
           cat dist/checksums.txt
+      - name: bundle installer scripts
+        run: |
+          cp scripts/install.sh scripts/install.ps1 scripts/uninstall.sh scripts/uninstall.ps1 dist/
       - name: publish release assets
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2, pinned 2026-09-08
         with:

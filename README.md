@@ -6,6 +6,29 @@ Describe your idea in Pi; it selects the stack, composes the architecture, and g
 
 ## Install
 
+Remote installer (Linux/macOS, installs or updates to the latest release,
+sha256-verified against the release `checksums.txt`):
+
+```bash
+curl -fsSL https://github.com/JhonMA82/engineering-platform/releases/latest/download/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://github.com/JhonMA82/engineering-platform/releases/latest/download/install.ps1 | iex
+```
+
+Keep it updated and remove it:
+
+```bash
+eng self-update --check   # what would change, writes nothing
+eng self-update --yes     # download, verify, atomically replace
+curl -fsSL https://github.com/JhonMA82/engineering-platform/releases/latest/download/uninstall.sh | sh
+```
+
+Go users:
+
 ```bash
 go install github.com/jhonma82/engineering-platform/cmd/eng@latest
 ```

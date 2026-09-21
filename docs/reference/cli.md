@@ -127,3 +127,17 @@ eng version
 Prints core release line, catalog version, schema, commit, and build
 date. Release builds stamp these via ldflags; worktree builds report
 `dev` / `unknown`.
+
+```text
+eng self-update [--version X.Y.Z|latest] [--repo OWNER/NAME] [--check] [--yes]
+```
+
+Updates `eng` itself from the GitHub release line: resolves the target
+tag (`latest` via the release redirect, no token needed), downloads the
+platform binary plus `checksums.txt`, verifies sha256, and atomically
+replaces the running executable. `--check` (and a bare run without
+`--yes`) resolves and reports without writing; `--yes` applies.
+`ENG_GITHUB_REPO`, `ENG_VERSION`, `GITHUB_TOKEN` override the defaults.
+Remote install/uninstall scripts (`scripts/install.sh|ps1`,
+`scripts/uninstall.sh|ps1`, bundled with every release) cover fresh
+machines and removal.

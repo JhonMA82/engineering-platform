@@ -50,7 +50,10 @@ go build -o /tmp/eng ./cmd/eng
 
 4. `release.yml` builds the matrix with ldflags stamps
    (`CoreVersion=<tag>`, commit, build date), writes `checksums.txt`
-   (sha256) and publishes all files as release assets.
+   (sha256), bundles the install/uninstall scripts
+   (`scripts/install.sh|ps1`, `scripts/uninstall.sh|ps1` — so the remote
+   one-liners pin to the tag instead of floating `main`), and publishes
+   all files as release assets.
 
 No goreleaser, no Homebrew/AUR — plain `go build` + `sha256sum` in the
 workflow, auditable in one file. Verify after release:

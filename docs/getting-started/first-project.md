@@ -6,6 +6,18 @@ project to Gentle AI (or your team) for feature work.
 
 ## 1. Install `eng`
 
+Remote installer (Linux/macOS — installs or updates, sha256-verified):
+
+```bash
+curl -fsSL https://github.com/JhonMA82/engineering-platform/releases/latest/download/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://github.com/JhonMA82/engineering-platform/releases/latest/download/install.ps1 | iex
+```
+
 Go users:
 
 ```bash
