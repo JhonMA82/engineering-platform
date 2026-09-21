@@ -50,6 +50,17 @@ type Result struct {
 // manifest. Any failure before the final rename leaves the output
 // directory untouched.
 func Materialize(req Request) (Result, error) {
+	// Normalize to absolute so the init-workspace stash/commit dance never
+	// treats "." as its own parent: with a relative "." the stash temp dir
+	// would land inside the workspace and moveTopEntries would attempt
+	// rename .eng-stash-X into .eng-stash-X/.eng-stash-X (EINVAL), and
+	// commitStaging could not Remove("."). Absolute paths keep stash and
+	// staging as true siblings of the output.
+	absOut, err := filepath.Abs(req.OutputDir)
+	if err != nil {
+		return Result{}, domain.Filesystem(fmt.Sprintf("resolve output dir: %v", err))
+	}
+	req.OutputDir = absOut
 	if err := preValidate(req); err != nil {
 		return Result{}, err
 	}

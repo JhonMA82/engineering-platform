@@ -358,13 +358,20 @@ func checkStagingCollisions(output string, staged []string) error {
 // the atomic rename commit keeps working; pre-existing files are restored
 // afterwards with restoreStash. On failure it moves back whatever it
 // already stashed, best effort.
+//
+// Output is resolved to absolute first so a relative "." never makes the
+// stash a child of itself.
 func stashOutputDir(output string) (string, error) {
-	stash, err := os.MkdirTemp(filepath.Dir(output), ".eng-stash-*")
+	abs, err := filepath.Abs(output)
+	if err != nil {
+		return "", domain.Filesystem(fmt.Sprintf("resolve output dir: %v", err))
+	}
+	stash, err := os.MkdirTemp(filepath.Dir(abs), ".eng-stash-*")
 	if err != nil {
 		return "", domain.Filesystem(fmt.Sprintf("create stash dir: %v", err))
 	}
-	if err := moveTopEntries(output, stash); err != nil {
-		_ = moveTopEntries(stash, output)
+	if err := moveTopEntries(abs, stash); err != nil {
+		_ = moveTopEntries(stash, abs)
 		_ = os.RemoveAll(stash)
 		return "", err
 	}
