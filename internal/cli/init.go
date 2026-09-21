@@ -53,7 +53,14 @@ func runInit(args []string) int {
 	if report.AlreadyUpToDate {
 		fmt.Println("Engineering Platform already initialized.")
 		fmt.Printf("Agent: %s\n", report.Agent)
-		fmt.Println("PI integration is up to date.")
+		switch report.Agent {
+		case "opencode":
+			fmt.Println("OpenCode integration is up to date.")
+		case "none":
+			fmt.Println("Workspace state is up to date.")
+		default:
+			fmt.Println("PI integration is up to date.")
+		}
 		return 0
 	}
 
