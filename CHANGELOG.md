@@ -5,7 +5,7 @@ All versions and dates below are derived from Git tags (`git tag`,
 are reproduced verbatim from the tag ranges. Catalog revisions per release
 were read with `git show <tag>:catalog/metadata.json`.
 
-## Unreleased
+## v1.4.0 — 2026-09-21
 
 - AiContext compatibility (no behavior change for existing projects):
   `schemas/provenance.schema.json` publishes the versioned provenance
