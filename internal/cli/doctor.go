@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jhonma82/engineering-platform/internal/app"
 	"github.com/jhonma82/engineering-platform/internal/project"
@@ -13,13 +14,35 @@ func runDoctor(args []string) int {
 	fs := newFlagSet("doctor")
 	projectDir := fs.String("project", ".", "materialized project directory")
 	asJSON := fs.Bool("json", false, "print findings as JSON")
+	audit := addAuditFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+	now := time.Now().UTC()
+	baseDir, sessionID, auditing := auditSession(audit, *projectDir, now)
+	if auditing {
+		auditRecord(baseDir, sessionID, project.AuditEvent{
+			Phase:   project.AuditPhaseDoctor,
+			Kind:    project.AuditKindCommand,
+			Summary: fmt.Sprintf("doctor --project %s", *projectDir),
+			Command: "doctor",
+			Argv:    append([]string{"eng", "doctor"}, args...),
+			Data:    map[string]string{"project": *projectDir},
+		})
 	}
 	findings, err := app.DoctorProject(*projectDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "doctor: %v\n", err)
 		persistReport(reportBaseDir(*projectDir), project.ErrorReport("doctor", project.IntentSummary{Output: *projectDir}, err, nil, ""))
+		if auditing {
+			tail := project.NewAuditSession(sessionID, "", "", now)
+			tail.AddEvent(project.AuditEvent{
+				Phase: project.AuditPhaseDoctor, Kind: project.AuditKindResult,
+				Summary: fmt.Sprintf("doctor failed: %v", err), Status: "error",
+				Data: map[string]string{"error": err.Error()},
+			}, now)
+			auditFinalize(baseDir, tail)
+		}
 		return 1
 	}
 	if *asJSON {
@@ -27,6 +50,21 @@ func runDoctor(args []string) int {
 		fmt.Println(string(out))
 	} else {
 		printDoctorHuman(*projectDir, findings)
+	}
+	if auditing {
+		status := "ok"
+		if project.HasErrors(findings) {
+			status = "error"
+		}
+		tail := project.NewAuditSession(sessionID, "", "", now)
+		tail.AddEvent(project.AuditEvent{
+			Phase:   project.AuditPhaseDoctor,
+			Kind:    project.AuditKindResult,
+			Summary: fmt.Sprintf("doctor %s: %d finding(s)", status, len(findings)),
+			Status:  status,
+			Data:    map[string]string{"findings": fmt.Sprintf("%d", len(findings)), "project": *projectDir},
+		}, now)
+		auditFinalize(baseDir, tail)
 	}
 	if project.HasErrors(findings) {
 		persistReport(reportBaseDir(*projectDir), project.DoctorReport(project.IntentSummary{Output: *projectDir}, findings))

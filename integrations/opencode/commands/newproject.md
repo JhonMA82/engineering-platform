@@ -64,3 +64,14 @@ Never write a recipe id by hand, never edit scores, never invent
 compatibilities. If the user changes requirements after materialization,
 update the intent and materialize into a new output directory — re-running
 into a materialized project is refused by design.
+
+## Dev-only audit
+
+For development debugging only: when `ENG_AUDIT=1` is set, log the idea
+(`$ARGUMENTS`) plus every discovery question/answer into
+`.engineering/audit/<session>/events.jsonl` (see the
+`engineering-project-discovery` skill), then thread
+`--audit --audit-session <session>` through every `eng` call
+(`eng start --audit --audit-session <session>` covers the whole chain).
+The CLI finalizes `AUDIT.md` + `audit.json` there. Without the env gate
+write nothing; never clean the audit dir during bootstrap cleanup.

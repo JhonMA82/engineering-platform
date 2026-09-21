@@ -9,6 +9,8 @@ Three doors: **use** the platform, **understand** it, or **maintain** it.
 - [CLI reference](reference/cli.md) — every command, flags, exit behavior.
 - [Evolve a project](guides/evolve-project.md) — `surface add`,
   `extend`, `add`, `update`.
+- [Dev-only audit trail](guides/audit.md) — `ENG_AUDIT=1` + `--audit`:
+  idea → Q&A → commands → report (`AUDIT.md` + `audit.json`).
 - [Changelog](../CHANGELOG.md) — release history from Git tags.
 
 ## Understand it

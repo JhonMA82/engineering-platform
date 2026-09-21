@@ -22,6 +22,13 @@ The complete `eng` command surface, derived from `internal/cli`
   vs the result (status, error class/message, hint, findings, manifest
   fingerprint). stderr always names the file plus the hint; a report
   failure warns only and never masks the run error.
+- Dev-only audit: `resolve`, `plan`, `materialize`, `start` and `doctor`
+  accept `--audit [--audit-dir DIR] [--audit-session ID]` and write
+  nothing unless `ENG_AUDIT=1` is set. When enabled they stitch
+  `idea → discovery → resolve → plan → materialize → doctor` into
+  `<base>/.engineering/audit/<session>/AUDIT.md` (human) plus
+  `audit.json` (machine) and `events.jsonl` (append-only skill+CLI log).
+  Full guide: [audit trail](../guides/audit.md).
 
 ## Commands
 
@@ -41,7 +48,7 @@ and writes nothing; `--force` repairs eng-owned files even when
 customized.
 
 ```text
-eng resolve --input intent.json [--json] [--verbose] [--catalog-dir DIR]
+eng resolve --input intent.json [--json] [--verbose] [--catalog-dir DIR] [--audit] [--audit-dir DIR] [--audit-session ID]
 ```
 
 Resolves a `ProjectIntent` to an architecture decision and prints the
@@ -49,7 +56,7 @@ human-readable explanation (`--json` prints the full decision;
 `--verbose` adds fingerprint and candidate detail).
 
 ```text
-eng plan --input intent.json [--json] [--catalog-dir DIR]
+eng plan --input intent.json [--json] [--catalog-dir DIR] [--audit] [--audit-dir DIR] [--audit-session ID]
 ```
 
 Prints the deterministic materialization plan (recipe, database
@@ -57,7 +64,7 @@ profile, per-component foundation@pin, strategy/profile, destinations,
 fingerprint). Writes nothing.
 
 ```text
-eng materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json] [--catalog-dir DIR]
+eng materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json] [--catalog-dir DIR] [--audit] [--audit-dir DIR] [--audit-session ID]
 ```
 
 Executes a plan into a new or empty directory, or into the eng-init
@@ -68,7 +75,7 @@ output from the intent/project name there). `--intent` / `--decision`
 embed copies in the project state.
 
 ```text
-eng start --intent intent.json --output <dir> [--catalog-dir DIR] [--dry-run] [--json]
+eng start --intent intent.json --output <dir> [--catalog-dir DIR] [--dry-run] [--json] [--audit] [--audit-dir DIR] [--audit-session ID]
 ```
 
 Chains resolve → plan → materialize → doctor. `--dry-run` prints the
@@ -79,7 +86,7 @@ validation, workspaces prepared by `eng init` shed their disposable
 bootstrap resources (warns, never fails, on cleanup errors).
 
 ```text
-eng doctor [--project <dir>] [--json]
+eng doctor [--project <dir>] [--json] [--audit] [--audit-dir DIR] [--audit-session ID]
 ```
 
 Re-validates a materialized project (manifest↔filesystem,

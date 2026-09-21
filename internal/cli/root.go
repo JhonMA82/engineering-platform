@@ -63,11 +63,11 @@ func runSurface(args []string) int {
 func usage() {
 	fmt.Println("usage: eng <init|resolve|explain|catalog|plan|materialize|start|doctor|surface|add|extend|update|self-update|version> [flags]")
 	fmt.Println("  init [--agent pi|opencode] [--force] [--no-agent]")
-	fmt.Println("  resolve --input intent.json [--json] [--verbose] [--catalog-dir DIR]")
-	fmt.Println("  plan --input intent.json [--json] [--catalog-dir DIR]")
-	fmt.Println("  materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json] [--catalog-dir DIR]")
-	fmt.Println("  start --intent intent.json --output <dir> [--catalog-dir DIR] [--dry-run] [--json]")
-	fmt.Println("  doctor [--project <dir>] [--json]")
+	fmt.Println("  resolve --input intent.json [--json] [--verbose] [--catalog-dir DIR] [--audit] [--audit-dir DIR] [--audit-session ID]")
+	fmt.Println("  plan --input intent.json [--json] [--catalog-dir DIR] [--audit] [--audit-dir DIR] [--audit-session ID]")
+	fmt.Println("  materialize --plan plan.json --output <dir> [--intent intent.json] [--decision decision.json] [--catalog-dir DIR] [--audit] [--audit-dir DIR] [--audit-session ID]")
+	fmt.Println("  start --intent intent.json --output <dir> [--catalog-dir DIR] [--dry-run] [--json] [--audit] [--audit-dir DIR] [--audit-session ID]")
+	fmt.Println("  doctor [--project <dir>] [--json] [--audit] [--audit-dir DIR] [--audit-session ID]")
 	fmt.Println("  surface add --project <dir> --surface <id> [--provider <boilerplate>] [--catalog-dir DIR]")
 	fmt.Println("  extend --project <dir> --surface <id> [--catalog-dir DIR]")
 	fmt.Println("  add --project <dir> --requirement \"<text>\" [--scope required_now|planned_later] [--catalog-dir DIR]")
@@ -78,6 +78,9 @@ func usage() {
 	fmt.Println("  catalog show <id> [--catalog-dir DIR] [--json]")
 	fmt.Println("  catalog validate [--catalog-dir DIR]")
 	fmt.Println("  version")
+	fmt.Println("")
+	fmt.Println("dev-only audit: set ENG_AUDIT=1 and pass --audit to resolve/plan/materialize/start/doctor.")
+	fmt.Println("  reports land in <base>/.engineering/audit/<session>/AUDIT.md + audit.json + events.jsonl.")
 }
 
 func newFlagSet(name string) *flag.FlagSet {

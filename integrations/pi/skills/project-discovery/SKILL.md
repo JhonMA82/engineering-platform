@@ -75,3 +75,23 @@ forcing a fit.
 
 Recipe selection, scoring rationale and compatibility stay inside
 `eng explain` output. Quote it; do not paraphrase it into new claims.
+
+## Dev-only audit (opt-in, ENG_AUDIT=1)
+
+When the user runs with `ENG_AUDIT=1`, stitch the conversational side of
+the audit trail so the Go commands can complete it. Without the env gate
+write nothing: auditing is strictly dev-only and off by default.
+
+- Session: reuse `--audit-session <id>` when supplied; otherwise use the
+  timestamp form `YYYYMMDD-HHMMSS` (UTC) and pass the same id to every
+  `eng ... --audit --audit-session <id>` call.
+- Base dir: `<workspace>/.engineering/audit/<session>/events.jsonl`.
+  Create it with `mkdir -p`; never write inside the generated project.
+- Log the idea first (`phase=idea/kind=idea`), every questionnaire turn
+  (`phase=discovery/kind=question|answer`, including
+  `unresolved_dimensions`), and each intent version
+  (`phase=intent/kind=intent`). Truncate answers to 500 chars and never
+  log secrets, tokens, passwords or API keys.
+- Thread `--audit --audit-session <id>` through resolve/plan/materialize/
+  doctor (or once via `eng start --audit --audit-session <id>`). The CLI
+  finalizes `AUDIT.md` + `audit.json` next to `events.jsonl`.

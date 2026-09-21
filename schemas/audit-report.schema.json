@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AuditReport",
+  "description": "Dev-only audit session: idea → discovery → resolve → plan → materialize → doctor. Written only with ENG_AUDIT=1 and --audit.",
+  "type": "object",
+  "required": ["schema_version", "session_id", "started_at", "events"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1" },
+    "session_id": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "core_version": { "type": "string" },
+    "catalog_version": { "type": "string" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seq", "at", "phase", "kind"],
+        "properties": {
+          "seq": { "type": "integer", "minimum": 1 },
+          "at": { "type": "string", "format": "date-time" },
+          "phase": {
+            "type": "string",
+            "enum": ["idea", "discovery", "intent", "resolve", "plan", "materialize", "doctor", "done"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["idea", "question", "answer", "intent", "command", "artifact", "result", "note"]
+          },
+          "summary": { "type": "string" },
+          "command": { "type": "string" },
+          "argv": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string" },
+          "data": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
